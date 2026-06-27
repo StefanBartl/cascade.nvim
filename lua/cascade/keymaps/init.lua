@@ -32,6 +32,10 @@ local PLUGS = {
   { mode = "x", lhs = "<Plug>(cascade-rotate-form-back)", action = "rotate_form_prev_visual" },
   { mode = "n", lhs = "<Plug>(cascade-sort)", action = "sort" },
   { mode = "x", lhs = "<Plug>(cascade-sort)", action = "sort_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-reverse)", action = "reverse" },
+  { mode = "x", lhs = "<Plug>(cascade-reverse)", action = "reverse_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-strip-checkbox)", action = "strip_checkbox" },
+  { mode = "x", lhs = "<Plug>(cascade-strip-checkbox)", action = "strip_checkbox_visual" },
 }
 
 --- Define every `<Plug>` mapping against the facade actions.
@@ -61,6 +65,8 @@ local function bind_list_buffer()
   lib.map({ "n", "x" }, "<leader>tf", "<Plug>(cascade-rotate-form)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form" }))
   lib.map({ "n", "x" }, "<leader>tF", "<Plug>(cascade-rotate-form-back)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form back" }))
   lib.map({ "n", "x" }, "<leader>ts", "<Plug>(cascade-sort)", vim.tbl_extend("force", opts, { desc = "cascade: sort list A-Z" }))
+  lib.map({ "n", "x" }, "<leader>tv", "<Plug>(cascade-reverse)", vim.tbl_extend("force", opts, { desc = "cascade: reverse list order" }))
+  lib.map({ "n", "x" }, "<leader>tx", "<Plug>(cascade-strip-checkbox)", vim.tbl_extend("force", opts, { desc = "cascade: strip checkboxes" }))
 end
 
 --- Create the user commands (range-aware; work in normal and visual mode).
@@ -87,6 +93,20 @@ local function define_commands()
     range = true,
     bang = true,
     desc = "cascade: sort list A-Z (range-aware; ! = Z-A)",
+  })
+
+  vim.api.nvim_create_user_command("CascadeReverse", function(cmd)
+    api.run_command(api._transform.reverse, cmd, 1)
+  end, {
+    range = true,
+    desc = "cascade: reverse list order (range-aware)",
+  })
+
+  vim.api.nvim_create_user_command("CascadeStrip", function(cmd)
+    api.run_command(api._transform.strip, cmd, 1)
+  end, {
+    range = true,
+    desc = "cascade: strip checkboxes (range-aware)",
   })
 end
 

@@ -102,8 +102,25 @@ eq(sl[1], "1. apple", "sort 1")
 eq(sl[2], "2. banana", "sort 2")
 eq(sl[3], "3. cherry", "sort 3")
 
--- 8. user commands exist after setup
+-- 8. reverse order (renumbered)
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
+transform.reverse(buf, 0, 2, 1, lopts)
+local rv = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(rv[1], "1. c", "reverse 1")
+eq(rv[2], "2. b", "reverse 2")
+eq(rv[3], "3. a", "reverse 3")
+
+-- 9. strip checkboxes (markers kept)
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. [x] a", "2. [ ] b" })
+transform.strip(buf, 0, 1, 1, lopts)
+local st = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(st[1], "1. a", "strip 1")
+eq(st[2], "2. b", "strip 2")
+
+-- 10. user commands exist after setup
 eq(vim.fn.exists(":CascadeRotate"), 2, ":CascadeRotate defined")
 eq(vim.fn.exists(":CascadeSort"), 2, ":CascadeSort defined")
+eq(vim.fn.exists(":CascadeReverse"), 2, ":CascadeReverse defined")
+eq(vim.fn.exists(":CascadeStrip"), 2, ":CascadeStrip defined")
 
 print("CASCADE_SMOKE_OK")

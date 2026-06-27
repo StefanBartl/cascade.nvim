@@ -63,6 +63,8 @@ All actions are exposed as <Plug> mappings, so you can bind any keys you like:
     <Plug>(cascade-rotate-form)        n, x    rotate block/selection forms
     <Plug>(cascade-rotate-form-back)   n, x    rotate forms backward
     <Plug>(cascade-sort)               n, x    sort block/selection A-Z
+    <Plug>(cascade-reverse)            n, x    reverse block/selection order
+    <Plug>(cascade-strip-checkbox)     n, x    remove checkboxes
 
 The checkbox, cycle-type, cycle-word, rotate-form (normal) and sort (normal)
 actions are dot-repeatable (|.|). The rotate-form and sort plugs are defined in
@@ -77,6 +79,8 @@ the cursor; with a range (e.g. visual `:'<,'>`) on the selected lines.
     :CascadeRotate [next|prev]     rotate list form forward/backward; the bang
                                    form :CascadeRotate! rotates backward.
     :CascadeSort                   sort the list A-Z; :CascadeSort! sorts Z-A.
+    :CascadeReverse                reverse the order of the list items.
+    :CascadeStrip                  remove checkboxes (markers are kept).
 
 PRESET                                                         *cascade-preset*
 
@@ -97,6 +101,8 @@ With `keymaps.preset = true`:
     n,x <leader>tf  ->  <Plug>(cascade-rotate-form)
     n,x <leader>tF  ->  <Plug>(cascade-rotate-form-back)
     n,x <leader>ts  ->  <Plug>(cascade-sort)
+    n,x <leader>tv  ->  <Plug>(cascade-reverse)
+    n,x <leader>tx  ->  <Plug>(cascade-strip-checkbox)
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you

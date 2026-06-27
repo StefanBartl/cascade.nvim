@@ -239,6 +239,12 @@ M.rotate_form_prev_visual = visual_work(transform.rotate, -1)
 M.sort = dotrepeat.repeatable("sort", block_work(transform.sort, 1))
 M.sort_visual = visual_work(transform.sort, 1)
 
+M.reverse = dotrepeat.repeatable("reverse", block_work(transform.reverse, 1))
+M.reverse_visual = visual_work(transform.reverse, 1)
+
+M.strip_checkbox = dotrepeat.repeatable("strip", block_work(transform.strip, 1))
+M.strip_checkbox_visual = visual_work(transform.strip, 1)
+
 --- Run a block transform from a `:command` (range-aware). Used by user commands.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
 ---@param cmd table # The nvim user-command argument table.

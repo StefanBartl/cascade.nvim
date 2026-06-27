@@ -162,21 +162,18 @@ function M.rotate(bufnr, srow, erow, dir, opts)
   return changed
 end
 
---- Sort base-indent items in `[srow, erow]` by text; renumber ordered markers.
+--- Collect the base-indent items in `[srow, erow]` together with their rows.
 ---@param bufnr integer
 ---@param srow integer
 ---@param erow integer
----@param dir integer # 1 ascending (A-Z), -1 descending.
 ---@param opts CascadeListOpts
----@return boolean changed
-function M.sort(bufnr, srow, erow, dir, opts)
-  local base, _ = first_item(bufnr, srow, erow, opts)
+---@return CascadeMarker|nil base, integer[] rows, CascadeMarker[] items, integer count
+local function collect(bufnr, srow, erow, opts)
+  local base = first_item(bufnr, srow, erow, opts)
   if not base then
-    return false
+    return nil, {}, {}, 0
   end
   local base_indent = #base.indent
-
-  -- Collect rows + items at the base indent.
   local rows, items = {}, {}
   local k = 0
   for r = srow, erow do
@@ -188,35 +185,33 @@ function M.sort(bufnr, srow, erow, dir, opts)
       items[k] = m
     end
   end
-  if k < 2 then
-    return false
-  end
+  return base, rows, items, k
+end
 
-  -- Stable order of indices by text.
-  local order = {}
-  for i = 1, k do
-    order[i] = i
-  end
-  table.sort(order, function(a, b)
-    local ta, tb = (items[a].text or ""):lower(), (items[b].text or ""):lower()
-    if ta == tb then
-      return a < b -- stable
-    end
-    if dir < 0 then
-      return ta > tb
-    end
-    return ta < tb
-  end)
-
-  local spec = {
+--- Type spec describing the block's ordered marker (kind/delim/case).
+---@param base CascadeMarker
+---@return CascadeTypeSpec
+local function base_spec(base)
+  return {
     kind = base.kind,
     delim = base.delim,
     upper = base.marker == base.marker:upper() and base.marker ~= base.marker:lower(),
     bullet = base.marker,
   }
+end
 
+--- Re-emit items into their rows following `order`, renumbering ordered markers
+--- (position-based) and carrying each item's checkbox/text along.
+---@param bufnr integer
+---@param base CascadeMarker
+---@param rows integer[]
+---@param items CascadeMarker[]
+---@param order integer[]
+---@return boolean changed
+local function apply_order(bufnr, base, rows, items, order)
+  local spec = base_spec(base)
   local changed = false
-  for pos = 1, k do
+  for pos = 1, #rows do
     local src = items[order[pos]]
     local new_m = {
       indent = base.indent,
@@ -231,6 +226,82 @@ function M.sort(bufnr, srow, erow, dir, opts)
     if new ~= cur then
       vim.api.nvim_buf_set_lines(bufnr, rows[pos], rows[pos] + 1, false, { new })
       changed = true
+    end
+  end
+  return changed
+end
+
+--- Sort base-indent items in `[srow, erow]` by text; renumber ordered markers.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param dir integer # 1 ascending (A-Z), -1 descending.
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.sort(bufnr, srow, erow, dir, opts)
+  local base, rows, items, k = collect(bufnr, srow, erow, opts)
+  if not base or k < 2 then
+    return false
+  end
+  local order = {}
+  for i = 1, k do
+    order[i] = i
+  end
+  table.sort(order, function(a, b)
+    local ta, tb = (items[a].text or ""):lower(), (items[b].text or ""):lower()
+    if ta == tb then
+      return a < b -- stable
+    end
+    if dir < 0 then
+      return ta > tb
+    end
+    return ta < tb
+  end)
+  return apply_order(bufnr, base, rows, items, order)
+end
+
+--- Reverse the order of base-indent items in `[srow, erow]`; renumber.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer # unused (kept for a uniform transform signature).
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.reverse(bufnr, srow, erow, _dir, opts)
+  local base, rows, items, k = collect(bufnr, srow, erow, opts)
+  if not base or k < 2 then
+    return false
+  end
+  local order = {}
+  for i = 1, k do
+    order[i] = k - i + 1
+  end
+  return apply_order(bufnr, base, rows, items, order)
+end
+
+--- Remove checkboxes from base-indent items in `[srow, erow]` (markers kept).
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer # unused (kept for a uniform transform signature).
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.strip(bufnr, srow, erow, _dir, opts)
+  local base, rows, items, k = collect(bufnr, srow, erow, opts)
+  if not base or k < 1 then
+    return false
+  end
+  local changed = false
+  for i = 1, k do
+    local m = items[i]
+    if m.checkbox ~= nil then
+      m.checkbox = nil
+      local new = marker.render(m) .. (m.text or "")
+      local cur = line_at(bufnr, rows[i])
+      if new ~= cur then
+        vim.api.nvim_buf_set_lines(bufnr, rows[i], rows[i] + 1, false, { new })
+        changed = true
+      end
     end
   end
   return changed
