@@ -1,0 +1,175 @@
+*cascade.txt*                          Context-aware lists & cycling for Neovim
+
+==============================================================================
+CONTENTS                                                     *cascade-contents*
+
+  1. Introduction ............................. |cascade-introduction|
+  2. Setup .................................... |cascade-setup|
+  3. Keymaps .................................. |cascade-keymaps|
+  4. Configuration ............................ |cascade-config|
+  5. Lists domain ............................. |cascade-lists|
+  6. Cycle domain ............................. |cascade-cycle|
+  7. Health ................................... |cascade-health|
+  8. lib.nvim integration ..................... |cascade-lib|
+
+==============================================================================
+1. INTRODUCTION                                          *cascade-introduction*
+
+cascade.nvim applies a single pattern to two feature domains:
+
+    detect the context under the cursor -> advance it one step -> fall back to
+    the native key when nothing matches.
+
+  - The *lists* domain continues markdown/text/tex/norg lists, renumbers them,
+    toggles checkboxes, cycles marker types and indents items. It is filetype
+    scoped.
+  - The *cycle* domain rotates the word under the cursor (true/false, on/off,
+    ...) and defers to native |CTRL-A|/|CTRL-X| on numeric tokens. It is global
+    by default.
+
+Requires Neovim 0.9+. No Treesitter, no autocommand-per-keystroke; all work is
+triggered by explicit keys, guarded with pcall, and uses one context object per
+action.
+
+==============================================================================
+2. SETUP                                                        *cascade-setup*
+
+                                                              *cascade.setup()*
+>lua
+    require("cascade").setup({
+      keymaps = { preset = true },
+    })
+<
+Calling setup() merges your options over the defaults and defines the |<Plug>|
+mappings. With `keymaps.preset = true` it additionally binds the default keys
+(see |cascade-keymaps|). setup() is safe to call once.
+
+==============================================================================
+3. KEYMAPS                                                    *cascade-keymaps*
+
+All actions are exposed as <Plug> mappings, so you can bind any keys you like:
+
+    <Plug>(cascade-cr)                 insert  continue list / delete empty
+    <Plug>(cascade-o)                  normal  open continued item below
+    <Plug>(cascade-O)                  normal  open continued item above
+    <Plug>(cascade-checkbox)           normal  toggle / cycle checkbox
+    <Plug>(cascade-cycle-type-next)    normal  cycle list marker type forward
+    <Plug>(cascade-cycle-type-prev)    normal  cycle list marker type backward
+    <Plug>(cascade-cycle-word-next)    normal  cycle word / native increment
+    <Plug>(cascade-cycle-word-prev)    normal  cycle word / native decrement
+    <Plug>(cascade-indent)             normal  indent item + renumber
+    <Plug>(cascade-dedent)             normal  dedent item + renumber
+    <Plug>(cascade-renumber)           normal  renumber the ordered block
+
+The checkbox, cycle-type and cycle-word actions are dot-repeatable (|.|).
+
+PRESET                                                         *cascade-preset*
+
+With `keymaps.preset = true`:
+
+  Global:
+    <C-a>   ->  <Plug>(cascade-cycle-word-next)
+    <C-x>   ->  <Plug>(cascade-cycle-word-prev)
+
+  Buffer-local in `lists.filetypes`:
+    i <CR>          ->  <Plug>(cascade-cr)
+    n o             ->  <Plug>(cascade-o)
+    n O             ->  <Plug>(cascade-O)
+    n <leader>tc    ->  <Plug>(cascade-checkbox)
+    n <leader>tt    ->  <Plug>(cascade-cycle-type-next)
+    n <leader>tT    ->  <Plug>(cascade-cycle-type-prev)
+    n <leader>tr    ->  <Plug>(cascade-renumber)
+
+<Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
+completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you
+want them.
+
+==============================================================================
+4. CONFIGURATION                                               *cascade-config*
+
+Defaults: >lua
+    {
+      lists = {
+        enable = true,
+        filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
+        types = { "unordered", "digit" },
+        unordered_markers = { "-", "*", "+" },
+        cycle = { "-", "*", "+", "1.", "a)", "I." },
+        checkbox = { states = { " ", "x" } },
+        continue = { delete_empty = true },
+        renumber = true,
+      },
+      cycle = {
+        enable = true,
+        filetypes = nil,
+        number_fallback = true,
+        groups = { { "true", "false" }, ... },
+        per_filetype = {},
+      },
+      keymaps = { preset = false },
+    }
+<
+Field reference ~
+
+lists.enable          (boolean)   Master switch for the list domain.
+lists.filetypes       (string[])  Filetypes the list keys attach to.
+lists.types           (string[])  Enabled marker kinds, in detection order:
+                                  "unordered", "digit", "ascii", "roman".
+                                  ascii/roman are opt-in (letters are ambiguous).
+lists.unordered_markers (string[]) Accepted bullet characters.
+lists.cycle           (string[])  Marker templates for cycle-type. Convention:
+                                  digits => digit, a/A => alpha, i/I => roman,
+                                  any other single char => unordered bullet.
+lists.checkbox.states (string[])  Ordered single-char states cycled in `[ ]`.
+lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
+lists.renumber        (boolean)   Auto-renumber ordered lists after edits.
+
+cycle.enable          (boolean)   Master switch for the cycle domain.
+cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
+cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens.
+cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
+cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
+
+keymaps.preset        (boolean)   Bind the default key set on setup.
+
+==============================================================================
+5. LISTS DOMAIN                                                 *cascade-lists*
+
+A list item is `<indent><marker><delim?> <text>` with an optional `[x]`
+checkbox right after the marker. Ordered markers (digit/ascii/roman) are
+incremented on continuation; renumber rewrites a contiguous block at one indent
+level, preserving the first item's start value and case.
+
+Examples: >
+    1. first          ->  <CR>  ->  2. (cursor here)
+    - [ ] task        ->  checkbox  ->  - [x] task
+    a) alpha          ->  <CR>  ->  b)
+    IV) roman         ->  <CR>  ->  V)
+<
+==============================================================================
+6. CYCLE DOMAIN                                                 *cascade-cycle*
+
+The keyword token under the cursor (respecting 'iskeyword') is matched
+case-insensitively against the cycle groups; the replacement preserves the
+original capitalization (lower / UPPER / Capital). Numeric tokens are skipped so
+that native |CTRL-A|/|CTRL-X| can handle them when `number_fallback` is on.
+
+==============================================================================
+7. HEALTH                                                      *cascade-health*
+
+                                                          *:checkhealth-cascade*
+>vim
+    :checkhealth cascade
+<
+Reports the Neovim version, per-domain status, optional lib.nvim integration and
+basic configuration sanity.
+
+==============================================================================
+8. LIB.NVIM INTEGRATION                                           *cascade-lib*
+
+cascade.nvim optionally uses the user's `lib.nvim` helpers (`lib.map`,
+`lib.notify`, `lib.augroup`) when they are on the runtimepath. If absent it
+falls back to the native API, so the plugin works fully standalone. There is no
+hard dependency.
+
+vim:tw=78:ts=8:ft=help:norl:
