@@ -12,6 +12,7 @@ local DEFAULTS = {
     types = { "unordered", "digit" },
     unordered_markers = { "-", "*", "+" },
     cycle = { "-", "*", "+", "1.", "a)", "I." },
+    forms = { "1.", "1. [ ]", "- [ ]", "-" },
     checkbox = {
       states = { " ", "x" },
     },

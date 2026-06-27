@@ -46,6 +46,8 @@
 | **lists**  | Renumber               | Kontextbewusst, respektiert Start-Offset ≠ 1.                      |
 | **lists**  | Checkbox-Cycle         | Konfigurierbarer N-Zustands-Cycle (`[ ]`→`[x]`→…), dot-repeatable.  |
 | **lists**  | Cycle list type        | `-`→`*`→`+`→`1.`→`a)`→`I.`, dot-repeatable.                         |
+| **lists**  | Form-Rotation          | Block/Visual durch Formen rotieren: `1.`→`1. [ ]`→`- [ ]`→`-`.      |
+| **lists**  | Sort A–Z               | Block/Visual alphabetisch sortieren + Renumber.                     |
 | **lists**  | Indent / Dedent        | Ein-/Ausrücken mit automatischem Renumber.                          |
 | **lists**  | Roman & Alpha          | `I.II.III.` und `a)b)c)` ↔ Integer, sauber gekapselt.              |
 | **cycle**  | Word / boolean cycle   | Case-erhaltend, per-Filetype erweiterbar, dot-repeatable.          |
@@ -128,9 +130,40 @@ Alle Aktionen sind als `<Plug>`-Mappings verfügbar:
 | `<Plug>(cascade-indent)`            | n     | Einrücken + Renumber                     |
 | `<Plug>(cascade-dedent)`            | n     | Ausrücken + Renumber                     |
 | `<Plug>(cascade-renumber)`          | n     | Block neu nummerieren                    |
+| `<Plug>(cascade-rotate-form)`       | n, x  | Block/Auswahl durch Formen rotieren      |
+| `<Plug>(cascade-rotate-form-back)`  | n, x  | … rückwärts                              |
+| `<Plug>(cascade-sort)`              | n, x  | Block/Auswahl A–Z sortieren              |
 
 > `<Tab>`/`<S-Tab>` sind bewusst **nicht** im Preset (Konflikt mit Completion).
 > Bei Bedarf via `<Plug>(cascade-indent/dedent)` selbst binden.
+
+### User commands
+
+Range-aware — ohne Range wirken sie auf den Listenblock am Cursor, mit Range
+(z. B. Visual `:'<,'>`) auf die Auswahl:
+
+| Command                       | Wirkung                                            |
+| ----------------------------- | -------------------------------------------------- |
+| `:CascadeRotate [next\|prev]` | Form vor/zurück rotieren (`!` = rückwärts).        |
+| `:CascadeSort`                | Block/Auswahl A–Z sortieren (`!` = Z–A).           |
+
+Im Preset zusätzlich buffer-lokal: `<leader>tf` / `<leader>tF` (Form vor/zurück)
+und `<leader>ts` (Sort) — jeweils in Normal **und** Visual.
+
+### Form-Rotation
+
+Eine Aktion rotiert den **ganzen Block** (oder die Visual-Auswahl) durch die in
+`lists.forms` konfigurierten Formen. „Nummerierung zu Checkbox" ist damit der
+erste Rotationsschritt:
+
+```
+1. eins        ->   1. [ ] eins        ->   - [ ] eins        ->   - eins
+2. zwei              2. [ ] zwei              - [ ] zwei              - zwei
+```
+
+Eine Form kombiniert eine Marker-Shape (`1.`, `-`, `a)`, `I.`) mit optionaler
+`[ ]`-Checkbox. Bestehende Checkbox-Zustände (`[x]`) bleiben beim Rotieren
+erhalten; geordnete Ziele werden automatisch neu nummeriert.
 
 ---
 
@@ -145,7 +178,8 @@ require("cascade").setup({
     filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
     types = { "unordered", "digit" },        -- Erkennungs-Reihenfolge
     unordered_markers = { "-", "*", "+" },
-    cycle = { "-", "*", "+", "1.", "a)", "I." },
+    cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (eine Zeile)
+    forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- Form-Rotation (Block/Visual)
     checkbox = { states = { " ", "x" } },    -- N-Zustands-Cycle möglich
     continue = { delete_empty = true },
     renumber = true,

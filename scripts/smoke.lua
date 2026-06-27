@@ -73,4 +73,37 @@ local ok = require("cascade.cycle.word_cycle").cycle(require("cascade.core.conte
 eq(ok, true, "word cycle handled")
 eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "local x = false", "true->false")
 
+-- 6. form rotation (transform): 1. -> 1. [ ] -> - [ ] -> -
+local transform = require("cascade.lists.transform")
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. one", "2. two", "3. three" })
+local s_, e_ = transform.block_range(buf, 0, lopts)
+eq(s_, 0, "block start")
+eq(e_, 2, "block end")
+transform.rotate(buf, s_, e_, 1, lopts) -- 1. -> 1. [ ]
+eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "1. [ ] one", "rotate to numbered checkbox")
+eq(vim.api.nvim_buf_get_lines(buf, 1, 2, false)[1], "2. [ ] two", "rotate l2")
+transform.rotate(buf, s_, e_, 1, lopts) -- 1. [ ] -> - [ ]
+eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [ ] one", "rotate to task list")
+transform.rotate(buf, s_, e_, 1, lopts) -- - [ ] -> -
+eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- one", "rotate to plain bullet")
+
+-- checkbox state survives rotation
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- [x] done", "- [ ] todo" })
+transform.rotate(buf, 0, 1, 1, lopts) -- - [ ] -> -  (from task form)
+-- after one forward step from "- [ ]" we reach "-" (index 4 -> wrap to 1 "1.")?
+-- forms = { "1.", "1. [ ]", "- [ ]", "-" }; "- [x]" matches "- [ ]" (idx 3) -> idx 4 "-"
+eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- done", "task -> plain keeps no checkbox")
+
+-- 7. sort A-Z with renumber
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. banana", "2. apple", "3. cherry" })
+transform.sort(buf, 0, 2, 1, lopts)
+local sl = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(sl[1], "1. apple", "sort 1")
+eq(sl[2], "2. banana", "sort 2")
+eq(sl[3], "3. cherry", "sort 3")
+
+-- 8. user commands exist after setup
+eq(vim.fn.exists(":CascadeRotate"), 2, ":CascadeRotate defined")
+eq(vim.fn.exists(":CascadeSort"), 2, ":CascadeSort defined")
+
 print("CASCADE_SMOKE_OK")

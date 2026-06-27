@@ -20,6 +20,7 @@
 ---@field types CascadeMarkerKind[] # Enabled ordered/unordered marker kinds, in detection order.
 ---@field unordered_markers string[] # Accepted unordered bullet characters.
 ---@field cycle string[] # Marker shapes cycled by `cycle_type` (e.g. { "-", "*", "1.", "a)" }).
+---@field forms string[] # Block/visual form rotation: shape + optional checkbox (e.g. { "1.", "1. [ ]", "- [ ]", "-" }).
 ---@field checkbox CascadeCheckboxOpts
 ---@field continue CascadeContinueOpts
 ---@field renumber boolean # Auto-renumber ordered lists after structural edits.

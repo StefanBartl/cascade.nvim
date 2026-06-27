@@ -60,8 +60,23 @@ All actions are exposed as <Plug> mappings, so you can bind any keys you like:
     <Plug>(cascade-indent)             normal  indent item + renumber
     <Plug>(cascade-dedent)             normal  dedent item + renumber
     <Plug>(cascade-renumber)           normal  renumber the ordered block
+    <Plug>(cascade-rotate-form)        n, x    rotate block/selection forms
+    <Plug>(cascade-rotate-form-back)   n, x    rotate forms backward
+    <Plug>(cascade-sort)               n, x    sort block/selection A-Z
 
-The checkbox, cycle-type and cycle-word actions are dot-repeatable (|.|).
+The checkbox, cycle-type, cycle-word, rotate-form (normal) and sort (normal)
+actions are dot-repeatable (|.|). The rotate-form and sort plugs are defined in
+both normal and visual mode: normal mode operates on the contiguous list block
+at the cursor, visual mode on the selected lines.
+
+USER COMMANDS                                               *cascade-commands*
+
+Both are |:command-range| aware. Without a range they act on the list block at
+the cursor; with a range (e.g. visual `:'<,'>`) on the selected lines.
+
+    :CascadeRotate [next|prev]     rotate list form forward/backward; the bang
+                                   form :CascadeRotate! rotates backward.
+    :CascadeSort                   sort the list A-Z; :CascadeSort! sorts Z-A.
 
 PRESET                                                         *cascade-preset*
 
@@ -79,6 +94,9 @@ With `keymaps.preset = true`:
     n <leader>tt    ->  <Plug>(cascade-cycle-type-next)
     n <leader>tT    ->  <Plug>(cascade-cycle-type-prev)
     n <leader>tr    ->  <Plug>(cascade-renumber)
+    n,x <leader>tf  ->  <Plug>(cascade-rotate-form)
+    n,x <leader>tF  ->  <Plug>(cascade-rotate-form-back)
+    n,x <leader>ts  ->  <Plug>(cascade-sort)
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you
@@ -117,9 +135,13 @@ lists.types           (string[])  Enabled marker kinds, in detection order:
                                   "unordered", "digit", "ascii", "roman".
                                   ascii/roman are opt-in (letters are ambiguous).
 lists.unordered_markers (string[]) Accepted bullet characters.
-lists.cycle           (string[])  Marker templates for cycle-type. Convention:
-                                  digits => digit, a/A => alpha, i/I => roman,
-                                  any other single char => unordered bullet.
+lists.cycle           (string[])  Marker templates for cycle-type (single line).
+                                  Convention: digits => digit, a/A => alpha,
+                                  i/I => roman, any other single char => bullet.
+lists.forms           (string[])  Form-rotation templates for block/visual
+                                  transforms. A form is a cycle template plus an
+                                  optional `[ ]` suffix, e.g. "1.", "1. [ ]",
+                                  "- [ ]", "-".
 lists.checkbox.states (string[])  Ordered single-char states cycled in `[ ]`.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
 lists.renumber        (boolean)   Auto-renumber ordered lists after edits.

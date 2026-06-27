@@ -7,8 +7,9 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 
 - **Subtree-aware indent** — beim Ein-/Ausrücken Kind-Items (tiefer eingerückte
   Folgezeilen) automatisch mitnehmen.
-- **Visual-Mode-Operationen** — Auswahl als Liste umtypisieren, neu nummerieren,
-  sortieren, umkehren.
+- ~~**Visual-Mode-Operationen**~~ — ✅ erledigt: Form-Rotation (`:CascadeRotate`)
+  und Sort A–Z (`:CascadeSort`) auf Block + Visual. Offen davon noch:
+  **Reihenfolge umkehren** als eigene Aktion.
 - **`gq`/`textwidth`-Awareness** — Fortführung respektiert Umbruch und hängende
   Einrückung (hanging indent).
 - **Mehr-Zeichen-Checkbox-States** — aktuell sind States Ein-Zeichen (`[ ]`);

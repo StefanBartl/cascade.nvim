@@ -25,6 +25,13 @@ local PLUGS = {
   { mode = "n", lhs = "<Plug>(cascade-indent)", action = "indent" },
   { mode = "n", lhs = "<Plug>(cascade-dedent)", action = "dedent" },
   { mode = "n", lhs = "<Plug>(cascade-renumber)", action = "renumber" },
+  -- Block (normal) + selection (visual) transforms share a <Plug> name.
+  { mode = "n", lhs = "<Plug>(cascade-rotate-form)", action = "rotate_form_next" },
+  { mode = "x", lhs = "<Plug>(cascade-rotate-form)", action = "rotate_form_next_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-rotate-form-back)", action = "rotate_form_prev" },
+  { mode = "x", lhs = "<Plug>(cascade-rotate-form-back)", action = "rotate_form_prev_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-sort)", action = "sort" },
+  { mode = "x", lhs = "<Plug>(cascade-sort)", action = "sort_visual" },
 }
 
 --- Define every `<Plug>` mapping against the facade actions.
@@ -51,6 +58,36 @@ local function bind_list_buffer()
   lib.map("n", "<leader>tt", "<Plug>(cascade-cycle-type-next)", vim.tbl_extend("force", opts, { desc = "cascade: cycle list type" }))
   lib.map("n", "<leader>tT", "<Plug>(cascade-cycle-type-prev)", vim.tbl_extend("force", opts, { desc = "cascade: cycle list type back" }))
   lib.map("n", "<leader>tr", "<Plug>(cascade-renumber)", vim.tbl_extend("force", opts, { desc = "cascade: renumber" }))
+  lib.map({ "n", "x" }, "<leader>tf", "<Plug>(cascade-rotate-form)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form" }))
+  lib.map({ "n", "x" }, "<leader>tF", "<Plug>(cascade-rotate-form-back)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form back" }))
+  lib.map({ "n", "x" }, "<leader>ts", "<Plug>(cascade-sort)", vim.tbl_extend("force", opts, { desc = "cascade: sort list A-Z" }))
+end
+
+--- Create the user commands (range-aware; work in normal and visual mode).
+---@return nil
+local function define_commands()
+  local api = require("cascade")
+  vim.api.nvim_create_user_command("CascadeRotate", function(cmd)
+    local dir = (cmd.args == "prev" or cmd.bang) and -1 or 1
+    api.run_command(api._transform.rotate, cmd, dir)
+  end, {
+    range = true,
+    bang = true,
+    nargs = "?",
+    complete = function()
+      return { "next", "prev" }
+    end,
+    desc = "cascade: rotate list form (range-aware; ! = backward)",
+  })
+
+  vim.api.nvim_create_user_command("CascadeSort", function(cmd)
+    local dir = cmd.bang and -1 or 1 -- ! = descending (Z-A)
+    api.run_command(api._transform.sort, cmd, dir)
+  end, {
+    range = true,
+    bang = true,
+    desc = "cascade: sort list A-Z (range-aware; ! = Z-A)",
+  })
 end
 
 --- Bind the preset key set (global cycle + per-filetype list maps).
@@ -86,6 +123,7 @@ end
 ---@return nil
 function M.setup(cfg)
   define_plugs()
+  define_commands()
   if cfg.keymaps and cfg.keymaps.preset then
     bind_preset(cfg)
   end
