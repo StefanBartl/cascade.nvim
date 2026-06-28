@@ -5,8 +5,16 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 
 ## Lists
 
+- ~~**Ebenen-bewusster Indent + Renumber**~~ — ✅ erledigt: `<A-Right>`/`<A-Left>`,
+  `:CascadeIndent`/`:CascadeDedent`, Normal + Visual, `count` = Ebenen, mit
+  Per-Level-Renumber (`renumber.tree`).
 - **Subtree-aware indent** — beim Ein-/Ausrücken Kind-Items (tiefer eingerückte
-  Folgezeilen) automatisch mitnehmen.
+  Folgezeilen) automatisch mitnehmen (aktuell wird nur die/ die markierten
+  Zeile(n) geshiftet, Kinder bleiben stehen).
+- **Loose-List-Support** — Items mit Leerzeilen dazwischen als ein Block
+  behandeln (aktuell beendet eine Leerzeile den Block fürs Renumbern).
+- **Start-Offset auf Subebenen erhalten** — Tree-Renumber setzt Subebenen
+  immer auf `1`; ein bewusster Nicht-1-Start auf tieferen Ebenen geht verloren.
 - ~~**Visual-Mode-Operationen**~~ — ✅ erledigt: Form-Rotation (`:CascadeRotate`),
   Sort A–Z (`:CascadeSort`), Reihenfolge umkehren (`:CascadeReverse`) und
   Checkbox entfernen (`:CascadeStrip`) auf Block + Visual.

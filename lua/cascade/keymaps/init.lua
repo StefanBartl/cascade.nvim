@@ -23,7 +23,9 @@ local PLUGS = {
   { mode = "n", lhs = "<Plug>(cascade-cycle-word-next)", action = "cycle_word_next" },
   { mode = "n", lhs = "<Plug>(cascade-cycle-word-prev)", action = "cycle_word_prev" },
   { mode = "n", lhs = "<Plug>(cascade-indent)", action = "indent" },
+  { mode = "x", lhs = "<Plug>(cascade-indent)", action = "indent_visual" },
   { mode = "n", lhs = "<Plug>(cascade-dedent)", action = "dedent" },
+  { mode = "x", lhs = "<Plug>(cascade-dedent)", action = "dedent_visual" },
   { mode = "n", lhs = "<Plug>(cascade-renumber)", action = "renumber" },
   -- Block (normal) + selection (visual) transforms share a <Plug> name.
   { mode = "n", lhs = "<Plug>(cascade-rotate-form)", action = "rotate_form_next" },
@@ -108,6 +110,22 @@ local function define_commands()
     range = true,
     desc = "cascade: strip checkboxes (range-aware)",
   })
+
+  vim.api.nvim_create_user_command("CascadeIndent", function(cmd)
+    api.run_indent_command(cmd, 1)
+  end, {
+    range = true,
+    nargs = "?",
+    desc = "cascade: indent line/range (+renumber; arg = levels)",
+  })
+
+  vim.api.nvim_create_user_command("CascadeDedent", function(cmd)
+    api.run_indent_command(cmd, -1)
+  end, {
+    range = true,
+    nargs = "?",
+    desc = "cascade: dedent line/range (+renumber; arg = levels)",
+  })
 end
 
 --- Bind the preset key set (global cycle + per-filetype list maps).
@@ -118,6 +136,13 @@ local function bind_preset(cfg)
     lib.map("n", "<C-a>", "<Plug>(cascade-cycle-word-next)", { silent = true, desc = "cascade: increment / cycle word" })
     lib.map("n", "<C-x>", "<Plug>(cascade-cycle-word-prev)", { silent = true, desc = "cascade: decrement / cycle word" })
   end
+
+  -- Global indent/outdent (all filetypes): list-aware renumber on list lines,
+  -- native shift everywhere else. Insert mode uses the native <C-t>/<C-d>.
+  lib.map({ "n", "x" }, "<A-Right>", "<Plug>(cascade-indent)", { silent = true, desc = "cascade: indent (+renumber)" })
+  lib.map({ "n", "x" }, "<A-Left>", "<Plug>(cascade-dedent)", { silent = true, desc = "cascade: dedent (+renumber)" })
+  lib.map("i", "<A-Right>", "<C-t>", { silent = true, desc = "cascade: indent line (insert)" })
+  lib.map("i", "<A-Left>", "<C-d>", { silent = true, desc = "cascade: dedent line (insert)" })
 
   if cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0 then
     local group = lib.augroup("cascade_lists")

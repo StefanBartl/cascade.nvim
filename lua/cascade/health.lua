@@ -49,6 +49,14 @@ function M.check()
     if type(lists.cycle) ~= "table" or #lists.cycle == 0 then
       warn("lists.cycle is empty — marker-type cycling disabled")
     end
+    if type(lists.forms) ~= "table" or #lists.forms == 0 then
+      warn("lists.forms is empty — form rotation disabled")
+    end
+    if lists.renumber then
+      info("renumber: on (indent/outdent is indent-level aware)")
+    else
+      info("renumber: off — indent/outdent will not re-sequence ordered lists")
+    end
   else
     info("lists: disabled")
   end

@@ -50,7 +50,7 @@
 | **lists**  | Sort A–Z               | Block/Visual alphabetisch sortieren + Renumber.                     |
 | **lists**  | Reihenfolge umkehren   | Block/Visual umdrehen + Renumber.                                   |
 | **lists**  | Checkbox entfernen     | Block/Visual: `[ ]`/`[x]` strippen, Marker bleiben.                 |
-| **lists**  | Indent / Dedent        | Ein-/Ausrücken mit automatischem Renumber.                          |
+| **lists**  | Indent / Dedent        | Ebenen-bewusst: jede Einrück-Ebene wird sauber neu nummeriert.      |
 | **lists**  | Roman & Alpha          | `I.II.III.` und `a)b)c)` ↔ Integer, sauber gekapselt.              |
 | **cycle**  | Word / boolean cycle   | Case-erhaltend, per-Filetype erweiterbar, dot-repeatable.          |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` für int/float/hex.                          |
@@ -129,8 +129,8 @@ Alle Aktionen sind als `<Plug>`-Mappings verfügbar:
 | `<Plug>(cascade-cycle-type-prev)`   | n     | Listentyp zurück                         |
 | `<Plug>(cascade-cycle-word-next)`   | n     | Wort/Zahl vor                            |
 | `<Plug>(cascade-cycle-word-prev)`   | n     | Wort/Zahl zurück                         |
-| `<Plug>(cascade-indent)`            | n     | Einrücken + Renumber                     |
-| `<Plug>(cascade-dedent)`            | n     | Ausrücken + Renumber                     |
+| `<Plug>(cascade-indent)`            | n, x  | Einrücken + ebenen-bewusst renumbern     |
+| `<Plug>(cascade-dedent)`            | n, x  | Ausrücken + ebenen-bewusst renumbern     |
 | `<Plug>(cascade-renumber)`          | n     | Block neu nummerieren                    |
 | `<Plug>(cascade-rotate-form)`       | n, x  | Block/Auswahl durch Formen rotieren      |
 | `<Plug>(cascade-rotate-form-back)`  | n, x  | … rückwärts                              |
@@ -152,10 +152,33 @@ Range-aware — ohne Range wirken sie auf den Listenblock am Cursor, mit Range
 | `:CascadeSort`                | Block/Auswahl A–Z sortieren (`!` = Z–A).           |
 | `:CascadeReverse`             | Reihenfolge umkehren.                              |
 | `:CascadeStrip`               | Checkboxen entfernen.                              |
+| `:CascadeIndent [n]`          | Einrücken (n Ebenen) + Renumber.                  |
+| `:CascadeDedent [n]`          | Ausrücken (n Ebenen) + Renumber.                  |
 
 Im Preset zusätzlich buffer-lokal (jeweils Normal **und** Visual):
 `<leader>tf` / `<leader>tF` (Form vor/zurück), `<leader>ts` (Sort),
 `<leader>tv` (umkehren), `<leader>tx` (Checkbox strippen).
+
+**Global** (alle Filetypes) bindet das Preset zusätzlich Einrücken/Ausrücken:
+`<A-Right>` / `<A-Left>` (Normal, Visual und Insert → `<C-t>`/`<C-d>`).
+
+### Ebenen-bewusster Indent
+
+Beim Ein-/Ausrücken einer nummerierten Liste wird **jede Einrück-Ebene** neu
+nummeriert: eine tiefere Ebene startet bei `1.`, die Rückkehr auf eine flachere
+Ebene läuft weiter, und die verlassene Ebene schließt ihre Lücke. `vim.v.count`
+gibt die Anzahl Ebenen an. Außerhalb der Listen-Filetypes ist es ein normales
+`>>`/`<<` — damit ersetzt es ein generisches Indent-Mapping vollständig.
+
+```
+1. top              1. top
+  1. a       →        1. a
+  2. b                2. b
+  3. c  (>>)            1. c     ← neue Subebene startet bei 1.
+  4. d                3. d       ← Lücke geschlossen (4→3)
+  5. e                4. e       ← (5→4)
+2. bot              2. bot
+```
 
 ### Form-Rotation
 

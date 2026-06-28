@@ -49,6 +49,84 @@ local function value_of(kind, token)
   end
 end
 
+--- Indent-aware renumber of the whole block `[srow, erow]` (0-based, inclusive).
+---
+--- Walks the block once with a counter per indent width: a deeper level resets
+--- to 1, returning to a shallower level continues it, and the block's base level
+--- keeps its first item's start offset. This is the behavior wanted after an
+--- indent/outdent — each nesting level forms its own clean sequence.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.tree(bufnr, srow, erow, opts)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
+  if #lines == 0 then
+    return false
+  end
+
+  -- Base = smallest indent width among list items; its first ordered item sets
+  -- the start offset so a list that begins at e.g. "3." stays anchored there.
+  local base_w, base_start = nil, 1
+  for i = 1, #lines do
+    local m = marker.parse(lines[i], opts)
+    if m then
+      local w = #m.indent
+      if base_w == nil or w < base_w then
+        base_w = w
+      end
+    end
+  end
+  if base_w == nil then
+    return false
+  end
+  for i = 1, #lines do
+    local m = marker.parse(lines[i], opts)
+    if m and #m.indent == base_w and m.kind ~= "unordered" then
+      base_start = value_of(m.kind, m.marker) or 1
+      break
+    end
+  end
+
+  local counters = {} ---@type table<integer, integer>
+  counters[base_w] = base_start - 1
+
+  local changed = false
+  for i = 1, #lines do
+    local line = lines[i]
+    local m = marker.parse(line, opts)
+    if not m then
+      -- A non-list line ends every running sequence.
+      counters = {}
+      counters[base_w] = base_start - 1
+    else
+      local w = #m.indent
+      -- Returning to a shallower level invalidates all deeper counters.
+      for cw in pairs(counters) do
+        if cw > w then
+          counters[cw] = nil
+        end
+      end
+      if m.kind ~= "unordered" then
+        local seed = (w == base_w) and (base_start - 1) or 0
+        local cur = (counters[w] or seed) + 1
+        counters[w] = cur
+        local want = ordinal(m.kind, cur, m.marker)
+        if want ~= m.marker then
+          m.marker = want
+          local new = marker.render(m) .. (m.text or "")
+          if new ~= line then
+            vim.api.nvim_buf_set_lines(bufnr, srow + i - 1, srow + i, false, { new })
+            changed = true
+          end
+        end
+      end
+    end
+  end
+  return changed
+end
+
 --- Renumber the ordered block containing line `row0` (0-based).
 ---@param bufnr integer
 ---@param row0 integer

@@ -57,8 +57,8 @@ All actions are exposed as <Plug> mappings, so you can bind any keys you like:
     <Plug>(cascade-cycle-type-prev)    normal  cycle list marker type backward
     <Plug>(cascade-cycle-word-next)    normal  cycle word / native increment
     <Plug>(cascade-cycle-word-prev)    normal  cycle word / native decrement
-    <Plug>(cascade-indent)             normal  indent item + renumber
-    <Plug>(cascade-dedent)             normal  dedent item + renumber
+    <Plug>(cascade-indent)             n, x    indent + level-aware renumber
+    <Plug>(cascade-dedent)             n, x    dedent + level-aware renumber
     <Plug>(cascade-renumber)           normal  renumber the ordered block
     <Plug>(cascade-rotate-form)        n, x    rotate block/selection forms
     <Plug>(cascade-rotate-form-back)   n, x    rotate forms backward
@@ -81,6 +81,9 @@ the cursor; with a range (e.g. visual `:'<,'>`) on the selected lines.
     :CascadeSort                   sort the list A-Z; :CascadeSort! sorts Z-A.
     :CascadeReverse                reverse the order of the list items.
     :CascadeStrip                  remove checkboxes (markers are kept).
+    :CascadeIndent [n]             indent line/range by n levels (default 1) and
+                                   renumber; e.g. :'<,'>CascadeIndent 2.
+    :CascadeDedent [n]             dedent line/range by n levels and renumber.
 
 PRESET                                                         *cascade-preset*
 
@@ -103,6 +106,12 @@ With `keymaps.preset = true`:
     n,x <leader>ts  ->  <Plug>(cascade-sort)
     n,x <leader>tv  ->  <Plug>(cascade-reverse)
     n,x <leader>tx  ->  <Plug>(cascade-strip-checkbox)
+
+  Global (every filetype):
+    n,x <A-Right>   ->  <Plug>(cascade-indent)
+    n,x <A-Left>    ->  <Plug>(cascade-dedent)
+    i   <A-Right>   ->  <C-t>     (native insert indent)
+    i   <A-Left>    ->  <C-d>     (native insert dedent)
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you
@@ -174,6 +183,19 @@ Examples: >
     a) alpha          ->  <CR>  ->  b)
     IV) roman         ->  <CR>  ->  V)
 <
+Indent / dedent renumber every nesting level independently: a deeper level
+starts at 1, returning to a shallower level continues it, and the level a line
+leaves closes its gap. The base level keeps its first item's start offset. >
+    1. top                1. top
+      1. a       (>>)       1. a
+      2. b                  2. b
+      3. c                    1. c    (new sub-level resets to 1)
+      4. d                  3. d      (gap closed: 4 -> 3)
+      5. e                  4. e      (5 -> 4)
+    2. bot                2. bot
+<
+Loose lists (items separated by blank lines) are treated as separate blocks.
+
 ==============================================================================
 6. CYCLE DOMAIN                                                 *cascade-cycle*
 

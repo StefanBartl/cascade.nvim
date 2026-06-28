@@ -117,10 +117,57 @@ local st = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 eq(st[1], "1. a", "strip 1")
 eq(st[2], "2. b", "strip 2")
 
--- 10. user commands exist after setup
+-- 10. indent-aware tree renumber — the three user scenarios.
+local rn = require("cascade.lists.renumber")
+
+-- (a) a nested item pushed one level deeper starts a new "1." run; the level it
+--     left closes its gap.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "1. top", "  1. a", "  2. b", "    3. c", "  4. d", "  5. e", "2. bot",
+})
+rn.tree(buf, 0, 6, lopts)
+local t1 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(t1[4], "    1. c", "deeper item resets to 1")
+eq(t1[5], "  3. d", "left level closes gap (4->3)")
+eq(t1[6], "  4. e", "left level closes gap (5->4)")
+eq(t1[7], "2. bot", "base level continues")
+
+-- (b) an item outdented into the parent level joins its sequence; items after
+--     shift down.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "1. top", "  1. a", "  2. b", "  3. c", "4. d", "  5. e", "2. bot",
+})
+rn.tree(buf, 0, 6, lopts)
+local t2 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(t2[5], "2. d", "outdented item becomes 2. at parent level")
+eq(t2[7], "3. bot", "old parent 2. becomes 3.")
+
+-- (c) a top-level item indented under a nested run appends to it.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "1. top", "  1. a", "  2. b", "  3. c", "  4. d", "  5. e", "  2. bot",
+})
+rn.tree(buf, 0, 6, lopts)
+local t3 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(t3[7], "  6. bot", "indented item appends as 6.")
+
+-- (d) indent.shift_line integration: shift a single list line + renumber.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
+vim.bo[buf].expandtab = true
+vim.bo[buf].shiftwidth = 2
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+require("cascade.lists.indent").shift_line(
+  require("cascade.core.context").new(), lopts, 1, 1
+)
+local si = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(si[2], "  1. b", "shifted line deeper -> new run 1.")
+eq(si[3], "2. c", "old level closes gap (3->2)")
+
+-- 11. user commands exist after setup
 eq(vim.fn.exists(":CascadeRotate"), 2, ":CascadeRotate defined")
 eq(vim.fn.exists(":CascadeSort"), 2, ":CascadeSort defined")
 eq(vim.fn.exists(":CascadeReverse"), 2, ":CascadeReverse defined")
 eq(vim.fn.exists(":CascadeStrip"), 2, ":CascadeStrip defined")
+eq(vim.fn.exists(":CascadeIndent"), 2, ":CascadeIndent defined")
+eq(vim.fn.exists(":CascadeDedent"), 2, ":CascadeDedent defined")
 
 print("CASCADE_SMOKE_OK")

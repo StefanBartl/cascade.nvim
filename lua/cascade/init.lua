@@ -93,21 +93,37 @@ end
 --- Indent the current list line (no-op off a list).
 ---@return nil
 function M.indent()
+  local count = vim.v.count1
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) then
-    indent_mod.indent(ctx, opts)
+  if lists_active(ctx) and indent_mod.shift_line(ctx, opts, count, 1) then
+    return
   end
+  feed(string.rep(">>", count))
 end
 
---- Dedent the current list line (no-op off a list).
+--- Dedent the current line; list-aware renumber, else native `<<`.
 ---@return nil
 function M.dedent()
+  local count = vim.v.count1
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) then
-    indent_mod.dedent(ctx, opts)
+  if lists_active(ctx) and indent_mod.shift_line(ctx, opts, count, -1) then
+    return
   end
+  feed(string.rep("<<", count))
+end
+
+--- Indent the visual selection; renumber list blocks; reselect.
+---@return nil
+function M.indent_visual()
+  M._shift_visual(1)
+end
+
+--- Dedent the visual selection; renumber list blocks; reselect.
+---@return nil
+function M.dedent_visual()
+  M._shift_visual(-1)
 end
 
 --- Renumber the ordered block at the cursor.
@@ -265,6 +281,49 @@ function M.run_command(fn, cmd, dir)
   if s and e then
     fn(bufnr, s, e, dir, opts)
   end
+end
+
+--- Shift the visual selection by one direction, renumbering list blocks, and
+--- reselect with `gv`. Works in any filetype (renumber only in list filetypes).
+---@param dir integer # 1 indent, -1 dedent.
+---@return nil
+function M._shift_visual(dir)
+  local count = vim.v.count1
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not Context.writable(bufnr) then
+    feed("gv")
+    return
+  end
+  local opts = config.get("lists")
+  local renumber_ok = opts.enable and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+  local s, e = visual_range()
+  indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
+  feed("gv")
+end
+
+--- Run an indent/dedent from a `:command` (range- and count-aware).
+---@param cmd table # The nvim user-command argument table.
+---@param dir integer # 1 indent, -1 dedent.
+---@return nil
+function M.run_indent_command(cmd, dir)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not Context.writable(bufnr) then
+    return
+  end
+  local count = tonumber(cmd.args) or 1
+  if count < 1 then
+    count = 1
+  end
+  local s, e
+  if cmd.range and cmd.range > 0 then
+    s, e = cmd.line1 - 1, cmd.line2 - 1
+  else
+    local r = vim.api.nvim_win_get_cursor(0)[1] - 1
+    s, e = r, r
+  end
+  local opts = config.get("lists")
+  local renumber_ok = opts.enable and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+  indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
 end
 
 -- Expose the transform functions so user commands can reference them by name.
