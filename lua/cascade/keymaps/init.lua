@@ -38,6 +38,10 @@ local PLUGS = {
   { mode = "x", lhs = "<Plug>(cascade-reverse)", action = "reverse_visual" },
   { mode = "n", lhs = "<Plug>(cascade-strip-checkbox)", action = "strip_checkbox" },
   { mode = "x", lhs = "<Plug>(cascade-strip-checkbox)", action = "strip_checkbox_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-move-up)", action = "move_up" },
+  { mode = "x", lhs = "<Plug>(cascade-move-up)", action = "move_up_visual" },
+  { mode = "n", lhs = "<Plug>(cascade-move-down)", action = "move_down" },
+  { mode = "x", lhs = "<Plug>(cascade-move-down)", action = "move_down_visual" },
 }
 
 --- Define every `<Plug>` mapping against the facade actions.
@@ -167,6 +171,14 @@ local function bind_preset(cfg)
     lib.map({ "n", "x" }, "<A-Left>", "<Plug>(cascade-dedent)", { silent = true, desc = "cascade: dedent (+renumber)" })
     lib.map("i", "<A-Right>", "<C-t>", { silent = true, desc = "cascade: indent line (insert)" })
     lib.map("i", "<A-Left>", "<C-d>", { silent = true, desc = "cascade: dedent line (insert)" })
+  end
+
+  -- Global move-lines (all filetypes): reindent + renumber list blocks.
+  if cfg.lists.enable and list_feat.move ~= false then
+    lib.map({ "n", "x" }, "<A-Up>", "<Plug>(cascade-move-up)", { silent = true, desc = "cascade: move line/selection up" })
+    lib.map({ "n", "x" }, "<A-Down>", "<Plug>(cascade-move-down)", { silent = true, desc = "cascade: move line/selection down" })
+    lib.map("i", "<A-Up>", "<C-o>:m .-2<CR><C-o>==", { silent = true, desc = "cascade: move line up (insert)" })
+    lib.map("i", "<A-Down>", "<C-o>:m .+1<CR><C-o>==", { silent = true, desc = "cascade: move line down (insert)" })
   end
 
   if cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0 then

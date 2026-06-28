@@ -170,6 +170,16 @@ eq(vim.fn.exists(":CascadeStrip"), 2, ":CascadeStrip defined")
 eq(vim.fn.exists(":CascadeIndent"), 2, ":CascadeIndent defined")
 eq(vim.fn.exists(":CascadeDedent"), 2, ":CascadeDedent defined")
 
+-- 11b. move line down re-sequences the ordered list.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
+vim.bo[buf].filetype = "markdown"
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+require("cascade.lists.move").line(buf, 1, lopts) -- move "2. b" down
+local mv = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(mv[1], "1. a", "move: l1")
+eq(mv[2], "2. c", "move: text reordered + renumbered")
+eq(mv[3], "3. b", "move: b now last, renumbered")
+
 -- 12. feature toggles: disabling a feature makes its action a no-op / native.
 cfg.setup({ lists = { features = { checkbox = false, sort = false } } })
 local lopts2 = cfg.get("lists")

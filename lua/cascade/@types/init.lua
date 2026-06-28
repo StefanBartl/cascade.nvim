@@ -23,6 +23,7 @@
 ---@field reverse boolean # Block/visual reverse order.
 ---@field strip boolean # Block/visual remove checkboxes.
 ---@field indent boolean # Indent/outdent with level-aware renumber.
+---@field move boolean # Move line/selection up/down with renumber.
 
 ---@class CascadeCycleFeatures
 ---@field word boolean # Cycle the word/boolean under the cursor.

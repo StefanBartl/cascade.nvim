@@ -16,6 +16,7 @@ local continue = require("cascade.lists.continue")
 local checkbox = require("cascade.lists.checkbox")
 local cycle_type = require("cascade.lists.cycle_type")
 local indent_mod = require("cascade.lists.indent")
+local move_mod = require("cascade.lists.move")
 local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
@@ -342,6 +343,58 @@ function M.run_indent_command(cmd, dir)
   local opts = config.get("lists")
   local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
   indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
+end
+
+-- ---------- move lines ----------
+
+--- Move the current line up; reindent; renumber list block.
+---@return nil
+function M.move_up()
+  M._move(-1)
+end
+
+--- Move the current line down; reindent; renumber list block.
+---@return nil
+function M.move_down()
+  M._move(1)
+end
+
+--- Internal: normal-mode move.
+---@param dir integer # -1 up, 1 down.
+---@return nil
+function M._move(dir)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not Context.writable(bufnr) or not lf("move") then
+    return
+  end
+  move_mod.line(bufnr, dir, config.get("lists"))
+end
+
+--- Move the visual selection up.
+---@return nil
+function M.move_up_visual()
+  M._move_visual(-1)
+end
+
+--- Move the visual selection down.
+---@return nil
+function M.move_down_visual()
+  M._move_visual(1)
+end
+
+--- Internal: visual-mode move.
+---@param dir integer # -1 up, 1 down.
+---@return nil
+function M._move_visual(dir)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not Context.writable(bufnr) or not lf("move") then
+    feed("gv")
+    return
+  end
+  local s, e = visual_range()
+  if not move_mod.selection(bufnr, s, e, dir, config.get("lists")) then
+    feed("gv")
+  end
 end
 
 -- Expose the transform functions so user commands can reference them by name.

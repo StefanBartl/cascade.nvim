@@ -19,6 +19,7 @@ local DEFAULTS = {
       reverse = true, -- block/visual reverse order
       strip = true, -- block/visual remove checkboxes
       indent = true, -- indent/outdent + level-aware renumber
+      move = true, -- move line/selection up/down + renumber
     },
     filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
     types = { "unordered", "digit" },

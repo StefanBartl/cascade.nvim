@@ -51,6 +51,7 @@
 | **lists**  | Reihenfolge umkehren   | Block/Visual umdrehen + Renumber.                                   |
 | **lists**  | Checkbox entfernen     | Block/Visual: `[ ]`/`[x]` strippen, Marker bleiben.                 |
 | **lists**  | Indent / Dedent        | Ebenen-bewusst: jede Einrück-Ebene wird sauber neu nummeriert.      |
+| **lists**  | Move lines             | Zeile/Auswahl hoch/runter + Reindent + Renumber.                    |
 | **lists**  | Roman & Alpha          | `I.II.III.` und `a)b)c)` ↔ Integer, sauber gekapselt.              |
 | **cycle**  | Word / boolean cycle   | Case-erhaltend, per-Filetype erweiterbar, dot-repeatable.          |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` für int/float/hex.                          |
@@ -131,6 +132,8 @@ Alle Aktionen sind als `<Plug>`-Mappings verfügbar:
 | `<Plug>(cascade-cycle-word-prev)`   | n     | Wort/Zahl zurück                         |
 | `<Plug>(cascade-indent)`            | n, x  | Einrücken + ebenen-bewusst renumbern     |
 | `<Plug>(cascade-dedent)`            | n, x  | Ausrücken + ebenen-bewusst renumbern     |
+| `<Plug>(cascade-move-up)`           | n, x  | Zeile/Auswahl hoch + Renumber            |
+| `<Plug>(cascade-move-down)`         | n, x  | Zeile/Auswahl runter + Renumber          |
 | `<Plug>(cascade-renumber)`          | n     | Block neu nummerieren                    |
 | `<Plug>(cascade-rotate-form)`       | n, x  | Block/Auswahl durch Formen rotieren      |
 | `<Plug>(cascade-rotate-form-back)`  | n, x  | … rückwärts                              |
@@ -159,8 +162,13 @@ Im Preset zusätzlich buffer-lokal (jeweils Normal **und** Visual):
 `<leader>tf` / `<leader>tF` (Form vor/zurück), `<leader>ts` (Sort),
 `<leader>tv` (umkehren), `<leader>tx` (Checkbox strippen).
 
-**Global** (alle Filetypes) bindet das Preset zusätzlich Einrücken/Ausrücken:
-`<A-Right>` / `<A-Left>` (Normal, Visual und Insert → `<C-t>`/`<C-d>`).
+**Global** (alle Filetypes) bindet das Preset zusätzlich:
+- Einrücken/Ausrücken: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
+- Zeilen verschieben: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
+
+Beim Verschieben einer nummerierten Liste wird reindentiert und der Block neu
+nummeriert (Text wandert, Nummern bleiben sequenziell). Außerhalb von Listen ist
+es ein normales `:move` mit `==`-Reindent.
 
 ### Ebenen-bewusster Indent
 
@@ -207,7 +215,8 @@ require("cascade").setup({
     enable = true,                           -- Master-Schalter Listen-Domäne
     features = {                             -- jedes Feature einzeln an/aus
       continue = true, checkbox = true, cycle_type = true,
-      rotate = true, sort = true, reverse = true, strip = true, indent = true,
+      rotate = true, sort = true, reverse = true, strip = true,
+      indent = true, move = true,
     },
     filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
     types = { "unordered", "digit" },        -- Erkennungs-Reihenfolge

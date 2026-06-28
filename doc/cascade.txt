@@ -59,6 +59,8 @@ All actions are exposed as <Plug> mappings, so you can bind any keys you like:
     <Plug>(cascade-cycle-word-prev)    normal  cycle word / native decrement
     <Plug>(cascade-indent)             n, x    indent + level-aware renumber
     <Plug>(cascade-dedent)             n, x    dedent + level-aware renumber
+    <Plug>(cascade-move-up)            n, x    move line/selection up + renumber
+    <Plug>(cascade-move-down)          n, x    move line/selection down + renumber
     <Plug>(cascade-renumber)           normal  renumber the ordered block
     <Plug>(cascade-rotate-form)        n, x    rotate block/selection forms
     <Plug>(cascade-rotate-form-back)   n, x    rotate forms backward
@@ -112,6 +114,10 @@ With `keymaps.preset = true`:
     n,x <A-Left>    ->  <Plug>(cascade-dedent)
     i   <A-Right>   ->  <C-t>     (native insert indent)
     i   <A-Left>    ->  <C-d>     (native insert dedent)
+    n,x <A-Up>      ->  <Plug>(cascade-move-up)
+    n,x <A-Down>    ->  <Plug>(cascade-move-down)
+    i   <A-Up>      ->  :m .-2 + ==   (native insert move)
+    i   <A-Down>    ->  :m .+1 + ==   (native insert move)
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you
@@ -147,9 +153,9 @@ Field reference ~
 lists.enable          (boolean)   Master switch for the list domain.
 lists.features        (table)     Per-feature on/off switches. Keys: continue,
                                   checkbox, cycle_type, rotate, sort, reverse,
-                                  strip, indent. A disabled feature does not run
-                                  and the preset does not bind its keys; native
-                                  keys stay native. Missing key = enabled.
+                                  strip, indent, move. A disabled feature does
+                                  not run and the preset does not bind its keys;
+                                  native keys stay native. Missing key = enabled.
 lists.filetypes       (string[])  Filetypes the list keys attach to.
 lists.types           (string[])  Enabled marker kinds, in detection order:
                                   "unordered", "digit", "ascii", "roman".
