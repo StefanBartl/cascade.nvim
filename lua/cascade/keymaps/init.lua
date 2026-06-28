@@ -53,22 +53,43 @@ local function define_plugs()
   end
 end
 
---- Bind buffer-local list keys for the current buffer.
+--- Bind buffer-local list keys for the current buffer (only enabled features).
 ---@return nil
 local function bind_list_buffer()
-  local opts = { buffer = true, silent = true }
-  lib.map("i", "<CR>", "<Plug>(cascade-cr)", opts)
-  lib.map("n", "o", "<Plug>(cascade-o)", opts)
-  lib.map("n", "O", "<Plug>(cascade-O)", opts)
-  lib.map("n", "<leader>tc", "<Plug>(cascade-checkbox)", vim.tbl_extend("force", opts, { desc = "cascade: toggle checkbox" }))
-  lib.map("n", "<leader>tt", "<Plug>(cascade-cycle-type-next)", vim.tbl_extend("force", opts, { desc = "cascade: cycle list type" }))
-  lib.map("n", "<leader>tT", "<Plug>(cascade-cycle-type-prev)", vim.tbl_extend("force", opts, { desc = "cascade: cycle list type back" }))
-  lib.map("n", "<leader>tr", "<Plug>(cascade-renumber)", vim.tbl_extend("force", opts, { desc = "cascade: renumber" }))
-  lib.map({ "n", "x" }, "<leader>tf", "<Plug>(cascade-rotate-form)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form" }))
-  lib.map({ "n", "x" }, "<leader>tF", "<Plug>(cascade-rotate-form-back)", vim.tbl_extend("force", opts, { desc = "cascade: rotate list form back" }))
-  lib.map({ "n", "x" }, "<leader>ts", "<Plug>(cascade-sort)", vim.tbl_extend("force", opts, { desc = "cascade: sort list A-Z" }))
-  lib.map({ "n", "x" }, "<leader>tv", "<Plug>(cascade-reverse)", vim.tbl_extend("force", opts, { desc = "cascade: reverse list order" }))
-  lib.map({ "n", "x" }, "<leader>tx", "<Plug>(cascade-strip-checkbox)", vim.tbl_extend("force", opts, { desc = "cascade: strip checkboxes" }))
+  local feat = require("cascade.config").get("lists").features or {}
+  local function on(name)
+    return feat[name] ~= false
+  end
+  local function map(modes, lhs, rhs, desc)
+    lib.map(modes, lhs, rhs, { buffer = true, silent = true, desc = desc })
+  end
+
+  if on("continue") then
+    map("i", "<CR>", "<Plug>(cascade-cr)", "cascade: continue list")
+    map("n", "o", "<Plug>(cascade-o)", "cascade: open item below")
+    map("n", "O", "<Plug>(cascade-O)", "cascade: open item above")
+  end
+  if on("checkbox") then
+    map("n", "<leader>tc", "<Plug>(cascade-checkbox)", "cascade: toggle checkbox")
+  end
+  if on("cycle_type") then
+    map("n", "<leader>tt", "<Plug>(cascade-cycle-type-next)", "cascade: cycle list type")
+    map("n", "<leader>tT", "<Plug>(cascade-cycle-type-prev)", "cascade: cycle list type back")
+  end
+  map("n", "<leader>tr", "<Plug>(cascade-renumber)", "cascade: renumber")
+  if on("rotate") then
+    map({ "n", "x" }, "<leader>tf", "<Plug>(cascade-rotate-form)", "cascade: rotate list form")
+    map({ "n", "x" }, "<leader>tF", "<Plug>(cascade-rotate-form-back)", "cascade: rotate list form back")
+  end
+  if on("sort") then
+    map({ "n", "x" }, "<leader>ts", "<Plug>(cascade-sort)", "cascade: sort list A-Z")
+  end
+  if on("reverse") then
+    map({ "n", "x" }, "<leader>tv", "<Plug>(cascade-reverse)", "cascade: reverse list order")
+  end
+  if on("strip") then
+    map({ "n", "x" }, "<leader>tx", "<Plug>(cascade-strip-checkbox)", "cascade: strip checkboxes")
+  end
 end
 
 --- Create the user commands (range-aware; work in normal and visual mode).
@@ -132,17 +153,21 @@ end
 ---@param cfg CascadeConfig
 ---@return nil
 local function bind_preset(cfg)
-  if cfg.cycle.enable then
+  local cyc_feat = cfg.cycle.features or {}
+  if cfg.cycle.enable and cyc_feat.word ~= false then
     lib.map("n", "<C-a>", "<Plug>(cascade-cycle-word-next)", { silent = true, desc = "cascade: increment / cycle word" })
     lib.map("n", "<C-x>", "<Plug>(cascade-cycle-word-prev)", { silent = true, desc = "cascade: decrement / cycle word" })
   end
 
   -- Global indent/outdent (all filetypes): list-aware renumber on list lines,
   -- native shift everywhere else. Insert mode uses the native <C-t>/<C-d>.
-  lib.map({ "n", "x" }, "<A-Right>", "<Plug>(cascade-indent)", { silent = true, desc = "cascade: indent (+renumber)" })
-  lib.map({ "n", "x" }, "<A-Left>", "<Plug>(cascade-dedent)", { silent = true, desc = "cascade: dedent (+renumber)" })
-  lib.map("i", "<A-Right>", "<C-t>", { silent = true, desc = "cascade: indent line (insert)" })
-  lib.map("i", "<A-Left>", "<C-d>", { silent = true, desc = "cascade: dedent line (insert)" })
+  local list_feat = cfg.lists.features or {}
+  if cfg.lists.enable and list_feat.indent ~= false then
+    lib.map({ "n", "x" }, "<A-Right>", "<Plug>(cascade-indent)", { silent = true, desc = "cascade: indent (+renumber)" })
+    lib.map({ "n", "x" }, "<A-Left>", "<Plug>(cascade-dedent)", { silent = true, desc = "cascade: dedent (+renumber)" })
+    lib.map("i", "<A-Right>", "<C-t>", { silent = true, desc = "cascade: indent line (insert)" })
+    lib.map("i", "<A-Left>", "<C-d>", { silent = true, desc = "cascade: dedent line (insert)" })
+  end
 
   if cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0 then
     local group = lib.augroup("cascade_lists")

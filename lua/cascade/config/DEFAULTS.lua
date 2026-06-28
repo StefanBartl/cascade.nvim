@@ -8,6 +8,18 @@
 local DEFAULTS = {
   lists = {
     enable = true,
+    -- Per-feature switches. Disabling one stops its keymap action (and the
+    -- preset stops binding its keys); keys with a native meaning fall back to it.
+    features = {
+      continue = true, -- <CR>/o/O continuation + empty-bullet deletion
+      checkbox = true, -- toggle/cycle checkbox
+      cycle_type = true, -- cycle a single item's marker shape
+      rotate = true, -- block/visual form rotation
+      sort = true, -- block/visual A-Z sort
+      reverse = true, -- block/visual reverse order
+      strip = true, -- block/visual remove checkboxes
+      indent = true, -- indent/outdent + level-aware renumber
+    },
     filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
     types = { "unordered", "digit" },
     unordered_markers = { "-", "*", "+" },
@@ -24,6 +36,9 @@ local DEFAULTS = {
 
   cycle = {
     enable = true,
+    features = {
+      word = true, -- cycle the word/boolean under the cursor
+    },
     filetypes = nil,
     number_fallback = true,
     groups = {

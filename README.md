@@ -204,7 +204,11 @@ Defaults (Auszug — vollständige Referenz in `:h cascade-config`):
 ```lua
 require("cascade").setup({
   lists = {
-    enable = true,
+    enable = true,                           -- Master-Schalter Listen-Domäne
+    features = {                             -- jedes Feature einzeln an/aus
+      continue = true, checkbox = true, cycle_type = true,
+      rotate = true, sort = true, reverse = true, strip = true, indent = true,
+    },
     filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
     types = { "unordered", "digit" },        -- Erkennungs-Reihenfolge
     unordered_markers = { "-", "*", "+" },
@@ -216,6 +220,7 @@ require("cascade").setup({
   },
   cycle = {
     enable = true,
+    features = { word = true },              -- Wort/Boolean-Cycle an/aus
     filetypes = nil,                         -- nil = alle Filetypes
     number_fallback = true,
     groups = { { "true", "false" }, { "on", "off" } },
@@ -226,6 +231,12 @@ require("cascade").setup({
   keymaps = { preset = false },
 })
 ```
+
+**Feature-Toggles:** Jedes Feature lässt sich über `lists.features.*` bzw.
+`cycle.features.*` einzeln abschalten. Ein deaktiviertes Feature führt seine
+Aktion nicht mehr aus und das Preset bindet seine Tasten nicht — Tasten mit
+nativer Bedeutung (`<CR>`, `<A-Right>`, `<C-a>`) bleiben dann nativ. `:checkhealth
+cascade` zeigt den Status. Fehlende Einträge gelten als aktiviert.
 
 **Hinweis zu `types`:** `ascii` (`a)`) und `roman` (`i.`) sind opt-in, weil
 Buchstaben mehrdeutig sind. Bei aktiviertem Mix entscheidet die Reihenfolge in

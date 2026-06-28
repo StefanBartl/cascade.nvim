@@ -170,4 +170,19 @@ eq(vim.fn.exists(":CascadeStrip"), 2, ":CascadeStrip defined")
 eq(vim.fn.exists(":CascadeIndent"), 2, ":CascadeIndent defined")
 eq(vim.fn.exists(":CascadeDedent"), 2, ":CascadeDedent defined")
 
+-- 12. feature toggles: disabling a feature makes its action a no-op / native.
+cfg.setup({ lists = { features = { checkbox = false, sort = false } } })
+local lopts2 = cfg.get("lists")
+eq(lopts2.features.checkbox, false, "checkbox feature off")
+eq(lopts2.features.cycle_type, true, "unspecified feature stays on")
+-- checkbox action is gated in the facade; toggling must do nothing now.
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- task" })
+vim.bo[buf].filetype = "markdown"
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+cascade.toggle_checkbox()
+vim.api.nvim_feedkeys("", "x", false)
+eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- task", "disabled checkbox = no-op")
+-- restore defaults for any later use
+cfg.setup({})
+
 print("CASCADE_SMOKE_OK")

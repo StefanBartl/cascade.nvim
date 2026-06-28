@@ -145,6 +145,11 @@ Defaults: >lua
 Field reference ~
 
 lists.enable          (boolean)   Master switch for the list domain.
+lists.features        (table)     Per-feature on/off switches. Keys: continue,
+                                  checkbox, cycle_type, rotate, sort, reverse,
+                                  strip, indent. A disabled feature does not run
+                                  and the preset does not bind its keys; native
+                                  keys stay native. Missing key = enabled.
 lists.filetypes       (string[])  Filetypes the list keys attach to.
 lists.types           (string[])  Enabled marker kinds, in detection order:
                                   "unordered", "digit", "ascii", "roman".
@@ -162,6 +167,8 @@ lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
 lists.renumber        (boolean)   Auto-renumber ordered lists after edits.
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
+cycle.features        (table)     Per-feature switches. Key: word. Missing key
+                                  = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
 cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens.
 cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.

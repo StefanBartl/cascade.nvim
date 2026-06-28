@@ -14,8 +14,22 @@
 ---@class CascadeContinueOpts
 ---@field delete_empty boolean # `<CR>` on an empty bullet removes the bullet instead of continuing.
 
+---@class CascadeListFeatures
+---@field continue boolean # `<CR>`/`o`/`O` continuation and empty-bullet deletion.
+---@field checkbox boolean # Toggle/cycle checkbox action.
+---@field cycle_type boolean # Cycle a single item's marker shape.
+---@field rotate boolean # Block/visual form rotation.
+---@field sort boolean # Block/visual A-Z sort.
+---@field reverse boolean # Block/visual reverse order.
+---@field strip boolean # Block/visual remove checkboxes.
+---@field indent boolean # Indent/outdent with level-aware renumber.
+
+---@class CascadeCycleFeatures
+---@field word boolean # Cycle the word/boolean under the cursor.
+
 ---@class CascadeListOpts
 ---@field enable boolean # Master switch for the list domain.
+---@field features CascadeListFeatures # Per-feature on/off switches.
 ---@field filetypes string[] # Filetypes the list features attach to.
 ---@field types CascadeMarkerKind[] # Enabled ordered/unordered marker kinds, in detection order.
 ---@field unordered_markers string[] # Accepted unordered bullet characters.
@@ -27,6 +41,7 @@
 
 ---@class CascadeCycleOpts
 ---@field enable boolean # Master switch for the word/number cycle domain.
+---@field features CascadeCycleFeatures # Per-feature on/off switches.
 ---@field filetypes string[]|nil # Restrict to these filetypes; nil = every filetype (global).
 ---@field number_fallback boolean # Fall back to native <C-a>/<C-x> on numeric tokens.
 ---@field groups string[][] # Cycle groups; first match under the cursor wins.

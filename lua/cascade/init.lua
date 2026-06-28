@@ -55,6 +55,22 @@ local function lists_active(ctx)
   return opts.enable and Context.writable(ctx.bufnr) and ft_in(opts.filetypes, ctx.ft)
 end
 
+--- Whether a named list feature is enabled (missing entry = enabled).
+---@param name string
+---@return boolean
+local function lf(name)
+  local f = config.get("lists").features
+  return type(f) ~= "table" or f[name] ~= false
+end
+
+--- Whether a named cycle feature is enabled (missing entry = enabled).
+---@param name string
+---@return boolean
+local function cf(name)
+  local f = config.get("cycle").features
+  return type(f) ~= "table" or f[name] ~= false
+end
+
 -- ---------- list continuation (with native fallback) ----------
 
 --- `<CR>` in insert mode: continue the list or fall back to a newline.
@@ -62,7 +78,7 @@ end
 function M.cr()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and continue.cr(ctx, opts) then
+  if lists_active(ctx) and lf("continue") and continue.cr(ctx, opts) then
     return
   end
   feed("<CR>")
@@ -73,7 +89,7 @@ end
 function M.o()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and continue.o(ctx, opts) then
+  if lists_active(ctx) and lf("continue") and continue.o(ctx, opts) then
     return
   end
   feed("o")
@@ -84,7 +100,7 @@ end
 function M.O()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and continue.O(ctx, opts) then
+  if lists_active(ctx) and lf("continue") and continue.O(ctx, opts) then
     return
   end
   feed("O")
@@ -96,7 +112,7 @@ function M.indent()
   local count = vim.v.count1
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and indent_mod.shift_line(ctx, opts, count, 1) then
+  if lists_active(ctx) and lf("indent") and indent_mod.shift_line(ctx, opts, count, 1) then
     return
   end
   feed(string.rep(">>", count))
@@ -108,7 +124,7 @@ function M.dedent()
   local count = vim.v.count1
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and indent_mod.shift_line(ctx, opts, count, -1) then
+  if lists_active(ctx) and lf("indent") and indent_mod.shift_line(ctx, opts, count, -1) then
     return
   end
   feed(string.rep("<<", count))
@@ -142,7 +158,7 @@ end
 local checkbox_work = function()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) then
+  if lists_active(ctx) and lf("checkbox") then
     dispatch.try({ function(c)
       return checkbox.toggle(c, opts)
     end }, ctx)
@@ -156,7 +172,7 @@ local function cycle_type_work(dir)
   return function()
     local ctx = Context.new()
     local opts = config.get("lists")
-    if lists_active(ctx) then
+    if lists_active(ctx) and lf("cycle_type") then
       cycle_type.cycle(ctx, opts, dir)
     end
   end
@@ -169,7 +185,7 @@ end
 local function cycle_word_work(dir, fallback)
   return function()
     local opts = config.get("cycle")
-    if not opts.enable then
+    if not opts.enable or not cf("word") then
       feed(fallback)
       return
     end
@@ -216,11 +232,12 @@ end
 --- Normal-mode block transform worker.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
 ---@param dir integer
+---@param feature string # list feature this worker belongs to
 ---@return fun()
-local function block_work(fn, dir)
+local function block_work(fn, dir, feature)
   return function()
     local ctx = Context.new()
-    if not lists_active(ctx) then
+    if not lists_active(ctx) or not lf(feature) then
       return
     end
     local s, e = block_range(ctx)
@@ -233,12 +250,13 @@ end
 --- Visual-mode range transform.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
 ---@param dir integer
+---@param feature string # list feature this worker belongs to
 ---@return fun()
-local function visual_work(fn, dir)
+local function visual_work(fn, dir, feature)
   return function()
     local bufnr = vim.api.nvim_get_current_buf()
     local opts = config.get("lists")
-    if not (opts.enable and Context.writable(bufnr) and ft_in(opts.filetypes, vim.bo[bufnr].filetype)) then
+    if not (opts.enable and lf(feature) and Context.writable(bufnr) and ft_in(opts.filetypes, vim.bo[bufnr].filetype)) then
       return
     end
     local s, e = visual_range()
@@ -247,19 +265,19 @@ local function visual_work(fn, dir)
   end
 end
 
-M.rotate_form_next = dotrepeat.repeatable("rotate_next", block_work(transform.rotate, 1))
-M.rotate_form_prev = dotrepeat.repeatable("rotate_prev", block_work(transform.rotate, -1))
-M.rotate_form_next_visual = visual_work(transform.rotate, 1)
-M.rotate_form_prev_visual = visual_work(transform.rotate, -1)
+M.rotate_form_next = dotrepeat.repeatable("rotate_next", block_work(transform.rotate, 1, "rotate"))
+M.rotate_form_prev = dotrepeat.repeatable("rotate_prev", block_work(transform.rotate, -1, "rotate"))
+M.rotate_form_next_visual = visual_work(transform.rotate, 1, "rotate")
+M.rotate_form_prev_visual = visual_work(transform.rotate, -1, "rotate")
 
-M.sort = dotrepeat.repeatable("sort", block_work(transform.sort, 1))
-M.sort_visual = visual_work(transform.sort, 1)
+M.sort = dotrepeat.repeatable("sort", block_work(transform.sort, 1, "sort"))
+M.sort_visual = visual_work(transform.sort, 1, "sort")
 
-M.reverse = dotrepeat.repeatable("reverse", block_work(transform.reverse, 1))
-M.reverse_visual = visual_work(transform.reverse, 1)
+M.reverse = dotrepeat.repeatable("reverse", block_work(transform.reverse, 1, "reverse"))
+M.reverse_visual = visual_work(transform.reverse, 1, "reverse")
 
-M.strip_checkbox = dotrepeat.repeatable("strip", block_work(transform.strip, 1))
-M.strip_checkbox_visual = visual_work(transform.strip, 1)
+M.strip_checkbox = dotrepeat.repeatable("strip", block_work(transform.strip, 1, "strip"))
+M.strip_checkbox_visual = visual_work(transform.strip, 1, "strip")
 
 --- Run a block transform from a `:command` (range-aware). Used by user commands.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
@@ -295,7 +313,7 @@ function M._shift_visual(dir)
     return
   end
   local opts = config.get("lists")
-  local renumber_ok = opts.enable and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+  local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
   local s, e = visual_range()
   indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
   feed("gv")
@@ -322,7 +340,7 @@ function M.run_indent_command(cmd, dir)
     s, e = r, r
   end
   local opts = config.get("lists")
-  local renumber_ok = opts.enable and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+  local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
   indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
 end
 
