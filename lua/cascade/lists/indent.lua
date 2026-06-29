@@ -73,7 +73,7 @@ end
 ---@param opts CascadeListOpts
 ---@return nil
 local function renumber_block(bufnr, srow, erow, opts)
-  if not opts.renumber then
+  if not renumber.at(opts, "edit") then
     return
   end
   for r = srow, erow do

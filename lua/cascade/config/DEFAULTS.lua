@@ -32,7 +32,14 @@ local DEFAULTS = {
     continue = {
       delete_empty = true,
     },
-    renumber = true,
+    -- When ordered lists are auto-renumbered.
+    --   enable: master switch (false = only manual :CascadeRenumber)
+    --   on:     any of "edit" (right after indent/move/continue/...) and "save"
+    --           (BufWritePre). A plain boolean is also accepted: true = {"edit"}.
+    renumber = {
+      enable = true,
+      on = { "edit" },
+    },
   },
 
   cycle = {

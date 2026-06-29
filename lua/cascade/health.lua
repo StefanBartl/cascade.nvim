@@ -52,10 +52,11 @@ function M.check()
     if type(lists.forms) ~= "table" or #lists.forms == 0 then
       warn("lists.forms is empty — form rotation disabled")
     end
-    if lists.renumber then
-      info("renumber: on (indent/outdent is indent-level aware)")
+    local r = lists.renumber
+    if type(r) == "table" and r.enable and type(r.on) == "table" and #r.on > 0 then
+      info(("renumber: on (%s); indent/outdent is indent-level aware"):format(table.concat(r.on, ", ")))
     else
-      info("renumber: off — indent/outdent will not re-sequence ordered lists")
+      info("renumber: off — only manual :CascadeRenumber re-sequences lists")
     end
   else
     info("lists: disabled")

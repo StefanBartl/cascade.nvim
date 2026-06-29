@@ -17,7 +17,7 @@ local M = {}
 ---@param opts CascadeListOpts
 ---@return nil
 local function maybe_renumber(bufnr, row0, opts)
-  if opts.renumber then
+  if renumber.at(opts, "edit") then
     pcall(renumber.run, bufnr, row0, opts)
   end
 end

@@ -56,7 +56,7 @@ function M.cycle(ctx, opts, dir)
     return false
   end
   vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, ctx.row0 + 1, false, { new })
-  if opts.renumber and spec.kind ~= "unordered" then
+  if renumber.at(opts, "edit") and spec.kind ~= "unordered" then
     pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
   end
   return true

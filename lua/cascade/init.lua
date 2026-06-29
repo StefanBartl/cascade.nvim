@@ -143,13 +143,18 @@ function M.dedent_visual()
   M._shift_visual(-1)
 end
 
---- Renumber the ordered block at the cursor.
+--- Renumber the ordered block at the cursor (manual; ignores the trigger
+--- config — always runs, indent-level aware).
 ---@return nil
 function M.renumber()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) then
-    pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
+  if not lists_active(ctx) then
+    return
+  end
+  local s, e = transform.block_range(ctx.bufnr, ctx.row0, opts)
+  if s and e then
+    pcall(renumber.tree, ctx.bufnr, s, e, opts)
   end
 end
 
@@ -402,12 +407,39 @@ M._transform = transform
 
 -- ---------- setup ----------
 
+--- Register the BufWritePre renumber autocmd when "save" is a configured
+--- trigger. Idempotent: the augroup is cleared on every setup() call.
+---@return nil
+local function setup_save_renumber()
+  local group = vim.api.nvim_create_augroup("cascade_renumber_save", { clear = true })
+  local lists = config.get("lists")
+  if not (lists.enable and renumber.at(lists, "save")) then
+    return
+  end
+  vim.api.nvim_create_autocmd("BufWritePre", {
+    group = group,
+    pattern = "*",
+    desc = "cascade: renumber lists on save",
+    callback = function(args)
+      local opts = config.get("lists")
+      if not (opts.enable and renumber.at(opts, "save")) then
+        return
+      end
+      if not Context.writable(args.buf) or not ft_in(opts.filetypes, vim.bo[args.buf].filetype) then
+        return
+      end
+      pcall(renumber.all, args.buf, opts)
+    end,
+  })
+end
+
 --- Configure cascade.nvim and (optionally) bind the preset keymaps.
 ---@param opts CascadeConfig|nil
 ---@return nil
 function M.setup(opts)
   config.setup(opts)
   require("cascade.keymaps").setup(config.options)
+  setup_save_renumber()
 end
 
 return M

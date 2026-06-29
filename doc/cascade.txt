@@ -170,7 +170,13 @@ lists.forms           (string[])  Form-rotation templates for block/visual
                                   "- [ ]", "-".
 lists.checkbox.states (string[])  Ordered single-char states cycled in `[ ]`.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
-lists.renumber        (boolean)   Auto-renumber ordered lists after edits.
+lists.renumber        (table)     When ordered lists are auto-renumbered.
+                                  .enable (boolean) master switch; false = only
+                                          manual :CascadeRenumber.
+                                  .on (string[]) any of "edit" (right after an
+                                          edit) and "save" (BufWritePre, whole
+                                          buffer).
+                                  A boolean is also accepted: true = { "edit" }.
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key

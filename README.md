@@ -225,7 +225,10 @@ require("cascade").setup({
     forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- Form-Rotation (Block/Visual)
     checkbox = { states = { " ", "x" } },    -- N-Zustands-Cycle möglich
     continue = { delete_empty = true },
-    renumber = true,
+    renumber = {                             -- WANN automatisch neu nummeriert wird
+      enable = true,
+      on = { "edit" },                       -- "edit" = sofort, "save" = bei :w
+    },
   },
   cycle = {
     enable = true,
@@ -240,6 +243,12 @@ require("cascade").setup({
   keymaps = { preset = false },
 })
 ```
+
+**Renumber-Timing:** `lists.renumber.on` steuert, *wann* nummeriert wird —
+`{ "edit" }` (sofort nach Indent/Move/Continue/…), `{ "save" }` (beim `:w` über
+`BufWritePre`, der ganze Buffer) oder beides `{ "edit", "save" }`. `enable = false`
+schaltet alles ab — dann nummeriert nur noch manuell `:CascadeRenumber` /
+`<leader>tr`. Ein einfacher Bool wird weiter akzeptiert (`true` = `{ "edit" }`).
 
 **Feature-Toggles:** Jedes Feature lässt sich über `lists.features.*` bzw.
 `cycle.features.*` einzeln abschalten. Ein deaktiviertes Feature führt seine

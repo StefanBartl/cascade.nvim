@@ -180,6 +180,27 @@ eq(mv[1], "1. a", "move: l1")
 eq(mv[2], "2. c", "move: text reordered + renumbered")
 eq(mv[3], "3. b", "move: b now last, renumbered")
 
+-- 11c. renumber trigger config: "edit" vs "save", boolean back-compat.
+cfg.setup({})
+eq(rn.at(cfg.get("lists"), "edit"), true, "default renumbers on edit")
+eq(rn.at(cfg.get("lists"), "save"), false, "default does not renumber on save")
+cfg.setup({ lists = { renumber = { on = { "save" } } } })
+eq(rn.at(cfg.get("lists"), "edit"), false, "save-only: not on edit")
+eq(rn.at(cfg.get("lists"), "save"), true, "save-only: on save")
+cfg.setup({ lists = { renumber = true } }) -- boolean back-compat
+eq(rn.at(cfg.get("lists"), "edit"), true, "boolean true normalizes to edit")
+cfg.setup({ lists = { renumber = false } })
+eq(rn.at(cfg.get("lists"), "edit"), false, "boolean false disables")
+-- renumber.all over a multi-block buffer
+cfg.setup({})
+local lo = cfg.get("lists")
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "5. x", "9. y" })
+rn.all(buf, lo)
+local all = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+eq(all[2], "2. b", "all: block 1 renumbered")
+eq(all[4], "5. x", "all: block 2 keeps start offset")
+eq(all[5], "6. y", "all: block 2 sequential")
+
 -- 12. feature toggles: disabling a feature makes its action a no-op / native.
 cfg.setup({ lists = { features = { checkbox = false, sort = false } } })
 local lopts2 = cfg.get("lists")

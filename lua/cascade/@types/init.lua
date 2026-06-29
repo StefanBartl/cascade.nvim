@@ -14,6 +14,12 @@
 ---@class CascadeContinueOpts
 ---@field delete_empty boolean # `<CR>` on an empty bullet removes the bullet instead of continuing.
 
+---@alias CascadeRenumberTrigger "edit"|"save"
+
+---@class CascadeRenumberOpts
+---@field enable boolean # Master switch for automatic renumbering.
+---@field on CascadeRenumberTrigger[] # When it runs: "edit" and/or "save".
+
 ---@class CascadeListFeatures
 ---@field continue boolean # `<CR>`/`o`/`O` continuation and empty-bullet deletion.
 ---@field checkbox boolean # Toggle/cycle checkbox action.
@@ -38,7 +44,7 @@
 ---@field forms string[] # Block/visual form rotation: shape + optional checkbox (e.g. { "1.", "1. [ ]", "- [ ]", "-" }).
 ---@field checkbox CascadeCheckboxOpts
 ---@field continue CascadeContinueOpts
----@field renumber boolean # Auto-renumber ordered lists after structural edits.
+---@field renumber CascadeRenumberOpts # When ordered lists are auto-renumbered.
 
 ---@class CascadeCycleOpts
 ---@field enable boolean # Master switch for the word/number cycle domain.

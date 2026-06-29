@@ -35,15 +35,40 @@ local function deep_merge(base, override)
   return out
 end
 
+--- Normalize `lists.renumber`: accept a boolean (back-compat) or a partial table
+--- and always end up with `{ enable = boolean, on = string[] }`.
+---@param o CascadeConfig
+---@return nil
+local function normalize(o)
+  local lists = o.lists
+  if type(lists) ~= "table" then
+    return
+  end
+  local r = lists.renumber
+  if type(r) == "boolean" then
+    lists.renumber = { enable = r, on = r and { "edit" } or {} }
+  elseif type(r) == "table" then
+    if r.enable == nil then
+      r.enable = true
+    end
+    if type(r.on) ~= "table" then
+      r.on = { "edit" }
+    end
+  else
+    lists.renumber = { enable = true, on = { "edit" } }
+  end
+end
+
 --- Apply user options. Safe to call once from `setup()`.
 ---@param opts CascadeConfig|nil
 ---@return nil
 function M.setup(opts)
   if type(opts) ~= "table" then
     M.options = deep_merge(DEFAULTS, {})
-    return
+  else
+    M.options = deep_merge(DEFAULTS, opts)
   end
-  M.options = deep_merge(DEFAULTS, opts)
+  normalize(M.options)
 end
 
 --- Read a value by dot-path, e.g. `get("lists.checkbox.states")`.

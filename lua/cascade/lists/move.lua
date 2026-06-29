@@ -18,7 +18,7 @@ local M = {}
 ---@param opts CascadeListOpts
 ---@return nil
 local function renumber_block(bufnr, row0, opts)
-  if not opts.renumber then
+  if not renumber.at(opts, "edit") then
     return
   end
   local l = vim.api.nvim_buf_get_lines(bufnr, row0, row0 + 1, false)[1]

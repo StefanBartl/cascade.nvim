@@ -49,6 +49,54 @@ local function value_of(kind, token)
   end
 end
 
+--- Whether automatic renumbering should run for a given trigger.
+---@param opts CascadeListOpts
+---@param trigger CascadeRenumberTrigger
+---@return boolean
+function M.at(opts, trigger)
+  local r = opts.renumber
+  if type(r) ~= "table" or not r.enable or type(r.on) ~= "table" then
+    return false
+  end
+  for i = 1, #r.on do
+    if r.on[i] == trigger then
+      return true
+    end
+  end
+  return false
+end
+
+--- Tree-renumber every contiguous list block in the buffer (used on save).
+---@param bufnr integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.all(bufnr, opts)
+  local total = vim.api.nvim_buf_line_count(bufnr)
+  local changed = false
+  local r = 0
+  while r < total do
+    local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+    if l and marker.parse(l, opts) then
+      local e = r
+      while e + 1 < total do
+        local nl = vim.api.nvim_buf_get_lines(bufnr, e + 1, e + 2, false)[1]
+        if nl and marker.parse(nl, opts) then
+          e = e + 1
+        else
+          break
+        end
+      end
+      if M.tree(bufnr, r, e, opts) then
+        changed = true
+      end
+      r = e + 1
+    else
+      r = r + 1
+    end
+  end
+  return changed
+end
+
 --- Indent-aware renumber of the whole block `[srow, erow]` (0-based, inclusive).
 ---
 --- Walks the block once with a counter per indent width: a deeper level resets
