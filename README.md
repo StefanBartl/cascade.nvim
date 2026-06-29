@@ -218,7 +218,11 @@ require("cascade").setup({
       rotate = true, sort = true, reverse = true, strip = true,
       indent = true, move = true,
     },
-    filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
+    filetypes = {                            -- Prosa/Markup-Filetypes (Liste no-oppt sonst)
+      "markdown", "markdown.mdx", "mdx", "text", "txt", "tex", "plaintex",
+      "latex", "norg", "org", "rst", "asciidoc", "asciidoctor", "typst",
+      "quarto", "pandoc", "vimwiki", "gitcommit", "mail",
+    },
     types = { "unordered", "digit" },        -- Erkennungs-Reihenfolge
     unordered_markers = { "-", "*", "+" },
     cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (eine Zeile)
@@ -243,6 +247,27 @@ require("cascade").setup({
   keymaps = { preset = false },
 })
 ```
+
+**Scopes — global vs. ft-scoped:** cascade hat zwei Domänen mit bewusst
+unterschiedlichem Geltungsbereich:
+
+- **`cycle`** (Wort/Boolean + Zahlen-Inc/Dec) ist **global** — `cycle.filetypes
+  = nil` bedeutet *alle* Filetypes. `true`↔`false`, `on`↔`off` und `<C-a>`/`<C-x>`
+  funktionieren in `.txt`, `.lua`, `.md`, überall. Einschränken: z. B.
+  `cycle.filetypes = { "lua", "markdown", "text" }`.
+- **`lists`** (Continue, Checkbox, cycle_type, rotate, sort, reverse, strip,
+  Renumber) ist auf `lists.filetypes` beschränkt — sinnvoll, da Listen-Marker
+  Prosa/Markup-spezifisch sind. List-Aktionen **no-oppen** auf Zeilen ohne
+  Marker, daher ist eine breite Filetype-Liste unbedenklich.
+- **Indent/Dedent** und **Move** sind faktisch **global**: in Listen-Filetypes
+  list-aware (mit Renumber), sonst natives `>>`/`<<` bzw. `:move`.
+
+| Feature | Geltungsbereich |
+| --- | --- |
+| Word/Boolean-Cycle, Zahlen | global (jeder Filetype) |
+| Indent/Dedent, Move | global (Renumber nur in `lists.filetypes`) |
+| Continue, cycle_type, rotate, sort, reverse | `lists.filetypes` |
+| Checkbox, strip | `lists.filetypes` (am sinnvollsten Markdown/org/norg) |
 
 **Renumber-Timing:** `lists.renumber.on` steuert, *wann* nummeriert wird —
 `{ "edit" }` (sofort nach Indent/Move/Continue/…), `{ "save" }` (beim `:w` über

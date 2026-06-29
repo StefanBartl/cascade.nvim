@@ -156,7 +156,12 @@ lists.features        (table)     Per-feature on/off switches. Keys: continue,
                                   strip, indent, move. A disabled feature does
                                   not run and the preset does not bind its keys;
                                   native keys stay native. Missing key = enabled.
-lists.filetypes       (string[])  Filetypes the list keys attach to.
+lists.filetypes       (string[])  Prose/markup filetypes the list keys attach
+                                  to. Actions no-op on lines without a marker, so
+                                  a broad default is safe (markdown/text/tex/
+                                  norg/org/rst/asciidoc/typst/quarto/pandoc/
+                                  vimwiki/gitcommit/mail). The word/number cycle
+                                  is a separate, global domain (cycle.filetypes).
 lists.types           (string[])  Enabled marker kinds, in detection order:
                                   "unordered", "digit", "ascii", "roman".
                                   ascii/roman are opt-in (letters are ambiguous).

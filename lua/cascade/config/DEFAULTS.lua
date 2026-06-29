@@ -21,7 +21,17 @@ local DEFAULTS = {
       indent = true, -- indent/outdent + level-aware renumber
       move = true, -- move line/selection up/down + renumber
     },
-    filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
+    -- Prose / markup filetypes the list features attach to. List actions no-op
+    -- on lines without a marker, so a broad set is safe. The word/number cycle
+    -- lives in the `cycle` domain and is global (every filetype) by default.
+    filetypes = {
+      "markdown", "markdown.mdx", "mdx",
+      "text", "txt",
+      "tex", "plaintex", "latex",
+      "norg", "org", "rst", "asciidoc", "asciidoctor",
+      "typst", "quarto", "pandoc", "vimwiki",
+      "gitcommit", "mail",
+    },
     types = { "unordered", "digit" },
     unordered_markers = { "-", "*", "+" },
     cycle = { "-", "*", "+", "1.", "a)", "I." },
