@@ -118,6 +118,24 @@ return function(H)
   eq(mv[2], "2. c", "move: text reordered + renumbered")
   eq(mv[3], "3. b", "move: b now last, renumbered")
 
+  -- move.selection guards the buffer boundary (E16 prevention): moving a
+  -- selection that already touches the edge is a no-op, never a Vim error.
+  local move = require("cascade.lists.move")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
+  eq(move.selection(buf, 1, 2, 1, lopts), false, "move sel down at last line = no-op")
+  eq(move.selection(buf, 0, 0, -1, lopts), false, "move sel up at first line = no-op")
+
+  -- indent.shift_range shifts every line of a range and renumbers the block:
+  -- the two indented lines become a fresh sub-run under the untouched parent.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
+  vim.bo[buf].expandtab = true
+  vim.bo[buf].shiftwidth = 2
+  require("cascade.lists.indent").shift_range(buf, 1, 2, 1, 1, lopts, true)
+  local sr = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(sr[1], "1. a", "shift_range: parent untouched")
+  eq(sr[2], "  1. b", "shift_range: first shifted line resets to 1")
+  eq(sr[3], "  2. c", "shift_range: second shifted line continues")
+
   -- renumber trigger config: "edit" vs "save", boolean back-compat.
   cfg.setup({})
   eq(rn.at(cfg.get("lists"), "edit"), true, "default renumbers on edit")

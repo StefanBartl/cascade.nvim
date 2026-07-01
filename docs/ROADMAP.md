@@ -35,7 +35,8 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 
 - **Treesitter-optionaler Präzisionsmodus** — opt-in, nur wo echte
   Syntax-Semantik gebraucht wird; Default bleibt reiner Zeilen-Scan.
-- **Test-Suite** — `scripts/smoke.lua` zu einer vollständigen busted/mini.test
-  Suite ausbauen (marker/roman/alpha sind reine Funktionen → trivial testbar).
+- ~~**Test-Suite**~~ — ✅ erledigt: `docs/TESTS/` mit Runner (`run.lua`),
+  Harness und Specs (units/lists/cycle/commands); `scripts/smoke.lua` ist nur
+  noch ein dünner Kompatibilitäts-Shim.
 - **vim-repeat-Interop** — neben dem operatorfunc-Trick optional
   `repeat#set` nutzen, wenn vorhanden.
