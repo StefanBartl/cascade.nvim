@@ -97,8 +97,8 @@ require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 Bindet global `<C-a>`/`<C-x>` (Word-Cycle + Zahlen-Fallback) und in den
-Listen-Filetypes buffer-lokal `<CR>`/`o`/`O` sowie `<leader>tc` (Checkbox),
-`<leader>tt`/`<leader>tT` (Listentyp), `<leader>tr` (Renumber).
+Listen-Filetypes buffer-lokal `<CR>`/`o`/`O` sowie `<leader>cx` (Checkbox),
+`<leader>ct`/`<leader>cT` (Listentyp), `<leader>cr` (Renumber).
 
 ### Variante B — `<Plug>` (volle Kontrolle)
 

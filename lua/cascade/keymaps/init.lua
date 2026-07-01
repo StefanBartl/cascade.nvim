@@ -74,25 +74,25 @@ local function bind_list_buffer()
     map("n", "O", "<Plug>(cascade-O)", "cascade: open item above")
   end
   if on("checkbox") then
-    map("n", "<leader>tc", "<Plug>(cascade-checkbox)", "cascade: toggle checkbox")
+    map("n", "<leader>cx", "<Plug>(cascade-checkbox)", "cascade: toggle checkbox")
   end
   if on("cycle_type") then
-    map("n", "<leader>tt", "<Plug>(cascade-cycle-type-next)", "cascade: cycle list type")
-    map("n", "<leader>tT", "<Plug>(cascade-cycle-type-prev)", "cascade: cycle list type back")
+    map("n", "<leader>ct", "<Plug>(cascade-cycle-type-next)", "cascade: cycle list type")
+    map("n", "<leader>cT", "<Plug>(cascade-cycle-type-prev)", "cascade: cycle list type back")
   end
-  map("n", "<leader>tr", "<Plug>(cascade-renumber)", "cascade: renumber")
+  map("n", "<leader>cr", "<Plug>(cascade-renumber)", "cascade: renumber")
   if on("rotate") then
-    map({ "n", "x" }, "<leader>tf", "<Plug>(cascade-rotate-form)", "cascade: rotate list form")
-    map({ "n", "x" }, "<leader>tF", "<Plug>(cascade-rotate-form-back)", "cascade: rotate list form back")
+    map({ "n", "x" }, "<leader>cf", "<Plug>(cascade-rotate-form)", "cascade: rotate list form")
+    map({ "n", "x" }, "<leader>cF", "<Plug>(cascade-rotate-form-back)", "cascade: rotate list form back")
   end
   if on("sort") then
-    map({ "n", "x" }, "<leader>ts", "<Plug>(cascade-sort)", "cascade: sort list A-Z")
+    map({ "n", "x" }, "<leader>cs", "<Plug>(cascade-sort)", "cascade: sort list A-Z")
   end
   if on("reverse") then
-    map({ "n", "x" }, "<leader>tv", "<Plug>(cascade-reverse)", "cascade: reverse list order")
+    map({ "n", "x" }, "<leader>cv", "<Plug>(cascade-reverse)", "cascade: reverse list order")
   end
   if on("strip") then
-    map({ "n", "x" }, "<leader>tx", "<Plug>(cascade-strip-checkbox)", "cascade: strip checkboxes")
+    map({ "n", "x" }, "<leader>cx", "<Plug>(cascade-strip-checkbox)", "cascade: strip checkboxes")
   end
 end
 
