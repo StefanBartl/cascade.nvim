@@ -411,39 +411,12 @@ M._transform = transform
 
 -- ---------- setup ----------
 
---- Register the BufWritePre renumber autocmd when "save" is a configured
---- trigger. Idempotent: the augroup is cleared on every setup() call.
----@return nil
-local function setup_save_renumber()
-  local group = vim.api.nvim_create_augroup("cascade_renumber_save", { clear = true })
-  local lists = config.get("lists")
-  if not (lists.enable and renumber.at(lists, "save")) then
-    return
-  end
-  vim.api.nvim_create_autocmd("BufWritePre", {
-    group = group,
-    pattern = "*",
-    desc = "cascade: renumber lists on save",
-    callback = function(args)
-      local opts = config.get("lists")
-      if not (opts.enable and renumber.at(opts, "save")) then
-        return
-      end
-      if not Context.writable(args.buf) or not ft_in(opts.filetypes, vim.bo[args.buf].filetype) then
-        return
-      end
-      pcall(renumber.all, args.buf, opts)
-    end,
-  })
-end
-
---- Configure cascade.nvim and (optionally) bind the preset keymaps.
+--- Configure cascade.nvim and wire up every binding (see `cascade.bindings`).
 ---@param opts CascadeConfig|nil
 ---@return nil
 function M.setup(opts)
   config.setup(opts)
-  require("cascade.keymaps").setup(config.options)
-  setup_save_renumber()
+  require("cascade.bindings").setup(config.options)
 end
 
 return M
