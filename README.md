@@ -10,9 +10,9 @@
 ![Neovim](https://img.shields.io/badge/Neovim-0.9+-57A143?logo=neovim&logoColor=white)
 ![Lua](https://img.shields.io/badge/Made%20with-Lua-2C2D72?logo=lua&logoColor=white)
 
-> 💡 Pairs well with [markdown.nvim](https://github.com/StefanBartl/markdown.nvim):
-> cascade edits the *structure* of your lists (continue, renumber, rotate,
-> indent), while markdown.nvim takes care of *rendering* them.
+> 💡 Pairs well with [pickers.nvim](https://github.com/StefanBartl/pickers.nvim):
+> use cascade to shape and renumber the lists inside a file, and pickers.nvim to
+> jump between the files that hold them.
 
 > One plugin, one pattern: **detect the context under the cursor → advance it one
 > step → otherwise fall back to native behavior.** That holds for Markdown lists
