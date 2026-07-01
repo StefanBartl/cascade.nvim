@@ -140,9 +140,15 @@ function M.tree(bufnr, srow, erow, opts)
   local counters = {} ---@type table<integer, integer>
   counters[base_w] = base_start - 1
 
+  -- Build the whole block in memory and commit it with a single set_lines. One
+  -- contiguous edit gives the markdown treesitter highlighter a clean range to
+  -- re-parse; rewriting line-by-line instead scatters many small structural
+  -- edits at the parser, which can leave a nested marker stale (un-highlighted).
+  local out = {} ---@type string[]
   local changed = false
   for i = 1, #lines do
     local line = lines[i]
+    out[i] = line
     local m = marker.parse(line, opts)
     if not m then
       -- A non-list line ends every running sequence.
@@ -165,12 +171,15 @@ function M.tree(bufnr, srow, erow, opts)
           m.marker = want
           local new = marker.render(m) .. (m.text or "")
           if new ~= line then
-            vim.api.nvim_buf_set_lines(bufnr, srow + i - 1, srow + i, false, { new })
+            out[i] = new
             changed = true
           end
         end
       end
     end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, srow, srow + #lines, false, out)
   end
   return changed
 end
@@ -220,18 +229,22 @@ function M.run(bufnr, row0, opts)
   local start_val = value_of(cur.kind, start_m.marker) or 1
   local ref = start_m.marker
 
-  -- Walk down, rewriting same-indent same-kind siblings.
+  -- Walk down, rewriting same-indent same-kind siblings. Collect the run into
+  -- `out` and commit once (see M.tree) so the highlighter sees a single edit.
+  local out = {} ---@type string[]
   local changed = false
   local seq = start_val
   local r = first
   while r < total do
-    local m = item_at(r)
+    local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+    local m = l and marker.parse(l, opts) or nil
     if not m then
       break
     end
     if #m.indent < indent_w then
       break
     end
+    local newl = l
     if #m.indent == indent_w then
       if m.kind ~= cur.kind then
         break
@@ -239,16 +252,19 @@ function M.run(bufnr, row0, opts)
       local want = ordinal(cur.kind, seq, ref)
       if want ~= m.marker then
         m.marker = want
-        local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
         local new = marker.render(m) .. (m.text or "")
         if new ~= l then
-          vim.api.nvim_buf_set_lines(bufnr, r, r + 1, false, { new })
+          newl = new
           changed = true
         end
       end
       seq = seq + 1
     end
+    out[#out + 1] = newl
     r = r + 1
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, first, first + #out, false, out)
   end
   return changed
 end
