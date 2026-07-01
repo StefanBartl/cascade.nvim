@@ -107,7 +107,7 @@ With `keymaps.preset = true`:
     n,x <leader>cF  ->  <Plug>(cascade-rotate-form-back)
     n,x <leader>cs  ->  <Plug>(cascade-sort)
     n,x <leader>cv  ->  <Plug>(cascade-reverse)
-    n,x <leader>cx  ->  <Plug>(cascade-strip-checkbox)
+    n,x <leader>cX  ->  <Plug>(cascade-strip-checkbox)
 
   Global (every filetype):
     n,x <A-Right>   ->  <Plug>(cascade-indent)
