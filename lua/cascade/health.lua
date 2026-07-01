@@ -37,6 +37,13 @@ function M.check()
     info("lib.nvim not found — using native fallbacks (standalone mode)")
   end
 
+  -- Optional which-key integration.
+  if require("cascade.bindings.which_key").available() then
+    ok("which-key detected (<leader>c grouped as \"Cascade\" when preset is on)")
+  else
+    info("which-key not found — mappings still carry their own descriptions")
+  end
+
   -- List domain.
   local lists = config.get("lists")
   if lists.enable then
