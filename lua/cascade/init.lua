@@ -308,21 +308,25 @@ function M.run_command(fn, cmd, dir)
 end
 
 --- Shift the visual selection by one direction, renumbering list blocks, and
---- reselect with `gv`. Works in any filetype (renumber only in list filetypes).
+--- reselect the shifted lines. Works in any filetype (renumber only in list
+--- filetypes).
 ---@param dir integer # 1 indent, -1 dedent.
 ---@return nil
 function M._shift_visual(dir)
   local count = vim.v.count1
   local bufnr = vim.api.nvim_get_current_buf()
-  if not Context.writable(bufnr) then
-    feed("gv")
-    return
-  end
-  local opts = config.get("lists")
-  local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
   local s, e = visual_range()
-  indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
-  feed("gv")
+  if Context.writable(bufnr) then
+    local opts = config.get("lists")
+    local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+    indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
+  end
+  -- Reselect the shifted rows so repeated indent/dedent works without
+  -- re-selecting. `gv` can't be used here: its '< / '> marks still point at the
+  -- *previous* selection while we are mid-visual, so it would restore the wrong
+  -- (or an empty) region. Shifting never changes the line count, so [s, e] still
+  -- addresses the same rows; reselect them linewise.
+  vim.cmd(string.format("keepjumps normal! %dGV%dG", s + 1, e + 1))
 end
 
 --- Run an indent/dedent from a `:command` (range- and count-aware).
