@@ -9,18 +9,21 @@
 
 ![Neovim](https://img.shields.io/badge/Neovim-0.9+-57A143?logo=neovim&logoColor=white)
 ![Lua](https://img.shields.io/badge/Made%20with-Lua-2C2D72?logo=lua&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue)
 
-> Ein Plugin, ein Muster: **Kontext unter dem Cursor erkennen → einen Schritt
-> weiterführen → sonst auf natives Verhalten zurückfallen.** Das gilt für
-> Markdown-Listen genauso wie für `true`/`false`-Toggles im Code.
+> 💡 Pairs well with [markdown.nvim](https://github.com/StefanBartl/markdown.nvim):
+> cascade edits the *structure* of your lists (continue, renumber, rotate,
+> indent), while markdown.nvim takes care of *rendering* them.
 
-`cascade.nvim` vereint zwei Feature-Welten unter einem Dach:
+> One plugin, one pattern: **detect the context under the cursor → advance it one
+> step → otherwise fall back to native behavior.** That holds for Markdown lists
+> just as much as for `true`/`false` toggles in code.
 
-- **lists** — Listen fortführen, neu nummerieren, Checkboxen ticken,
-  Marker-Typen cyclen, ein-/ausrücken (ft-scoped).
-- **cycle** — das Wort unter dem Cursor weiterdrehen (`true`→`false`, `on`→`off`,
-  …), mit nativem `<C-a>`/`<C-x>`-Fallback für Zahlen (global).
+`cascade.nvim` unites two feature worlds under one roof:
+
+- **lists** — continue lists, renumber them, tick checkboxes, cycle marker
+  types, indent/dedent (filetype-scoped).
+- **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …),
+  with a native `<C-a>`/`<C-x>` fallback for numbers (global).
 
 ---
 
@@ -32,78 +35,119 @@
 - [Keymaps](#keymaps)
 - [Configuration](#configuration)
 - [Health](#health)
-- [Architektur](#architektur)
+- [Architecture](#architecture)
 - [Roadmap](#roadmap)
 
 ---
 
 ## Features
 
-| Domäne     | Feature                | Beschreibung                                                        |
+| Domain     | Feature                | Description                                                          |
 | ---------- | ---------------------- | ------------------------------------------------------------------- |
-| **lists**  | Continuation           | `<CR>`, `o`, `O` setzen den nächsten Bullet (inkl. Increment).      |
-| **lists**  | Empty-bullet deletion  | `<CR>` auf leerem Bullet beendet die Liste.                         |
-| **lists**  | Renumber               | Kontextbewusst, respektiert Start-Offset ≠ 1.                      |
-| **lists**  | Checkbox-Cycle         | Konfigurierbarer N-Zustands-Cycle (`[ ]`→`[x]`→…), dot-repeatable.  |
+| **lists**  | Continuation           | `<CR>`, `o`, `O` insert the next bullet (including increment).       |
+| **lists**  | Empty-bullet deletion  | `<CR>` on an empty bullet ends the list.                            |
+| **lists**  | Renumber               | Context-aware, respects a start offset ≠ 1.                        |
+| **lists**  | Checkbox cycle         | Configurable N-state cycle (`[ ]`→`[x]`→…), dot-repeatable.          |
 | **lists**  | Cycle list type        | `-`→`*`→`+`→`1.`→`a)`→`I.`, dot-repeatable.                         |
-| **lists**  | Form-Rotation          | Block/Visual durch Formen rotieren: `1.`→`1. [ ]`→`- [ ]`→`-`.      |
-| **lists**  | Sort A–Z               | Block/Visual alphabetisch sortieren + Renumber.                     |
-| **lists**  | Reihenfolge umkehren   | Block/Visual umdrehen + Renumber.                                   |
-| **lists**  | Checkbox entfernen     | Block/Visual: `[ ]`/`[x]` strippen, Marker bleiben.                 |
-| **lists**  | Indent / Dedent        | Ebenen-bewusst: jede Einrück-Ebene wird sauber neu nummeriert.      |
-| **lists**  | Move lines             | Zeile/Auswahl hoch/runter + Reindent + Renumber.                    |
-| **lists**  | Roman & Alpha          | `I.II.III.` und `a)b)c)` ↔ Integer, sauber gekapselt.              |
-| **cycle**  | Word / boolean cycle   | Case-erhaltend, per-Filetype erweiterbar, dot-repeatable.          |
-| **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` für int/float/hex.                          |
+| **lists**  | Form rotation          | Rotate a block/selection through forms: `1.`→`1. [ ]`→`- [ ]`→`-`.   |
+| **lists**  | Sort A–Z               | Sort a block/selection alphabetically + renumber.                   |
+| **lists**  | Reverse order          | Reverse a block/selection + renumber.                               |
+| **lists**  | Strip checkbox         | Block/selection: strip `[ ]`/`[x]`, markers stay.                   |
+| **lists**  | Indent / Dedent        | Level-aware: every indent level is cleanly renumbered.              |
+| **lists**  | Move lines             | Move a line/selection up/down + reindent + renumber.               |
+| **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
+| **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
+| **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex.                          |
 
-Sicherheits- & Performance-Designentscheidungen: kein Treesitter (reiner
-Zeilen-Scan), keine `CursorMoved`/`TextChanged`-Autocmds (nur explizite Tasten),
-`pcall` um alle Buffer-Mutationen, ein einziges Context-Objekt pro Aktion,
-memoisierte Patterns, `:checkhealth cascade`.
+Safety & performance design decisions: no Treesitter (pure line scan), no
+`CursorMoved`/`TextChanged` autocmds (only explicit keys), `pcall` around every
+buffer mutation, a single context object per action, memoized patterns,
+`:checkhealth cascade`.
 
 ---
 
 ## Installation
 
-**lazy.nvim**
+**When to use which loading strategy:**
+
+| Variant | Startup impact | When to use |
+|---|---|---|
+| `event = "VeryLazy"` | Minimal, after UI init | **Recommended** — the global word/number cycle also works in code buffers |
+| `ft = { ... }` | Loads on list filetypes only | You only want cascade in Markdown/prose |
+| `lazy = false` | Loads immediately | Small config, want it available instantly |
+
+`lib.nvim` is an **optional** soft dependency — if present, cascade uses
+`lib.map`/`lib.notify`; otherwise it falls back to native equivalents and runs
+fully standalone.
+
+### lazy.nvim
+
+*Recommended (global cycle also active in code):*
 
 ```lua
 {
   "StefanBartl/cascade.nvim",
-  ft = { "markdown", "markdown.mdx", "text", "tex", "norg" },
-  event = "VeryLazy", -- damit der globale cycle auch in Code greift
+  dependencies = { "StefanBartl/lib.nvim" }, -- optional
+  event = "VeryLazy",
   opts = {
     keymaps = { preset = true },
   },
 }
 ```
 
-**packer.nvim**
+*Filetype-scoped only (lists in Markdown/prose):*
 
 ```lua
-use({ "StefanBartl/cascade.nvim", config = function()
-  require("cascade").setup({ keymaps = { preset = true } })
-end })
+{
+  "StefanBartl/cascade.nvim",
+  ft = { "markdown", "markdown.mdx", "text", "tex", "norg" },
+  opts = {
+    keymaps = { preset = true },
+  },
+}
+```
+
+### packer.nvim
+
+```lua
+use({
+  "StefanBartl/cascade.nvim",
+  requires = { "StefanBartl/lib.nvim" }, -- optional
+  config = function()
+    require("cascade").setup({ keymaps = { preset = true } })
+  end,
+})
+```
+
+### vim-plug
+
+```vim
+Plug 'StefanBartl/lib.nvim'  " optional
+Plug 'StefanBartl/cascade.nvim'
+```
+
+```lua
+require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 ---
 
 ## Quickstart
 
-### Variante A — Preset (null Handarbeit)
+### Variant A — preset (zero manual work)
 
 ```lua
 require("cascade").setup({ keymaps = { preset = true } })
 ```
 
-Bindet global `<C-a>`/`<C-x>` (Word-Cycle + Zahlen-Fallback) und in den
-Listen-Filetypes buffer-lokal `<CR>`/`o`/`O` sowie `<leader>cx` (Checkbox),
-`<leader>ct`/`<leader>cT` (Listentyp), `<leader>cr` (Renumber).
+Binds `<C-a>`/`<C-x>` globally (word cycle + number fallback) and, in the list
+filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
+`<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
-### Variante B — `<Plug>` (volle Kontrolle)
+### Variant B — `<Plug>` (full control)
 
 ```lua
-require("cascade").setup({}) -- definiert nur die <Plug>-Maps
+require("cascade").setup({}) -- only defines the <Plug> maps
 
 vim.keymap.set("i", "<CR>",        "<Plug>(cascade-cr)")
 vim.keymap.set("n", "o",           "<Plug>(cascade-o)")
@@ -118,129 +162,129 @@ vim.keymap.set("n", "<S-Tab>",     "<Plug>(cascade-dedent)")
 
 ## Keymaps
 
-Alle Aktionen sind als `<Plug>`-Mappings verfügbar:
+Every action is available as a `<Plug>` mapping:
 
-| `<Plug>`                            | Modus | Aktion                                   |
-| ----------------------------------- | ----- | ---------------------------------------- |
-| `<Plug>(cascade-cr)`                | i     | Liste fortführen / leeren Bullet löschen |
-| `<Plug>(cascade-o)`                 | n     | Item darunter öffnen                     |
-| `<Plug>(cascade-O)`                 | n     | Item darüber öffnen                      |
-| `<Plug>(cascade-checkbox)`          | n     | Checkbox togglen/cyclen                  |
-| `<Plug>(cascade-cycle-type-next)`   | n     | Listentyp vor                            |
-| `<Plug>(cascade-cycle-type-prev)`   | n     | Listentyp zurück                         |
-| `<Plug>(cascade-cycle-word-next)`   | n     | Wort/Zahl vor                            |
-| `<Plug>(cascade-cycle-word-prev)`   | n     | Wort/Zahl zurück                         |
-| `<Plug>(cascade-indent)`            | n, x  | Einrücken + ebenen-bewusst renumbern     |
-| `<Plug>(cascade-dedent)`            | n, x  | Ausrücken + ebenen-bewusst renumbern     |
-| `<Plug>(cascade-move-up)`           | n, x  | Zeile/Auswahl hoch + Renumber            |
-| `<Plug>(cascade-move-down)`         | n, x  | Zeile/Auswahl runter + Renumber          |
-| `<Plug>(cascade-renumber)`          | n     | Block neu nummerieren                    |
-| `<Plug>(cascade-rotate-form)`       | n, x  | Block/Auswahl durch Formen rotieren      |
-| `<Plug>(cascade-rotate-form-back)`  | n, x  | … rückwärts                              |
-| `<Plug>(cascade-sort)`              | n, x  | Block/Auswahl A–Z sortieren              |
-| `<Plug>(cascade-reverse)`           | n, x  | Block/Auswahl-Reihenfolge umkehren       |
-| `<Plug>(cascade-strip-checkbox)`    | n, x  | Checkboxen im Block/Auswahl entfernen    |
+| `<Plug>`                            | Mode  | Action                                    |
+| ----------------------------------- | ----- | ----------------------------------------- |
+| `<Plug>(cascade-cr)`                | i     | Continue list / delete empty bullet       |
+| `<Plug>(cascade-o)`                 | n     | Open item below                           |
+| `<Plug>(cascade-O)`                 | n     | Open item above                           |
+| `<Plug>(cascade-checkbox)`          | n     | Toggle/cycle checkbox                     |
+| `<Plug>(cascade-cycle-type-next)`   | n     | List type forward                         |
+| `<Plug>(cascade-cycle-type-prev)`   | n     | List type backward                        |
+| `<Plug>(cascade-cycle-word-next)`   | n     | Word/number forward                       |
+| `<Plug>(cascade-cycle-word-prev)`   | n     | Word/number backward                      |
+| `<Plug>(cascade-indent)`            | n, x  | Indent + level-aware renumber             |
+| `<Plug>(cascade-dedent)`            | n, x  | Dedent + level-aware renumber             |
+| `<Plug>(cascade-move-up)`           | n, x  | Move line/selection up + renumber         |
+| `<Plug>(cascade-move-down)`         | n, x  | Move line/selection down + renumber       |
+| `<Plug>(cascade-renumber)`          | n     | Renumber block                            |
+| `<Plug>(cascade-rotate-form)`       | n, x  | Rotate block/selection through forms      |
+| `<Plug>(cascade-rotate-form-back)`  | n, x  | … backward                                |
+| `<Plug>(cascade-sort)`              | n, x  | Sort block/selection A–Z                  |
+| `<Plug>(cascade-reverse)`           | n, x  | Reverse block/selection order             |
+| `<Plug>(cascade-strip-checkbox)`    | n, x  | Strip checkboxes in block/selection       |
 
-> `<Tab>`/`<S-Tab>` sind bewusst **nicht** im Preset (Konflikt mit Completion).
-> Bei Bedarf via `<Plug>(cascade-indent/dedent)` selbst binden.
+> `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
+> completion). Bind them yourself via `<Plug>(cascade-indent/dedent)` if wanted.
 
 ### User commands
 
-Range-aware — ohne Range wirken sie auf den Listenblock am Cursor, mit Range
-(z. B. Visual `:'<,'>`) auf die Auswahl:
+Range-aware — without a range they act on the list block at the cursor, with a
+range (e.g. Visual `:'<,'>`) on the selection:
 
-| Command                       | Wirkung                                            |
-| ----------------------------- | -------------------------------------------------- |
-| `:CascadeRotate [next\|prev]` | Form vor/zurück rotieren (`!` = rückwärts).        |
-| `:CascadeSort`                | Block/Auswahl A–Z sortieren (`!` = Z–A).           |
-| `:CascadeReverse`             | Reihenfolge umkehren.                              |
-| `:CascadeStrip`               | Checkboxen entfernen.                              |
-| `:CascadeIndent [n]`          | Einrücken (n Ebenen) + Renumber.                  |
-| `:CascadeDedent [n]`          | Ausrücken (n Ebenen) + Renumber.                  |
+| Command                       | Effect                                              |
+| ----------------------------- | --------------------------------------------------- |
+| `:CascadeRotate [next\|prev]` | Rotate form forward/backward (`!` = backward).      |
+| `:CascadeSort`                | Sort block/selection A–Z (`!` = Z–A).               |
+| `:CascadeReverse`             | Reverse order.                                      |
+| `:CascadeStrip`               | Strip checkboxes.                                   |
+| `:CascadeIndent [n]`          | Indent (n levels) + renumber.                       |
+| `:CascadeDedent [n]`          | Dedent (n levels) + renumber.                       |
 
-Im Preset zusätzlich buffer-lokal (jeweils Normal **und** Visual):
-`<leader>tf` / `<leader>tF` (Form vor/zurück), `<leader>ts` (Sort),
-`<leader>tv` (umkehren), `<leader>tx` (Checkbox strippen).
+In the preset, additionally buffer-local (each in Normal **and** Visual):
+`<leader>cf` / `<leader>cF` (form forward/backward), `<leader>cs` (sort),
+`<leader>cv` (reverse), `<leader>cX` (strip checkboxes).
 
-**Global** (alle Filetypes) bindet das Preset zusätzlich:
-- Einrücken/Ausrücken: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
-- Zeilen verschieben: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
+**Globally** (all filetypes) the preset also binds:
+- Indent/dedent: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
+- Move lines: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
 
-Beim Verschieben einer nummerierten Liste wird reindentiert und der Block neu
-nummeriert (Text wandert, Nummern bleiben sequenziell). Außerhalb von Listen ist
-es ein normales `:move` mit `==`-Reindent.
+When moving a numbered list, it is reindented and the block is renumbered (text
+moves, numbers stay sequential). Outside of lists it is a plain `:move` with an
+`==` reindent.
 
-### Ebenen-bewusster Indent
+### Level-aware indent
 
-Beim Ein-/Ausrücken einer nummerierten Liste wird **jede Einrück-Ebene** neu
-nummeriert: eine tiefere Ebene startet bei `1.`, die Rückkehr auf eine flachere
-Ebene läuft weiter, und die verlassene Ebene schließt ihre Lücke. `vim.v.count`
-gibt die Anzahl Ebenen an. Außerhalb der Listen-Filetypes ist es ein normales
-`>>`/`<<` — damit ersetzt es ein generisches Indent-Mapping vollständig.
+When indenting/dedenting a numbered list, **every indent level** is renumbered:
+a deeper level starts at `1.`, returning to a shallower level continues, and the
+level you left closes its gap. `vim.v.count` sets the number of levels. Outside
+the list filetypes it is a plain `>>`/`<<` — so it fully replaces a generic
+indent mapping.
 
 ```
 1. top              1. top
   1. a       →        1. a
   2. b                2. b
-  3. c  (>>)            1. c     ← neue Subebene startet bei 1.
-  4. d                3. d       ← Lücke geschlossen (4→3)
+  3. c  (>>)            1. c     ← new sub-level starts at 1.
+  4. d                3. d       ← gap closed (4→3)
   5. e                4. e       ← (5→4)
 2. bot              2. bot
 ```
 
-### Form-Rotation
+### Form rotation
 
-Eine Aktion rotiert den **ganzen Block** (oder die Visual-Auswahl) durch die in
-`lists.forms` konfigurierten Formen. „Nummerierung zu Checkbox" ist damit der
-erste Rotationsschritt:
+A single action rotates the **whole block** (or the Visual selection) through
+the forms configured in `lists.forms`. "Numbering to checkbox" is thus the first
+rotation step:
 
 ```
-1. eins        ->   1. [ ] eins        ->   - [ ] eins        ->   - eins
-2. zwei              2. [ ] zwei              - [ ] zwei              - zwei
+1. one         ->   1. [ ] one         ->   - [ ] one         ->   - one
+2. two               2. [ ] two               - [ ] two               - two
 ```
 
-Eine Form kombiniert eine Marker-Shape (`1.`, `-`, `a)`, `I.`) mit optionaler
-`[ ]`-Checkbox. Bestehende Checkbox-Zustände (`[x]`) bleiben beim Rotieren
-erhalten; geordnete Ziele werden automatisch neu nummeriert.
+A form combines a marker shape (`1.`, `-`, `a)`, `I.`) with an optional `[ ]`
+checkbox. Existing checkbox states (`[x]`) are preserved while rotating; ordered
+targets are renumbered automatically.
 
 ---
 
 ## Configuration
 
-Defaults (Auszug — vollständige Referenz in `:h cascade-config`):
+Defaults (excerpt — full reference in `:h cascade-config`):
 
 ```lua
 require("cascade").setup({
   lists = {
-    enable = true,                           -- Master-Schalter Listen-Domäne
-    features = {                             -- jedes Feature einzeln an/aus
+    enable = true,                           -- master switch for the list domain
+    features = {                             -- toggle each feature individually
       continue = true, checkbox = true, cycle_type = true,
       rotate = true, sort = true, reverse = true, strip = true,
       indent = true, move = true,
     },
-    filetypes = {                            -- Prosa/Markup-Filetypes (Liste no-oppt sonst)
+    filetypes = {                            -- prose/markup filetypes (lists no-op elsewhere)
       "markdown", "markdown.mdx", "mdx", "text", "txt", "tex", "plaintex",
       "latex", "norg", "org", "rst", "asciidoc", "asciidoctor", "typst",
       "quarto", "pandoc", "vimwiki", "gitcommit", "mail",
     },
-    types = { "unordered", "digit" },        -- Erkennungs-Reihenfolge
+    types = { "unordered", "digit" },        -- detection order
     unordered_markers = { "-", "*", "+" },
-    cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (eine Zeile)
-    forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- Form-Rotation (Block/Visual)
-    checkbox = { states = { " ", "x" } },    -- N-Zustands-Cycle möglich
+    cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (single line)
+    forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- form rotation (block/visual)
+    checkbox = { states = { " ", "x" } },    -- N-state cycle possible
     continue = { delete_empty = true },
-    renumber = {                             -- WANN automatisch neu nummeriert wird
+    renumber = {                             -- WHEN it renumbers automatically
       enable = true,
-      on = { "edit" },                       -- "edit" = sofort, "save" = bei :w
+      on = { "edit" },                       -- "edit" = immediately, "save" = on :w
     },
   },
   cycle = {
     enable = true,
-    features = { word = true },              -- Wort/Boolean-Cycle an/aus
-    filetypes = nil,                         -- nil = alle Filetypes
+    features = { word = true },              -- word/boolean cycle on/off
+    filetypes = nil,                         -- nil = all filetypes
     number_fallback = true,
     groups = { { "true", "false" }, { "on", "off" } },
-    per_filetype = {                         -- z. B. nur in Lua:
+    per_filetype = {                         -- e.g. only in Lua:
       -- lua = { { "pairs", "ipairs" } },
     },
   },
@@ -248,42 +292,42 @@ require("cascade").setup({
 })
 ```
 
-**Scopes — global vs. ft-scoped:** cascade hat zwei Domänen mit bewusst
-unterschiedlichem Geltungsbereich:
+**Scopes — global vs. ft-scoped:** cascade has two domains with deliberately
+different scope:
 
-- **`cycle`** (Wort/Boolean + Zahlen-Inc/Dec) ist **global** — `cycle.filetypes
-  = nil` bedeutet *alle* Filetypes. `true`↔`false`, `on`↔`off` und `<C-a>`/`<C-x>`
-  funktionieren in `.txt`, `.lua`, `.md`, überall. Einschränken: z. B.
+- **`cycle`** (word/boolean + number inc/dec) is **global** — `cycle.filetypes =
+  nil` means *all* filetypes. `true`↔`false`, `on`↔`off` and `<C-a>`/`<C-x>`
+  work in `.txt`, `.lua`, `.md`, everywhere. Restrict it via e.g.
   `cycle.filetypes = { "lua", "markdown", "text" }`.
-- **`lists`** (Continue, Checkbox, cycle_type, rotate, sort, reverse, strip,
-  Renumber) ist auf `lists.filetypes` beschränkt — sinnvoll, da Listen-Marker
-  Prosa/Markup-spezifisch sind. List-Aktionen **no-oppen** auf Zeilen ohne
-  Marker, daher ist eine breite Filetype-Liste unbedenklich.
-- **Indent/Dedent** und **Move** sind faktisch **global**: in Listen-Filetypes
-  list-aware (mit Renumber), sonst natives `>>`/`<<` bzw. `:move`.
+- **`lists`** (continue, checkbox, cycle_type, rotate, sort, reverse, strip,
+  renumber) is scoped to `lists.filetypes` — sensible, since list markers are
+  prose/markup specific. List actions **no-op** on lines without a marker, so a
+  broad filetype list is harmless.
+- **Indent/dedent** and **move** are effectively **global**: list-aware in the
+  list filetypes (with renumber), plain `>>`/`<<` or `:move` elsewhere.
 
-| Feature | Geltungsbereich |
+| Feature | Scope |
 | --- | --- |
-| Word/Boolean-Cycle, Zahlen | global (jeder Filetype) |
-| Indent/Dedent, Move | global (Renumber nur in `lists.filetypes`) |
+| Word/boolean cycle, numbers | global (every filetype) |
+| Indent/dedent, move | global (renumber only in `lists.filetypes`) |
 | Continue, cycle_type, rotate, sort, reverse | `lists.filetypes` |
-| Checkbox, strip | `lists.filetypes` (am sinnvollsten Markdown/org/norg) |
+| Checkbox, strip | `lists.filetypes` (most useful in Markdown/org/norg) |
 
-**Renumber-Timing:** `lists.renumber.on` steuert, *wann* nummeriert wird —
-`{ "edit" }` (sofort nach Indent/Move/Continue/…), `{ "save" }` (beim `:w` über
-`BufWritePre`, der ganze Buffer) oder beides `{ "edit", "save" }`. `enable = false`
-schaltet alles ab — dann nummeriert nur noch manuell `:CascadeRenumber` /
-`<leader>tr`. Ein einfacher Bool wird weiter akzeptiert (`true` = `{ "edit" }`).
+**Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
+`{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
+via `BufWritePre`, the whole buffer) or both `{ "edit", "save" }`. `enable =
+false` turns everything off — then only `:CascadeRenumber` / `<leader>cr`
+renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 
-**Feature-Toggles:** Jedes Feature lässt sich über `lists.features.*` bzw.
-`cycle.features.*` einzeln abschalten. Ein deaktiviertes Feature führt seine
-Aktion nicht mehr aus und das Preset bindet seine Tasten nicht — Tasten mit
-nativer Bedeutung (`<CR>`, `<A-Right>`, `<C-a>`) bleiben dann nativ. `:checkhealth
-cascade` zeigt den Status. Fehlende Einträge gelten als aktiviert.
+**Feature toggles:** every feature can be switched off individually via
+`lists.features.*` or `cycle.features.*`. A disabled feature no longer runs its
+action and the preset does not bind its keys — keys with a native meaning
+(`<CR>`, `<A-Right>`, `<C-a>`) then stay native. `:checkhealth cascade` shows the
+status. Missing entries count as enabled.
 
-**Hinweis zu `types`:** `ascii` (`a)`) und `roman` (`i.`) sind opt-in, weil
-Buchstaben mehrdeutig sind. Bei aktiviertem Mix entscheidet die Reihenfolge in
-`types`. Templates in `lists.cycle`: `a/A` = alpha, `i/I` = roman.
+**Note on `types`:** `ascii` (`a)`) and `roman` (`i.`) are opt-in because letters
+are ambiguous. With a mix enabled, the order in `types` decides. Templates in
+`lists.cycle`: `a/A` = alpha, `i/I` = roman.
 
 ---
 
@@ -293,44 +337,38 @@ Buchstaben mehrdeutig sind. Bei aktiviertem Mix entscheidet die Reihenfolge in
 :checkhealth cascade
 ```
 
-Zeigt Neovim-Version, Domänen-Status, `lib.nvim`-Integration (optional) und
-Config-Sanity.
+Shows the Neovim version, domain status, `lib.nvim` integration (optional) and
+config sanity.
 
 ---
 
-## Architektur
+## Architecture
 
 ```
 cascade.nvim/
   plugin/cascade.lua          -- load guard
   lua/cascade/
-    init.lua                  -- setup() + Action-Fassade
+    init.lua                  -- setup() + action facade
     config/{init,DEFAULTS}    -- merge + get(path)
-    core/{context,patterns}   -- 1 Context/Aktion, memoisierte Patterns
+    core/{context,patterns}   -- 1 context/action, memoized patterns
     dispatch/init.lua         -- try-handlers → native fallback
     lists/                    -- marker, continue, renumber, checkbox,
                                  cycle_type, indent, roman, alpha
     cycle/                    -- token, word_cycle
-    keymaps/init.lua          -- <Plug> + Preset
-    util/{lib,dotrepeat}      -- guarded lib-Bridge, operatorfunc-Repeat
+    bindings/                 -- <Plug> maps, user commands, autocmds, which-key
+    util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat
     health.lua
     @types/init.lua
+  docs/BINDINGS.lua           -- machine-readable binding cheatsheet
   doc/cascade.txt             -- :h cascade
 ```
 
-`lib.nvim` ist eine **weiche, geguardete** Dependency: ist sie vorhanden, werden
-`lib.map`/`lib.notify`/… genutzt, andernfalls native Fallbacks — das Plugin läuft
-voll standalone.
+`lib.nvim` is a **soft, guarded** dependency: if present, `lib.map`/`lib.notify`/…
+are used, otherwise native fallbacks — the plugin runs fully standalone.
 
 ---
 
 ## Roadmap
 
-Siehe [docs/ROADMAP.md](docs/ROADMAP.md): Subtree-aware Indent, Visual-Mode
-(sort/reverse/retype), Datums-Cycle, Operator-Flips, Treesitter-Präzisionsmodus.
-
----
-
-## License
-
-MIT
+See [docs/ROADMAP.md](docs/ROADMAP.md): subtree-aware indent, loose-list support,
+date cycle, operator flips, optional Treesitter precision mode.
