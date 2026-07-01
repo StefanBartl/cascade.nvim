@@ -1,11 +1,11 @@
----@module 'cascade.keymaps'
----@brief `<Plug>` mappings and the optional opinionated preset binder.
+---@module 'cascade.bindings.keymaps'
+---@brief `<Plug>` mappings, the buffer-local list keys, and the preset globals.
 ---@description
 --- Defining `<Plug>` mappings (always) decouples actions from concrete keys, so
 --- users bind whatever they like without a wall of boilerplate. When
---- `keymaps.preset` is enabled we also bind a small, sensible default set:
---- global word-cycle on `<C-a>`/`<C-x>` and buffer-local list keys on the
---- configured filetypes.
+--- `keymaps.preset` is enabled the orchestrator also binds a small, sensible
+--- default set: global word-cycle on `<C-a>`/`<C-x>`, global indent/move, and
+--- buffer-local list keys (bound per filetype by `cascade.bindings.autocmds`).
 
 local lib = require("cascade.util.lib")
 
@@ -13,7 +13,7 @@ local M = {}
 
 --- The stable `<Plug>` surface. Mode is the mode each plug is defined in.
 ---@type { mode: string, lhs: string, action: string }[]
-local PLUGS = {
+M.PLUGS = {
   { mode = "i", lhs = "<Plug>(cascade-cr)", action = "cr" },
   { mode = "n", lhs = "<Plug>(cascade-o)", action = "o" },
   { mode = "n", lhs = "<Plug>(cascade-O)", action = "O" },
@@ -46,10 +46,10 @@ local PLUGS = {
 
 --- Define every `<Plug>` mapping against the facade actions.
 ---@return nil
-local function define_plugs()
+function M.define_plugs()
   local api = require("cascade")
-  for i = 1, #PLUGS do
-    local p = PLUGS[i]
+  for i = 1, #M.PLUGS do
+    local p = M.PLUGS[i]
     local fn = api[p.action]
     if type(fn) == "function" then
       lib.map(p.mode, p.lhs, fn, { silent = true, desc = "cascade: " .. p.action })
@@ -58,8 +58,9 @@ local function define_plugs()
 end
 
 --- Bind buffer-local list keys for the current buffer (only enabled features).
+--- Called from the FileType autocmd in `cascade.bindings.autocmds`.
 ---@return nil
-local function bind_list_buffer()
+function M.bind_list_buffer()
   local feat = require("cascade.config").get("lists").features or {}
   local function on(name)
     return feat[name] ~= false
@@ -92,71 +93,16 @@ local function bind_list_buffer()
     map({ "n", "x" }, "<leader>cv", "<Plug>(cascade-reverse)", "cascade: reverse list order")
   end
   if on("strip") then
+    -- Distinct from checkbox toggle (<leader>cx) to avoid a mapping clash.
     map({ "n", "x" }, "<leader>cX", "<Plug>(cascade-strip-checkbox)", "cascade: strip checkboxes")
   end
 end
 
---- Create the user commands (range-aware; work in normal and visual mode).
----@return nil
-local function define_commands()
-  local api = require("cascade")
-  vim.api.nvim_create_user_command("CascadeRotate", function(cmd)
-    local dir = (cmd.args == "prev" or cmd.bang) and -1 or 1
-    api.run_command(api._transform.rotate, cmd, dir)
-  end, {
-    range = true,
-    bang = true,
-    nargs = "?",
-    complete = function()
-      return { "next", "prev" }
-    end,
-    desc = "cascade: rotate list form (range-aware; ! = backward)",
-  })
-
-  vim.api.nvim_create_user_command("CascadeSort", function(cmd)
-    local dir = cmd.bang and -1 or 1 -- ! = descending (Z-A)
-    api.run_command(api._transform.sort, cmd, dir)
-  end, {
-    range = true,
-    bang = true,
-    desc = "cascade: sort list A-Z (range-aware; ! = Z-A)",
-  })
-
-  vim.api.nvim_create_user_command("CascadeReverse", function(cmd)
-    api.run_command(api._transform.reverse, cmd, 1)
-  end, {
-    range = true,
-    desc = "cascade: reverse list order (range-aware)",
-  })
-
-  vim.api.nvim_create_user_command("CascadeStrip", function(cmd)
-    api.run_command(api._transform.strip, cmd, 1)
-  end, {
-    range = true,
-    desc = "cascade: strip checkboxes (range-aware)",
-  })
-
-  vim.api.nvim_create_user_command("CascadeIndent", function(cmd)
-    api.run_indent_command(cmd, 1)
-  end, {
-    range = true,
-    nargs = "?",
-    desc = "cascade: indent line/range (+renumber; arg = levels)",
-  })
-
-  vim.api.nvim_create_user_command("CascadeDedent", function(cmd)
-    api.run_indent_command(cmd, -1)
-  end, {
-    range = true,
-    nargs = "?",
-    desc = "cascade: dedent line/range (+renumber; arg = levels)",
-  })
-end
-
---- Bind the preset key set (global cycle + per-filetype list maps).
+--- Bind the global preset maps (word cycle + indent/move). The per-filetype
+--- buffer-local list keys are attached by `cascade.bindings.autocmds`.
 ---@param cfg CascadeConfig
 ---@return nil
-local function bind_preset(cfg)
+function M.bind_preset_globals(cfg)
   local cyc_feat = cfg.cycle.features or {}
   if cfg.cycle.enable and cyc_feat.word ~= false then
     lib.map("n", "<C-a>", "<Plug>(cascade-cycle-word-next)", { silent = true, desc = "cascade: increment / cycle word" })
@@ -179,35 +125,6 @@ local function bind_preset(cfg)
     lib.map({ "n", "x" }, "<A-Down>", "<Plug>(cascade-move-down)", { silent = true, desc = "cascade: move line/selection down" })
     lib.map("i", "<A-Up>", "<C-o>:m .-2<CR><C-o>==", { silent = true, desc = "cascade: move line up (insert)" })
     lib.map("i", "<A-Down>", "<C-o>:m .+1<CR><C-o>==", { silent = true, desc = "cascade: move line down (insert)" })
-  end
-
-  if cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0 then
-    local group = lib.augroup("cascade_lists")
-    vim.api.nvim_create_autocmd("FileType", {
-      group = group,
-      pattern = cfg.lists.filetypes,
-      callback = bind_list_buffer,
-      desc = "cascade: bind list keymaps",
-    })
-    -- Cover buffers already open at setup time.
-    local cur_ft = vim.bo.filetype
-    for i = 1, #cfg.lists.filetypes do
-      if cfg.lists.filetypes[i] == cur_ft then
-        bind_list_buffer()
-        break
-      end
-    end
-  end
-end
-
---- Define plug maps and, if requested, the preset.
----@param cfg CascadeConfig
----@return nil
-function M.setup(cfg)
-  define_plugs()
-  define_commands()
-  if cfg.keymaps and cfg.keymaps.preset then
-    bind_preset(cfg)
   end
 end
 
