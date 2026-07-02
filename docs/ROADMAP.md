@@ -40,3 +40,25 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
   noch ein dünner Kompatibilitäts-Shim.
 - **vim-repeat-Interop** — neben dem operatorfunc-Trick optional
   `repeat#set` nutzen, wenn vorhanden.
+
+## Qualität & Checklist-Audits
+
+cascade wurde gegen die drei persönlichen Lua/Neovim-Checklisten auditiert. Die
+Ergebnisse und bewussten Abweichungen sind dokumentiert in:
+
+- [Arch&Coding.md](ROADMAP/Arch&Coding.md) — Architektur- & Coding-Regeln
+- [Zentral-Prinzipien.md](ROADMAP/Zentral-Prinzipien.md) — zentrale Modul-Prinzipien
+- [Checklist.md](ROADMAP/Checklist.md) — Master-Checklist (Schnell-Check/PR/Coding)
+- [NEOTREE_FEATURES.md](ROADMAP/NEOTREE_FEATURES.md) — Filetree-Audit (Ergebnis: keine)
+
+**Bilanz:** überwiegend erfüllt; die verbleibenden Punkte sind niedrig-prior und
+optional:
+
+- **CI/Tooling** (Checklist §7, einziger offener „empfohlen"-Punkt) —
+  GitHub-Actions-Workflow: `stylua --check`, `luacheck`, und headless
+  `docs/TESTS/run.lua`. Sinnvoll vor dem nächsten Release.
+- **Debug-Schalter** (Zentrale-Prinzipien §9, optional) — `cascade.debug = true`
+  + `lib`-basiertes Logging; nur bei Bedarf.
+- **Bewusst abweichend (kein Handlungsbedarf):** kein `safe_call`-Envelope
+  (direktes `pcall`), funktionaler Stil statt Metatables, README englisch
+  (publiziertes Plugin, kein Config-Modul).
