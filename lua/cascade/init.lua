@@ -2,7 +2,7 @@
 ---@brief Public facade for cascade.nvim: setup + the action surface.
 ---@description
 --- One entry point that wires configuration, exposes every user-facing action
---- (consumed by `<Plug>` mappings in `cascade.bindings`), and routes the
+--- (bound directly onto keys by `cascade.bindings`), and routes the
 --- dot-repeatable actions through the shared operatorfunc helper. Actions build a
 --- single `CascadeContext` per call and fall back to native keys when no
 --- structured context applies, per the detect -> advance -> fallback pattern.

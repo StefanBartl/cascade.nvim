@@ -40,38 +40,40 @@ action.
       keymaps = { preset = true },
     })
 <
-Calling setup() merges your options over the defaults and defines the |<Plug>|
-mappings. With `keymaps.preset = true` it additionally binds the default keys
-(see |cascade-keymaps|). setup() is safe to call once.
+Calling setup() merges your options over the defaults and defines the
+`:Cascade*` user commands. With `keymaps.preset = true` it additionally binds
+the default keys (see |cascade-keymaps|) directly onto the facade actions — no
+`<Plug>` indirection. setup() is safe to call once.
 
 ==============================================================================
 3. KEYMAPS                                                    *cascade-keymaps*
 
-All actions are exposed as <Plug> mappings, so you can bind any keys you like:
+Every action is a plain function on the `cascade` module, so you can bind any
+keys you like with a normal |vim.keymap.set()|:
 
-    <Plug>(cascade-cr)                 insert  continue list / delete empty
-    <Plug>(cascade-o)                  normal  open continued item below
-    <Plug>(cascade-O)                  normal  open continued item above
-    <Plug>(cascade-checkbox)           normal  toggle / cycle checkbox
-    <Plug>(cascade-cycle-type-next)    normal  cycle list marker type forward
-    <Plug>(cascade-cycle-type-prev)    normal  cycle list marker type backward
-    <Plug>(cascade-cycle-word-next)    normal  cycle word / native increment
-    <Plug>(cascade-cycle-word-prev)    normal  cycle word / native decrement
-    <Plug>(cascade-indent)             n, x    indent + level-aware renumber
-    <Plug>(cascade-dedent)             n, x    dedent + level-aware renumber
-    <Plug>(cascade-move-up)            n, x    move line/selection up + renumber
-    <Plug>(cascade-move-down)          n, x    move line/selection down + renumber
-    <Plug>(cascade-renumber)           normal  renumber the ordered block
-    <Plug>(cascade-rotate-form)        n, x    rotate block/selection forms
-    <Plug>(cascade-rotate-form-back)   n, x    rotate forms backward
-    <Plug>(cascade-sort)               n, x    sort block/selection A-Z
-    <Plug>(cascade-reverse)            n, x    reverse block/selection order
-    <Plug>(cascade-strip-checkbox)     n, x    remove checkboxes
+    cr                       insert  continue list / delete empty
+    o                        normal  open continued item below
+    O                        normal  open continued item above
+    toggle_checkbox          normal  toggle / cycle checkbox
+    cycle_type_next          normal  cycle list marker type forward
+    cycle_type_prev          normal  cycle list marker type backward
+    cycle_word_next          normal  cycle word / native increment
+    cycle_word_prev          normal  cycle word / native decrement
+    indent / indent_visual       n / x   indent + level-aware renumber
+    dedent / dedent_visual       n / x   dedent + level-aware renumber
+    move_up / move_up_visual     n / x   move line/selection up + renumber
+    move_down / move_down_visual n / x   move line/selection down + renumber
+    renumber                 normal  renumber the ordered block
+    rotate_form_next / _visual   n / x   rotate block/selection forms
+    rotate_form_prev / _visual   n / x   rotate forms backward
+    sort / sort_visual           n / x   sort block/selection A-Z
+    reverse / reverse_visual     n / x   reverse block/selection order
+    strip_checkbox / _visual     n / x   remove checkboxes
 
 The checkbox, cycle-type, cycle-word, rotate-form (normal) and sort (normal)
-actions are dot-repeatable (|.|). The rotate-form and sort plugs are defined in
-both normal and visual mode: normal mode operates on the contiguous list block
-at the cursor, visual mode on the selected lines.
+actions are dot-repeatable (|.|). rotate-form and sort have separate normal
+and visual functions: normal mode operates on the contiguous list block at the
+cursor, visual mode on the selected lines.
 
 USER COMMANDS                                               *cascade-commands*
 
@@ -92,36 +94,45 @@ PRESET                                                         *cascade-preset*
 With `keymaps.preset = true`:
 
   Global:
-    <C-y>   ->  <Plug>(cascade-cycle-word-next)
-    <C-x>   ->  <Plug>(cascade-cycle-word-prev)
+    <C-y>   ->  cycle_word_next
+    <C-x>   ->  cycle_word_prev
 
   Buffer-local in `lists.filetypes`:
-    i <CR>          ->  <Plug>(cascade-cr)
-    n o             ->  <Plug>(cascade-o)
-    n O             ->  <Plug>(cascade-O)
-    n <leader>cx    ->  <Plug>(cascade-checkbox)
-    n <leader>ct    ->  <Plug>(cascade-cycle-type-next)
-    n <leader>cT    ->  <Plug>(cascade-cycle-type-prev)
-    n <leader>cr    ->  <Plug>(cascade-renumber)
-    n,x <leader>cf  ->  <Plug>(cascade-rotate-form)
-    n,x <leader>cF  ->  <Plug>(cascade-rotate-form-back)
-    n,x <leader>cs  ->  <Plug>(cascade-sort)
-    n,x <leader>cv  ->  <Plug>(cascade-reverse)
-    n,x <leader>cX  ->  <Plug>(cascade-strip-checkbox)
+    i <CR>          ->  cr
+    n o             ->  o
+    n O             ->  O
+    n <leader>cx    ->  toggle_checkbox
+    n <leader>ct    ->  cycle_type_next
+    n <leader>cT    ->  cycle_type_prev
+    n <leader>cr    ->  renumber
+    n <leader>cf    ->  rotate_form_next
+    x <leader>cf    ->  rotate_form_next_visual
+    n <leader>cF    ->  rotate_form_prev
+    x <leader>cF    ->  rotate_form_prev_visual
+    n <leader>cs    ->  sort
+    x <leader>cs    ->  sort_visual
+    n <leader>cv    ->  reverse
+    x <leader>cv    ->  reverse_visual
+    n <leader>cX    ->  strip_checkbox
+    x <leader>cX    ->  strip_checkbox_visual
 
   Global (every filetype):
-    n,x <A-Right>   ->  <Plug>(cascade-indent)
-    n,x <A-Left>    ->  <Plug>(cascade-dedent)
+    n   <A-Right>   ->  indent
+    x   <A-Right>   ->  indent_visual
+    n   <A-Left>    ->  dedent
+    x   <A-Left>    ->  dedent_visual
     i   <A-Right>   ->  <C-t>     (native insert indent)
     i   <A-Left>    ->  <C-d>     (native insert dedent)
-    n,x <A-Up>      ->  <Plug>(cascade-move-up)
-    n,x <A-Down>    ->  <Plug>(cascade-move-down)
+    n   <A-Up>      ->  move_up
+    x   <A-Up>      ->  move_up_visual
+    n   <A-Down>    ->  move_down
+    x   <A-Down>    ->  move_down_visual
     i   <A-Up>      ->  :m .-2 + ==   (native insert move)
     i   <A-Down>    ->  :m .+1 + ==   (native insert move)
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
-completion plugins; bind them to <Plug>(cascade-indent)/(cascade-dedent) if you
-want them.
+completion plugins; bind them yourself to `cascade.indent`/`cascade.dedent` if
+you want them.
 
 ==============================================================================
 4. CONFIGURATION                                               *cascade-config*

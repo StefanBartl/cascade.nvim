@@ -28,13 +28,15 @@ von Modulen *innerhalb* der Config ausgeht).
 - Nur **zwei** Autocmds im ganzen Plugin: `FileType` (buffer-lokale Listen-Keys)
   und `BufWritePre` (Renumber-on-save), beide in
   [`bindings/autocmds.lua`](../../lua/cascade/bindings/autocmds.lua).
-- Keine Mehrfachbindung an dasselbe Event; die Aktionen laufen über die
-  `<Plug>`-Fassade, nicht über Event-Streuung.
+- Keine Mehrfachbindung an dasselbe Event; die Aktionen laufen über direkte
+  Keymaps auf die Facade-Funktionen (`bindings/keymaps.lua`), nicht über
+  Event-Streuung.
 
 ## 2. Eigene Logik lazy laden — ✅
 
-- `setup()` definiert nur `<Plug>`-Maps + Commands; schwere Arbeit passiert erst
-  beim Tastendruck. Empfohlene Installation: `event = "VeryLazy"` + `ft`.
+- `setup()` definiert nur Keymaps (falls `keymaps.preset = true`) + Commands;
+  schwere Arbeit passiert erst beim Tastendruck. Empfohlene Installation:
+  `event = "VeryLazy"` + `ft`.
 - `require`s der Feature-Module sind top-of-file, aber die Module sind klein und
   reine Funktionssammlungen; kein Laden von ungenutztem State beim Startup.
 
