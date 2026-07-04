@@ -72,7 +72,13 @@ return function(H)
 
   -- (a) deeper item starts a new "1." run; the level it left closes its gap.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-    "1. top", "  1. a", "  2. b", "    3. c", "  4. d", "  5. e", "2. bot",
+    "1. top",
+    "  1. a",
+    "  2. b",
+    "    3. c",
+    "  4. d",
+    "  5. e",
+    "2. bot",
   })
   rn.tree(buf, 0, 6, lopts)
   local t1 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
@@ -83,7 +89,13 @@ return function(H)
 
   -- (b) an outdented item joins the parent level; items after shift down.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-    "1. top", "  1. a", "  2. b", "  3. c", "4. d", "  5. e", "2. bot",
+    "1. top",
+    "  1. a",
+    "  2. b",
+    "  3. c",
+    "4. d",
+    "  5. e",
+    "2. bot",
   })
   rn.tree(buf, 0, 6, lopts)
   local t2 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
@@ -92,7 +104,13 @@ return function(H)
 
   -- (c) a top-level item indented under a nested run appends to it.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-    "1. top", "  1. a", "  2. b", "  3. c", "  4. d", "  5. e", "  2. bot",
+    "1. top",
+    "  1. a",
+    "  2. b",
+    "  3. c",
+    "  4. d",
+    "  5. e",
+    "  2. bot",
   })
   rn.tree(buf, 0, 6, lopts)
   local t3 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
