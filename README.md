@@ -145,49 +145,53 @@ Binds `<C-y>`/`<C-x>` globally (word cycle + number fallback) and, in the list
 filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
-### Variant B — `<Plug>` (full control)
+### Variant B — manual keymaps (full control)
 
 ```lua
-require("cascade").setup({}) -- only defines the <Plug> maps
+require("cascade").setup({}) -- keymaps.preset defaults to false: no keys bound
 
-vim.keymap.set("i", "<CR>",        "<Plug>(cascade-cr)")
-vim.keymap.set("n", "o",           "<Plug>(cascade-o)")
-vim.keymap.set("n", "O",           "<Plug>(cascade-O)")
-vim.keymap.set("n", "<C-y>",       "<Plug>(cascade-cycle-word-next)")
-vim.keymap.set("n", "<C-x>",       "<Plug>(cascade-cycle-word-prev)")
-vim.keymap.set("n", "<Tab>",       "<Plug>(cascade-indent)")
-vim.keymap.set("n", "<S-Tab>",     "<Plug>(cascade-dedent)")
+local cascade = require("cascade")
+vim.keymap.set("i", "<CR>",    cascade.cr)
+vim.keymap.set("n", "o",       cascade.o)
+vim.keymap.set("n", "O",       cascade.O)
+vim.keymap.set("n", "<C-y>",   cascade.cycle_word_next)
+vim.keymap.set("n", "<C-x>",   cascade.cycle_word_prev)
+vim.keymap.set("n", "<Tab>",   cascade.indent)
+vim.keymap.set("x", "<Tab>",   cascade.indent_visual)
+vim.keymap.set("n", "<S-Tab>", cascade.dedent)
+vim.keymap.set("x", "<S-Tab>", cascade.dedent_visual)
 ```
 
 ---
 
 ## Keymaps
 
-Every action is available as a `<Plug>` mapping:
+Every action is exposed as a plain function on the `cascade` module, so it can
+be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 
-| `<Plug>`                            | Mode  | Action                                    |
-| ----------------------------------- | ----- | ----------------------------------------- |
-| `<Plug>(cascade-cr)`                | i     | Continue list / delete empty bullet       |
-| `<Plug>(cascade-o)`                 | n     | Open item below                           |
-| `<Plug>(cascade-O)`                 | n     | Open item above                           |
-| `<Plug>(cascade-checkbox)`          | n     | Toggle/cycle checkbox                     |
-| `<Plug>(cascade-cycle-type-next)`   | n     | List type forward                         |
-| `<Plug>(cascade-cycle-type-prev)`   | n     | List type backward                        |
-| `<Plug>(cascade-cycle-word-next)`   | n     | Word/number forward                       |
-| `<Plug>(cascade-cycle-word-prev)`   | n     | Word/number backward                      |
-| `<Plug>(cascade-indent)`            | n, x  | Indent + level-aware renumber             |
-| `<Plug>(cascade-dedent)`            | n, x  | Dedent + level-aware renumber             |
-| `<Plug>(cascade-move-up)`           | n, x  | Move line/selection up + renumber         |
-| `<Plug>(cascade-move-down)`         | n, x  | Move line/selection down + renumber       |
-| `<Plug>(cascade-renumber)`          | n     | Renumber block                            |
-| `<Plug>(cascade-rotate-form)`       | n, x  | Rotate block/selection through forms      |
-| `<Plug>(cascade-rotate-form-back)`  | n, x  | … backward                                |
-| `<Plug>(cascade-sort)`              | n, x  | Sort block/selection A–Z                  |
-| `<Plug>(cascade-reverse)`           | n, x  | Reverse block/selection order             |
-| `<Plug>(cascade-strip-checkbox)`    | n, x  | Strip checkboxes in block/selection       |
+| Function                    | Mode  | Action                                    |
+| ---------------------------- | ----- | ----------------------------------------- |
+| `cr`                          | i     | Continue list / delete empty bullet       |
+| `o`                           | n     | Open item below                           |
+| `O`                           | n     | Open item above                           |
+| `toggle_checkbox`             | n     | Toggle/cycle checkbox                     |
+| `cycle_type_next`             | n     | List type forward                         |
+| `cycle_type_prev`             | n     | List type backward                        |
+| `cycle_word_next`             | n     | Word/number forward                       |
+| `cycle_word_prev`             | n     | Word/number backward                      |
+| `indent` / `indent_visual`    | n / x | Indent + level-aware renumber             |
+| `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber             |
+| `move_up` / `move_up_visual`     | n / x | Move line/selection up + renumber         |
+| `move_down` / `move_down_visual` | n / x | Move line/selection down + renumber       |
+| `renumber`                    | n     | Renumber block                            |
+| `rotate_form_next` / `_visual` | n / x | Rotate block/selection through forms      |
+| `rotate_form_prev` / `_visual` | n / x | … backward                                |
+| `sort` / `sort_visual`        | n / x | Sort block/selection A–Z                  |
+| `reverse` / `reverse_visual`  | n / x | Reverse block/selection order             |
+| `strip_checkbox` / `_visual`  | n / x | Strip checkboxes in block/selection       |
 
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
-> completion). Bind them yourself via `<Plug>(cascade-indent/dedent)` if wanted.
+> completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
 
 ### User commands
 
@@ -356,7 +360,7 @@ cascade.nvim/
     lists/                    -- marker, continue, renumber, checkbox,
                                  cycle_type, indent, roman, alpha
     cycle/                    -- token, word_cycle
-    bindings/                 -- <Plug> maps, user commands, autocmds, which-key
+    bindings/                 -- keymaps, user commands, autocmds, which-key
     util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat
     health.lua
     @types/init.lua

@@ -9,30 +9,9 @@ The `feature` column refers to `lists.features.*` / `cycle.features.*`
 toggles. Disabling a feature drops its preset key and turns its action into a
 no-op.
 
-## Plug Mappings
-
-The stable `<Plug>` surface is always defined, regardless of the preset configuration.
-
-| lhs | mode | action | desc |
-| --- | --- | --- | --- |
-| `<Plug>(cascade-cr)` | i | cr | Continue list / delete empty bullet |
-| `<Plug>(cascade-o)` | n | o | Open item below |
-| `<Plug>(cascade-O)` | n | O | Open item above |
-| `<Plug>(cascade-checkbox)` | n | toggle_checkbox | Toggle/cycle checkbox |
-| `<Plug>(cascade-cycle-type-next)` | n | cycle_type_next | List marker type forward |
-| `<Plug>(cascade-cycle-type-prev)` | n | cycle_type_prev | List marker type backward |
-| `<Plug>(cascade-cycle-word-next)` | n | cycle_word_next | Word/number forward (native `<C-y>` fallback) |
-| `<Plug>(cascade-cycle-word-prev)` | n | cycle_word_prev | Word/number backward (native `<C-x>` fallback) |
-| `<Plug>(cascade-indent)` | n, x | indent | Indent + level-aware renumber |
-| `<Plug>(cascade-dedent)` | n, x | dedent | Dedent + level-aware renumber |
-| `<Plug>(cascade-renumber)` | n | renumber | Renumber the block at the cursor |
-| `<Plug>(cascade-rotate-form)` | n, x | rotate_form_next | Rotate block/selection through forms |
-| `<Plug>(cascade-rotate-form-back)` | n, x | rotate_form_prev | Rotate forms backward |
-| `<Plug>(cascade-sort)` | n, x | sort | Sort block/selection A-Z |
-| `<Plug>(cascade-reverse)` | n, x | reverse | Reverse block/selection order |
-| `<Plug>(cascade-strip-checkbox)` | n, x | strip_checkbox | Strip checkboxes (markers stay) |
-| `<Plug>(cascade-move-up)` | n, x | move_up | Move line/selection up + renumber |
-| `<Plug>(cascade-move-down)` | n, x | move_down | Move line/selection down + renumber |
+Every mapping binds directly onto a facade action (`require("cascade").<action>`)
+— there is no `<Plug>` indirection. which-key (if installed) only labels the
+`<leader>c` prefix as a group; it does not register the individual keys.
 
 ## Preset Keymaps
 
@@ -42,37 +21,46 @@ Only active when `keymaps.preset = true` is set.
 
 Bound for every filetype.
 
-| lhs | mode | rhs | feature | desc |
+| lhs | mode | action | feature | desc |
 | --- | --- | --- | --- | --- |
-| `<C-y>` | n | `<Plug>(cascade-cycle-word-next)` | cycle.word | Increment / cycle word |
-| `<C-x>` | n | `<Plug>(cascade-cycle-word-prev)` | cycle.word | Decrement / cycle word |
-| `<A-Right>` | n, x | `<Plug>(cascade-indent)` | lists.indent | Indent (+renumber) |
-| `<A-Left>` | n, x | `<Plug>(cascade-dedent)` | lists.indent | Dedent (+renumber) |
-| `<A-Right>` | i | `<C-t>` | lists.indent | Indent line (insert) |
-| `<A-Left>` | i | `<C-d>` | lists.indent | Dedent line (insert) |
-| `<A-Up>` | n, x | `<Plug>(cascade-move-up)` | lists.move | Move line/selection up |
-| `<A-Down>` | n, x | `<Plug>(cascade-move-down)` | lists.move | Move line/selection down |
-| `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` | lists.move | Move line up (insert) |
-| `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` | lists.move | Move line down (insert) |
+| `<C-y>` | n | `cycle_word_next` | cycle.word | Increment / cycle word |
+| `<C-x>` | n | `cycle_word_prev` | cycle.word | Decrement / cycle word |
+| `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber) |
+| `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
+| `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber) |
+| `<A-Left>` | x | `dedent_visual` | lists.indent | Dedent (+renumber) |
+| `<A-Right>` | i | `<C-t>` (native) | lists.indent | Indent line (insert) |
+| `<A-Left>` | i | `<C-d>` (native) | lists.indent | Dedent line (insert) |
+| `<A-Up>` | n | `move_up` | lists.move | Move line up |
+| `<A-Up>` | x | `move_up_visual` | lists.move | Move selection up |
+| `<A-Down>` | n | `move_down` | lists.move | Move line down |
+| `<A-Down>` | x | `move_down_visual` | lists.move | Move selection down |
+| `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` (native) | lists.move | Move line up (insert) |
+| `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` (native) | lists.move | Move line down (insert) |
 
 ### Buffer-local
 
 Buffer-local, bound per `lists.filetypes`.
 
-| lhs | mode | rhs | feature | desc |
+| lhs | mode | action | feature | desc |
 | --- | --- | --- | --- | --- |
-| `<CR>` | i | `<Plug>(cascade-cr)` | continue | Continue list |
-| `o` | n | `<Plug>(cascade-o)` | continue | Open item below |
-| `O` | n | `<Plug>(cascade-O)` | continue | Open item above |
-| `<leader>cx` | n | `<Plug>(cascade-checkbox)` | checkbox | Toggle checkbox |
-| `<leader>ct` | n | `<Plug>(cascade-cycle-type-next)` | cycle_type | Cycle list type |
-| `<leader>cT` | n | `<Plug>(cascade-cycle-type-prev)` | cycle_type | Cycle list type back |
-| `<leader>cr` | n | `<Plug>(cascade-renumber)` | — | Renumber |
-| `<leader>cf` | n, x | `<Plug>(cascade-rotate-form)` | rotate | Rotate list form |
-| `<leader>cF` | n, x | `<Plug>(cascade-rotate-form-back)` | rotate | Rotate list form back |
-| `<leader>cs` | n, x | `<Plug>(cascade-sort)` | sort | Sort list A-Z |
-| `<leader>cv` | n, x | `<Plug>(cascade-reverse)` | reverse | Reverse list order |
-| `<leader>cX` | n, x | `<Plug>(cascade-strip-checkbox)` | strip | Strip checkboxes |
+| `<CR>` | i | `cr` | continue | Continue list |
+| `o` | n | `o` | continue | Open item below |
+| `O` | n | `O` | continue | Open item above |
+| `<leader>cx` | n | `toggle_checkbox` | checkbox | Toggle checkbox |
+| `<leader>ct` | n | `cycle_type_next` | cycle_type | Cycle list type |
+| `<leader>cT` | n | `cycle_type_prev` | cycle_type | Cycle list type back |
+| `<leader>cr` | n | `renumber` | — | Renumber |
+| `<leader>cf` | n | `rotate_form_next` | rotate | Rotate list form |
+| `<leader>cf` | x | `rotate_form_next_visual` | rotate | Rotate list form |
+| `<leader>cF` | n | `rotate_form_prev` | rotate | Rotate list form back |
+| `<leader>cF` | x | `rotate_form_prev_visual` | rotate | Rotate list form back |
+| `<leader>cs` | n | `sort` | sort | Sort list A-Z |
+| `<leader>cs` | x | `sort_visual` | sort | Sort list A-Z |
+| `<leader>cv` | n | `reverse` | reverse | Reverse list order |
+| `<leader>cv` | x | `reverse_visual` | reverse | Reverse list order |
+| `<leader>cX` | n | `strip_checkbox` | strip | Strip checkboxes |
+| `<leader>cX` | x | `strip_checkbox_visual` | strip | Strip checkboxes |
 
 ## User Commands
 

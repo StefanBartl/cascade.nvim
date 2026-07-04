@@ -29,7 +29,7 @@ Legende: ✅ erfüllt · ⚠️ bewusste Abweichung · ❌ offen · n/a nicht zu
 | Reine Funktionen bevorzugen | ✅ | `roman`, `alpha`, `marker.parse/advance/render` sind seiteneffektfrei (direkt testbar). |
 | Lokale statt globale Funktionen | ✅ | Keine globalen Funktionen. |
 | Entwurfsmuster wenn sinnvoll | ✅ | „Facade" (`init.lua`) + „Chain of Responsibility" (`dispatch.try`). |
-| Tools via Registry | n/a | cascade hat keine Tool-Registry; `PLUGS`-Tabelle ist die zentrale Binding-Registry. |
+| Tools via Registry | n/a | cascade hat keine Tool-Registry; Keymaps binden direkt auf die Facade-Aktionen (kein `<Plug>`-Layer mehr, entfernt nach Nutzer-Feedback). |
 | Keine globalen States | ✅ | Einziger State ist die gemergte Config (`config.options`), Zugriff nur über `get(path)`. |
 
 ## §3 Buffer- & Window-Management — ✅ (Fenster n/a)

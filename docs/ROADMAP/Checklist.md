@@ -38,7 +38,7 @@ nicht (cross-platform durch reinen Zeilen-Scan; eigene Pattern-Memoization).
 
 ### 2. Modularität & Struktur — ✅
 - SRP ✅, keine Globals ✅, reine Funktionen ✅, interne Helfer lokal ✅.
-- Registry: `PLUGS`-Tabelle als zentrale Binding-Registry ✅.
+- Registry: keine `<Plug>`-Indirektion mehr — Keymaps binden direkt auf die Facade-Aktionen in `bindings/keymaps.lua` ✅.
 - `/config`-Ordner mit `DEFAULTS.lua`: ✅ (`config/{init,DEFAULTS}.lua`).
 
 ### 3. Buffer-/Window-Management — ✅ (Fenster n/a)
