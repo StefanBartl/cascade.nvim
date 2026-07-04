@@ -1,0 +1,10 @@
+-- luacheck configuration for cascade.nvim
+std = "luajit"
+-- `vim` is writable (we set vim.o.*, vim.bo[buf].* etc.); `read_globals` would
+-- flag those field assignments as "setting a read-only field".
+globals = { "vim" }
+max_line_length = 130
+
+-- docs/BINDINGS.lua is a manually column-aligned data table (documentation),
+-- not runtime code; its alignment intentionally exceeds the line limit.
+exclude_files = { "docs/BINDINGS.lua" }

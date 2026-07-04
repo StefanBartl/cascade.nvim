@@ -165,9 +165,11 @@ local checkbox_work = function()
   local ctx = Context.new()
   local opts = config.get("lists")
   if lists_active(ctx) and lf("checkbox") then
-    dispatch.try({ function(c)
-      return checkbox.toggle(c, opts)
-    end }, ctx)
+    dispatch.try({
+      function(c)
+        return checkbox.toggle(c, opts)
+      end,
+    }, ctx)
   end
 end
 

@@ -54,9 +54,9 @@ Ergebnisse und bewussten Abweichungen sind dokumentiert in:
 **Bilanz:** überwiegend erfüllt; die verbleibenden Punkte sind niedrig-prior und
 optional:
 
-- **CI/Tooling** (Checklist §7, einziger offener „empfohlen"-Punkt) —
-  GitHub-Actions-Workflow: `stylua --check`, `luacheck`, und headless
-  `docs/TESTS/run.lua`. Sinnvoll vor dem nächsten Release.
+- ~~**CI/Tooling** (Checklist §7)~~ — ✅ erledigt: `.github/workflows/ci.yml`
+  mit `stylua --check`, `luacheck` und headless `docs/TESTS/run.lua`; Configs
+  `stylua.toml`, `.styluaignore`, `.luacheckrc`.
 - **Debug-Schalter** (Zentrale-Prinzipien §9, optional) — `cascade.debug = true`
   + `lib`-basiertes Logging; nur bei Bedarf.
 - **Bewusst abweichend (kein Handlungsbedarf):** kein `safe_call`-Envelope

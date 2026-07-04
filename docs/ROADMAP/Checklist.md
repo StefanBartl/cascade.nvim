@@ -54,9 +54,9 @@ Kopf-Tags ✅, Funktions-Tags ✅, Aliase/Felder in `@types` ✅, `#`-Kommentar-
 ### 6. Testbarkeit & Lesbarkeit — ✅
 Pure Functions ✅, Test-Entry `docs/TESTS/run.lua` ✅. DI: Config wird als `opts` durchgereicht (kein Hard-Wiring) ✅.
 
-### 7. Tooling — ✅ / ⚠️
+### 7. Tooling — ✅
 - Lua LS: `.luarc.json` vorhanden (`diagnostics.globals=vim`, workspace.library) ✅.
-- Formatter/Linter im CI (stylua/luacheck): ⚠️ **kein CI** eingerichtet. Optionaler nächster Schritt (siehe Plan).
+- Formatter/Linter im CI: ✅ `.github/workflows/ci.yml` — `stylua --check`, `luacheck`, headless `docs/TESTS/run.lua` (Configs `stylua.toml`, `.luacheckrc`).
 
 ## Coding-Checkliste
 
@@ -102,11 +102,9 @@ ganze Zeilen als Schlüssel verglichen werden; Renumber läuft danach separat.
 
 cascade erfüllt die Master-Checklist in allen für ein Text-Plugin relevanten
 Punkten. **Bewusste Abweichungen:** kein `safe_call`-Envelope, funktionaler Stil
-(§1/§4-analog). **Einziger optionaler Handlungspunkt:**
-
-- **CI/Tooling (§7):** GitHub-Actions-Workflow mit `stylua --check` + `luacheck`
-  + Ausführung von `docs/TESTS/run.lua` headless. Niedrige Priorität, aber der
-  einzige echte „empfohlen"-Punkt, der noch offen ist. → in ROADMAP aufnehmen.
+(§1/§4-analog). Der zuvor offene CI/Tooling-Punkt (§7) ist umgesetzt:
+`.github/workflows/ci.yml` (stylua/luacheck/headless Tests). Keine offenen
+„empfohlen"-Punkte mehr.
 
 ## Literatur und Referenzen
 
