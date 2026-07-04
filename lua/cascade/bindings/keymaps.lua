@@ -4,7 +4,7 @@
 --- Defining `<Plug>` mappings (always) decouples actions from concrete keys, so
 --- users bind whatever they like without a wall of boilerplate. When
 --- `keymaps.preset` is enabled the orchestrator also binds a small, sensible
---- default set: global word-cycle on `<C-a>`/`<C-x>`, global indent/move, and
+--- default set: global word-cycle on `<C-y>`/`<C-x>`, global indent/move, and
 --- buffer-local list keys (bound per filetype by `cascade.bindings.autocmds`).
 
 local lib = require("cascade.util.lib")
@@ -105,7 +105,7 @@ end
 function M.bind_preset_globals(cfg)
   local cyc_feat = cfg.cycle.features or {}
   if cfg.cycle.enable and cyc_feat.word ~= false then
-    lib.map("n", "<C-a>", "<Plug>(cascade-cycle-word-next)", { silent = true, desc = "cascade: increment / cycle word" })
+    lib.map("n", "<C-y>", "<Plug>(cascade-cycle-word-next)", { silent = true, desc = "cascade: increment / cycle word" })
     lib.map("n", "<C-x>", "<Plug>(cascade-cycle-word-prev)", { silent = true, desc = "cascade: decrement / cycle word" })
   end
 

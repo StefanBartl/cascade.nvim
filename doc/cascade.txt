@@ -92,7 +92,7 @@ PRESET                                                         *cascade-preset*
 With `keymaps.preset = true`:
 
   Global:
-    <C-a>   ->  <Plug>(cascade-cycle-word-next)
+    <C-y>   ->  <Plug>(cascade-cycle-word-next)
     <C-x>   ->  <Plug>(cascade-cycle-word-prev)
 
   Buffer-local in `lists.filetypes`:
@@ -187,7 +187,7 @@ cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key
                                   = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
-cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens.
+cycle.number_fallback (boolean)   Use native <C-y>/<C-x> on numeric tokens.
 cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
 cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
 

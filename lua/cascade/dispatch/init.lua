@@ -36,7 +36,7 @@ end
 
 --- Run handlers; if none handled it, feed `fallback` as a native key.
 ---@param handlers CascadeHandler[]
----@param fallback string # e.g. "<CR>", "<C-a>".
+---@param fallback string # e.g. "<CR>", "<C-y>".
 ---@param ctx CascadeContext|nil
 ---@return boolean handled
 function M.try_or_native(handlers, fallback, ctx)

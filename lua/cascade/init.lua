@@ -213,7 +213,7 @@ end
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
 M.cycle_type_next = dotrepeat.repeatable("cycle_type_next", cycle_type_work(1))
 M.cycle_type_prev = dotrepeat.repeatable("cycle_type_prev", cycle_type_work(-1))
-M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-a>"))
+M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-y>"))
 M.cycle_word_prev = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>"))
 
 -- ---------- block / visual transforms ----------
@@ -324,11 +324,13 @@ function M._shift_visual(dir)
     indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
   end
   -- Reselect the shifted rows so repeated indent/dedent works without
-  -- re-selecting. `gv` can't be used here: its '< / '> marks still point at the
-  -- *previous* selection while we are mid-visual, so it would restore the wrong
-  -- (or an empty) region. Shifting never changes the line count, so [s, e] still
-  -- addresses the same rows; reselect them linewise.
-  vim.cmd(string.format("keepjumps normal! %dGV%dG", s + 1, e + 1))
+  -- re-selecting. A `:normal! V…` here would *exit* visual mode the moment it
+  -- returns (leaving us in normal mode), and `gv`'s '< / '> marks are unreliable
+  -- mid-visual. Instead queue the reselect via feedkeys so it runs after this
+  -- mapping returns: `<Esc>` normalizes the mode, then we select the same rows
+  -- linewise (shifting never changes the line count, so [s, e] still address
+  -- them).
+  feed(string.format("<Esc>%dGV%dG", s + 1, e + 1))
 end
 
 --- Run an indent/dedent from a `:command` (range- and count-aware).
