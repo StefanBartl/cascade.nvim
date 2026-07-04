@@ -24,7 +24,7 @@
 - **lists** — continue lists, renumber them, tick checkboxes, cycle marker
   types, indent/dedent (filetype-scoped).
 - **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …),
-  with a native `<C-a>`/`<C-x>` fallback for numbers (global).
+  with a native `<C-y>`/`<C-x>` fallback for numbers (global).
 
 ---
 
@@ -58,7 +58,7 @@
 | **lists**  | Move lines             | Move a line/selection up/down + reindent + renumber.               |
 | **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
-| **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex.                          |
+| **cycle**  | Number fallback        | Native `<C-y>`/`<C-x>` for int/float/hex.                          |
 
 Safety & performance design decisions: no Treesitter (pure line scan), no
 `CursorMoved`/`TextChanged` autocmds (only explicit keys), `pcall` around every
@@ -141,7 +141,7 @@ require("cascade").setup({ keymaps = { preset = true } })
 require("cascade").setup({ keymaps = { preset = true } })
 ```
 
-Binds `<C-a>`/`<C-x>` globally (word cycle + number fallback) and, in the list
+Binds `<C-y>`/`<C-x>` globally (word cycle + number fallback) and, in the list
 filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
@@ -153,7 +153,7 @@ require("cascade").setup({}) -- only defines the <Plug> maps
 vim.keymap.set("i", "<CR>",        "<Plug>(cascade-cr)")
 vim.keymap.set("n", "o",           "<Plug>(cascade-o)")
 vim.keymap.set("n", "O",           "<Plug>(cascade-O)")
-vim.keymap.set("n", "<C-a>",       "<Plug>(cascade-cycle-word-next)")
+vim.keymap.set("n", "<C-y>",       "<Plug>(cascade-cycle-word-next)")
 vim.keymap.set("n", "<C-x>",       "<Plug>(cascade-cycle-word-prev)")
 vim.keymap.set("n", "<Tab>",       "<Plug>(cascade-indent)")
 vim.keymap.set("n", "<S-Tab>",     "<Plug>(cascade-dedent)")
@@ -297,7 +297,7 @@ require("cascade").setup({
 different scope:
 
 - **`cycle`** (word/boolean + number inc/dec) is **global** — `cycle.filetypes =
-  nil` means *all* filetypes. `true`↔`false`, `on`↔`off` and `<C-a>`/`<C-x>`
+  nil` means *all* filetypes. `true`↔`false`, `on`↔`off` and `<C-y>`/`<C-x>`
   work in `.txt`, `.lua`, `.md`, everywhere. Restrict it via e.g.
   `cycle.filetypes = { "lua", "markdown", "text" }`.
 - **`lists`** (continue, checkbox, cycle_type, rotate, sort, reverse, strip,
@@ -323,7 +323,7 @@ renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 **Feature toggles:** every feature can be switched off individually via
 `lists.features.*` or `cycle.features.*`. A disabled feature no longer runs its
 action and the preset does not bind its keys — keys with a native meaning
-(`<CR>`, `<A-Right>`, `<C-a>`) then stay native. `:checkhealth cascade` shows the
+(`<CR>`, `<A-Right>`, `<C-y>`) then stay native. `:checkhealth cascade` shows the
 status. Missing entries count as enabled.
 
 **Note on `types`:** `ascii` (`a)`) and `roman` (`i.`) are opt-in because letters

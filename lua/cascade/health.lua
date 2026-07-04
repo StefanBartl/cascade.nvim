@@ -75,7 +75,7 @@ function M.check()
     local scope = cyc.filetypes and table.concat(cyc.filetypes, ", ") or "all filetypes"
     ok(("cycle: enabled (%s), %d groups"):format(scope, #cyc.groups))
     if cyc.number_fallback then
-      info("number fallback: native <C-a>/<C-x> on numeric tokens")
+      info("number fallback: native <C-y>/<C-x> on numeric tokens")
     end
   else
     info("cycle: disabled")

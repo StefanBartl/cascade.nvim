@@ -4,7 +4,7 @@
 --- Detects the keyword token under the cursor, finds the cycle group it belongs
 --- to (case-insensitively), and replaces it with the next/previous entry while
 --- preserving the original capitalization. Numeric tokens are left for the
---- native `<C-a>`/`<C-x>` fallback. Per-filetype groups extend the global ones.
+--- native `<C-y>`/`<C-x>` fallback. Per-filetype groups extend the global ones.
 
 local token = require("cascade.cycle.token")
 

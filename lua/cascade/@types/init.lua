@@ -50,7 +50,7 @@
 ---@field enable boolean # Master switch for the word/number cycle domain.
 ---@field features CascadeCycleFeatures # Per-feature on/off switches.
 ---@field filetypes string[]|nil # Restrict to these filetypes; nil = every filetype (global).
----@field number_fallback boolean # Fall back to native <C-a>/<C-x> on numeric tokens.
+---@field number_fallback boolean # Fall back to native <C-y>/<C-x> on numeric tokens.
 ---@field groups string[][] # Cycle groups; first match under the cursor wins.
 ---@field per_filetype table<string, string[][]> # Extra groups merged in per filetype.
 
