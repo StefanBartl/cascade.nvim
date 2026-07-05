@@ -1,2 +1,2 @@
 # Manually column-aligned tables; stylua would collapse the alignment.
-docs/BINDINGS.lua
+docs/BINDINGS.md

@@ -5,6 +5,6 @@ std = "luajit"
 globals = { "vim" }
 max_line_length = 130
 
--- docs/BINDINGS.lua is a manually column-aligned data table (documentation),
+-- docs/BINDINGS.md is a manually column-aligned data table (documentation),
 -- not runtime code; its alignment intentionally exceeds the line limit.
-exclude_files = { "docs/BINDINGS.lua" }
+exclude_files = { "docs/BINDINGS.md" }
