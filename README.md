@@ -364,7 +364,7 @@ cascade.nvim/
     util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat
     health.lua
     @types/init.lua
-  docs/BINDINGS.lua           -- machine-readable binding cheatsheet
+  docs/BINDINGS.md           -- machine-readable binding cheatsheet
   doc/cascade.txt             -- :h cascade
 ```
 
