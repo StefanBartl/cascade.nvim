@@ -324,6 +324,18 @@ via `BufWritePre`, the whole buffer) or both `{ "edit", "save" }`. `enable =
 false` turns everything off — then only `:CascadeRenumber` / `<leader>cr`
 renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 
+**Renumber and continuation paragraphs:** a non-marker line deeper-indented
+than the list item (a wrapped paragraph or note under an entry) does not break
+the sequence — it is left untouched and the numbering carries on past it. A
+line at or above the item's own indent (or a blank line) still ends the run,
+so unrelated prose between two lists starts a fresh sequence as expected.
+
+```markdown
+1. Product Module: ...
+   Note on Module Export: ...      ← deeper indent, sequence continues
+2. Tosca Version: ...              ← stays 2, not reset to 1
+```
+
 **Feature toggles:** every feature can be switched off individually via
 `lists.features.*` or `cycle.features.*`. A disabled feature no longer runs its
 action and the preset does not bind its keys — keys with a native meaning

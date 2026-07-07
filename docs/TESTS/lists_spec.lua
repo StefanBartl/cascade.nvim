@@ -176,5 +176,31 @@ return function(H)
   eq(all[4], "5. x", "all: block 2 keeps start offset")
   eq(all[5], "6. y", "all: block 2 sequential")
 
+  -- a deeper-indented continuation paragraph (no marker) does not break the
+  -- sequence; a flush/shallow paragraph between lists still does.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "  1. one",
+    "    a wrapped continuation paragraph",
+    "  1. two",
+    "  2. three",
+  })
+  rn.all(buf, lo)
+  local cont = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(cont[3], "  2. two", "continuation: sequence carries on past deeper text")
+  eq(cont[4], "  3. three", "continuation: sequence carries on past deeper text")
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. a",
+    "1. b",
+    "Some unrelated paragraph at column 0.",
+    "5. x",
+    "9. y",
+  })
+  rn.all(buf, lo)
+  local brk = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(brk[2], "2. b", "break: block 1 still renumbered")
+  eq(brk[4], "5. x", "break: flush paragraph still ends block 1")
+  eq(brk[5], "6. y", "break: block 2 still sequential")
+
   cfg.setup({})
 end

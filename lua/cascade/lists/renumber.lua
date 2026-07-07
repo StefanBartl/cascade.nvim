@@ -5,13 +5,37 @@
 --- sharing the cursor item's indent and kind, then rewrites their markers as a
 --- sequence starting from the first marker's value (so non-1 start offsets and
 --- alphabetic/Roman lists are preserved). Lines that are more deeply indented
---- (children) are skipped over but left untouched.
+--- (children, or a non-marker continuation paragraph wrapped under an item)
+--- are skipped over but left untouched, so they don't break the sequence; a
+--- blank line or a non-marker line at/above the item's own indent still does.
 
 local marker = require("cascade.lists.marker")
 local roman = require("cascade.lists.roman")
 local alpha = require("cascade.lists.alpha")
 
 local M = {}
+
+--- Whether `line` is empty or whitespace-only.
+---@param line string
+---@return boolean
+local function is_blank(line)
+  return line:match("^%s*$") ~= nil
+end
+
+--- Whether a non-marker `line` is deeper-indented *continuation* content of a
+--- list item at `ref_w` (e.g. a wrapped paragraph under a list entry) rather
+--- than a real break in the list. Blank lines and lines at/above the item's
+--- own indent always break the sequence.
+---@param line string
+---@param ref_w integer
+---@return boolean
+local function is_continuation(line, ref_w)
+  if is_blank(line) then
+    return false
+  end
+  local w = #(line:match("^(%s*)") or "")
+  return w > ref_w
+end
 
 --- Format the n-th ordinal for an ordered kind, preserving case of `ref`.
 ---@param kind CascadeMarkerKind
@@ -76,11 +100,13 @@ function M.all(bufnr, opts)
   local r = 0
   while r < total do
     local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
-    if l and marker.parse(l, opts) then
+    local m0 = l and marker.parse(l, opts)
+    if m0 then
+      local base_w = #m0.indent
       local e = r
       while e + 1 < total do
         local nl = vim.api.nvim_buf_get_lines(bufnr, e + 1, e + 2, false)[1]
-        if nl and marker.parse(nl, opts) then
+        if nl and (marker.parse(nl, opts) or is_continuation(nl, base_w)) then
           e = e + 1
         else
           break
@@ -151,9 +177,13 @@ function M.tree(bufnr, srow, erow, opts)
     out[i] = line
     local m = marker.parse(line, opts)
     if not m then
-      -- A non-list line ends every running sequence.
-      counters = {}
-      counters[base_w] = base_start - 1
+      if not is_continuation(line, base_w) then
+        -- A real break (blank, or text at/above the list's own indent) ends
+        -- every running sequence. Deeper continuation content (e.g. a
+        -- wrapped paragraph under an item) is left untouched instead.
+        counters = {}
+        counters[base_w] = base_start - 1
+      end
     else
       local w = #m.indent
       -- Returning to a shallower level invalidates all deeper counters.
@@ -200,10 +230,14 @@ function M.run(bufnr, row0, opts)
   end
 
   local indent_w = #cur.indent
-  -- Find the first line of the block (scan upward over same-indent same-kind).
+  -- Find the first line of the block (scan upward over same-indent same-kind,
+  -- child lines, and deeper-indented continuation content).
   local total = vim.api.nvim_buf_line_count(bufnr)
+  local function line_at(r)
+    return vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+  end
   local function item_at(r)
-    local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+    local l = line_at(r)
     if not l then
       return nil
     end
@@ -212,11 +246,14 @@ function M.run(bufnr, row0, opts)
 
   local first = row0
   while first - 1 >= 0 do
-    local m = item_at(first - 1)
+    local l = line_at(first - 1)
+    local m = l and marker.parse(l, opts) or nil
     if m and m.kind == cur.kind and #m.indent == indent_w then
       first = first - 1
     elseif m and #m.indent > indent_w then
       first = first - 1 -- child line, keep scanning past it
+    elseif not m and l and is_continuation(l, indent_w) then
+      first = first - 1 -- continuation content, keep scanning past it
     else
       break
     end
@@ -238,30 +275,34 @@ function M.run(bufnr, row0, opts)
   while r < total do
     local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
     local m = l and marker.parse(l, opts) or nil
-    if not m then
+    -- Deeper continuation content (e.g. a wrapped paragraph under an item)
+    -- passes through unchanged without ending the run; anything else
+    -- (blank, or text at/above the item's own indent) ends it.
+    if not m and l and is_continuation(l, indent_w) then
+      out[#out + 1] = l
+      r = r + 1
+    elseif not m or #m.indent < indent_w then
       break
-    end
-    if #m.indent < indent_w then
-      break
-    end
-    local newl = l
-    if #m.indent == indent_w then
-      if m.kind ~= cur.kind then
-        break
-      end
-      local want = ordinal(cur.kind, seq, ref)
-      if want ~= m.marker then
-        m.marker = want
-        local new = marker.render(m) .. (m.text or "")
-        if new ~= l then
-          newl = new
-          changed = true
+    else
+      local newl = l
+      if #m.indent == indent_w then
+        if m.kind ~= cur.kind then
+          break
         end
+        local want = ordinal(cur.kind, seq, ref)
+        if want ~= m.marker then
+          m.marker = want
+          local new = marker.render(m) .. (m.text or "")
+          if new ~= l then
+            newl = new
+            changed = true
+          end
+        end
+        seq = seq + 1
       end
-      seq = seq + 1
+      out[#out + 1] = newl
+      r = r + 1
     end
-    out[#out + 1] = newl
-    r = r + 1
   end
   if changed then
     vim.api.nvim_buf_set_lines(bufnr, first, first + #out, false, out)
