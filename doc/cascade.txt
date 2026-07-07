@@ -194,6 +194,12 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                           buffer).
                                   A boolean is also accepted: true = { "edit" }.
 
+                                  A non-marker line deeper-indented than the
+                                  item (a wrapped continuation paragraph) does
+                                  not break the sequence; a line at/above the
+                                  item's own indent, or a blank line, still
+                                  does.
+
 cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key
                                   = enabled.
