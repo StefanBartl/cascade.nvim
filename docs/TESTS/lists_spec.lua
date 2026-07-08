@@ -202,5 +202,26 @@ return function(H)
   eq(brk[4], "5. x", "break: flush paragraph still ends block 1")
   eq(brk[5], "6. y", "break: block 2 still sequential")
 
+  -- transform.block_range must span a continuation paragraph the same way,
+  -- so the interactive indent-on-edit path (indent.lua -> block_range ->
+  -- renumber.tree) renumbers immediately, without needing a save first.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. Product Module: ...",
+    "  Note on Module Export: ...",
+    "1. Tosca Version: ...",
+    "2. Repository Type: ...",
+    "3. Visuals: ...",
+    "4. System Logs: ...",
+  })
+  vim.bo[buf].expandtab = true
+  vim.bo[buf].shiftwidth = 2
+  vim.api.nvim_win_set_cursor(0, { 4, 0 }) -- "2. Repository Type"
+  require("cascade.lists.indent").shift_line(require("cascade.core.context").new(), lo, 1, 1)
+  local ind = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(ind[3], "2. Tosca Version: ...", "indent-on-edit: renumbers across a continuation paragraph immediately")
+  eq(ind[4], "  1. Repository Type: ...", "indent-on-edit: shifted line nests to 1.")
+  eq(ind[5], "3. Visuals: ...", "indent-on-edit: base-level gap closed (3->3, unaffected)")
+  eq(ind[6], "4. System Logs: ...", "indent-on-edit: base-level gap closed (4->4, unaffected)")
+
   cfg.setup({})
 end
