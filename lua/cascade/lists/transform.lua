@@ -63,27 +63,58 @@ local function line_at(bufnr, r)
   return vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
 end
 
---- The contiguous run of list-item lines containing `row0` (0-based, inclusive).
+--- The contiguous run of list-item lines containing `row0` (0-based,
+--- inclusive). A non-marker line that is deeper-indented than the block's
+--- shallowest item (a wrapped continuation paragraph) extends the block
+--- instead of ending it, matching `cascade.lists.renumber`'s block detection.
+--- The threshold is the *block's* base indent, not `row0`'s own — found by
+--- expanding outward and re-passing whenever a shallower item widens it,
+--- since `row0` may itself be a nested item.
 ---@param bufnr integer
 ---@param row0 integer
 ---@param opts CascadeListOpts
 ---@return integer|nil srow, integer|nil erow
 function M.block_range(bufnr, row0, opts)
-  local function is_item(r)
-    local l = line_at(bufnr, r)
-    return l ~= nil and marker.parse(l, opts) ~= nil
-  end
-  if not is_item(row0) then
+  local cur = line_at(bufnr, row0)
+  local cur_m = cur and marker.parse(cur, opts)
+  if not cur_m then
     return nil, nil
   end
-  local s = row0
-  while s - 1 >= 0 and is_item(s - 1) do
-    s = s - 1
-  end
+  local s, e = row0, row0
+  local base_w = #cur_m.indent
+
   local total = vim.api.nvim_buf_line_count(bufnr)
-  local e = row0
-  while e + 1 < total and is_item(e + 1) do
-    e = e + 1
+  local changed = true
+  while changed do
+    changed = false
+    while s - 1 >= 0 do
+      local l = line_at(bufnr, s - 1)
+      local m = l and marker.parse(l, opts)
+      if m then
+        s = s - 1
+        base_w = math.min(base_w, #m.indent)
+        changed = true
+      elseif l and marker.is_continuation(l, base_w) then
+        s = s - 1
+        changed = true
+      else
+        break
+      end
+    end
+    while e + 1 < total do
+      local l = line_at(bufnr, e + 1)
+      local m = l and marker.parse(l, opts)
+      if m then
+        e = e + 1
+        base_w = math.min(base_w, #m.indent)
+        changed = true
+      elseif l and marker.is_continuation(l, base_w) then
+        e = e + 1
+        changed = true
+      else
+        break
+      end
+    end
   end
   return s, e
 end

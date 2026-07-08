@@ -75,6 +75,28 @@ function M.is_empty(m)
   return m.text == nil or m.text:match("^%s*$") ~= nil
 end
 
+--- Whether `line` is empty or whitespace-only.
+---@param line string
+---@return boolean
+function M.is_blank_line(line)
+  return line:match("^%s*$") ~= nil
+end
+
+--- Whether a non-marker `line` is deeper-indented *continuation* content of a
+--- list item at `ref_w` (e.g. a wrapped paragraph under a list entry) rather
+--- than a real break in the list. Blank lines and lines at/above the item's
+--- own indent always count as a real break.
+---@param line string
+---@param ref_w integer
+---@return boolean
+function M.is_continuation(line, ref_w)
+  if M.is_blank_line(line) then
+    return false
+  end
+  local w = #(line:match("^(%s*)") or "")
+  return w > ref_w
+end
+
 --- Rebuild the marker prefix string (everything before the item text).
 ---@param m CascadeMarker
 ---@return string

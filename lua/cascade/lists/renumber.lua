@@ -14,28 +14,7 @@ local roman = require("cascade.lists.roman")
 local alpha = require("cascade.lists.alpha")
 
 local M = {}
-
---- Whether `line` is empty or whitespace-only.
----@param line string
----@return boolean
-local function is_blank(line)
-  return line:match("^%s*$") ~= nil
-end
-
---- Whether a non-marker `line` is deeper-indented *continuation* content of a
---- list item at `ref_w` (e.g. a wrapped paragraph under a list entry) rather
---- than a real break in the list. Blank lines and lines at/above the item's
---- own indent always break the sequence.
----@param line string
----@param ref_w integer
----@return boolean
-local function is_continuation(line, ref_w)
-  if is_blank(line) then
-    return false
-  end
-  local w = #(line:match("^(%s*)") or "")
-  return w > ref_w
-end
+local is_continuation = marker.is_continuation
 
 --- Format the n-th ordinal for an ordered kind, preserving case of `ref`.
 ---@param kind CascadeMarkerKind
