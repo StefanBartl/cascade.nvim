@@ -20,6 +20,7 @@ local move_mod = require("cascade.lists.move")
 local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
+local token = require("cascade.cycle.token")
 
 local M = {}
 
@@ -186,26 +187,35 @@ local function cycle_type_work(dir)
   end
 end
 
---- Cycle the word under the cursor; fall back to native increment/decrement.
+--- Cycle the word under the cursor. On a numeric token, fall back to the
+--- real native increment/decrement (`<C-a>`/`<C-x>`) regardless of which key
+--- triggered this; on anything else (no match at all), fall back to the
+--- triggering key's own native meaning, so e.g. `+`/`-` still move a line
+--- when the cursor isn't on a cyclable word or a number.
 ---@param dir integer
----@param fallback string
+---@param number_key string # native key that increments/decrements numbers.
+---@param own_key string # the key this action is bound to.
 ---@return fun()
-local function cycle_word_work(dir, fallback)
+local function cycle_word_work(dir, number_key, own_key)
   return function()
     local opts = config.get("cycle")
     if not opts.enable or not cf("word") then
-      feed(fallback)
+      feed(own_key)
       return
     end
     local ctx = Context.new()
     if not Context.writable(ctx.bufnr) or not ft_in(opts.filetypes, ctx.ft) then
-      feed(fallback)
+      feed(own_key)
       return
     end
-    if not word_cycle.cycle(ctx, opts, dir) then
-      if opts.number_fallback then
-        feed(fallback)
-      end
+    if word_cycle.cycle(ctx, opts, dir) then
+      return
+    end
+    local _, _, text = token.span(ctx.line, ctx.col0)
+    if opts.number_fallback and token.is_numeric(text) then
+      feed(number_key)
+    else
+      feed(own_key)
     end
   end
 end
@@ -213,8 +223,10 @@ end
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
 M.cycle_type_next = dotrepeat.repeatable("cycle_type_next", cycle_type_work(1))
 M.cycle_type_prev = dotrepeat.repeatable("cycle_type_prev", cycle_type_work(-1))
-M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-y>"))
-M.cycle_word_prev = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>"))
+M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-a>", "<C-y>"))
+M.cycle_word_prev = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>", "<C-x>"))
+M.increment = dotrepeat.repeatable("increment", cycle_word_work(1, "<C-a>", "+"))
+M.decrement = dotrepeat.repeatable("decrement", cycle_word_work(-1, "<C-x>", "-"))
 
 -- ---------- block / visual transforms ----------
 

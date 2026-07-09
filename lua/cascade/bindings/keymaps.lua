@@ -67,6 +67,10 @@ function M.bind_preset_globals(cfg)
   if cfg.cycle.enable and cyc_feat.word ~= false then
     lib.map("n", "<C-y>", api.cycle_word_next, { silent = true, desc = "cascade: increment / cycle word" })
     lib.map("n", "<C-x>", api.cycle_word_prev, { silent = true, desc = "cascade: decrement / cycle word" })
+    -- +/- fall back to their native "first non-blank of next/prev line" motion
+    -- when the cursor isn't on a cyclable word or a number.
+    lib.map("n", "+", api.increment, { silent = true, desc = "cascade: increment / cycle word" })
+    lib.map("n", "-", api.decrement, { silent = true, desc = "cascade: decrement / cycle word" })
   end
 
   -- Global indent/outdent (all filetypes): list-aware renumber on list lines,
