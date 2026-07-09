@@ -329,16 +329,19 @@ via `BufWritePre`, the whole buffer) or both `{ "edit", "save" }`. `enable =
 false` turns everything off — then only `:CascadeRenumber` / `<leader>cr`
 renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 
-**Renumber and continuation paragraphs:** a non-marker line deeper-indented
-than the list item (a wrapped paragraph or note under an entry) does not break
-the sequence — it is left untouched and the numbering carries on past it. A
-line at or above the item's own indent (or a blank line) still ends the run,
-so unrelated prose between two lists starts a fresh sequence as expected.
+**Renumber and continuation paragraphs:** a non-marker, non-blank line (a
+wrapped paragraph or note under an entry) never breaks the sequence, no matter
+its own indent — it is left untouched and the numbering carries on past it,
+matching Markdown's "lazy continuation": without a blank line separating it
+from the item above, it belongs to that item. A single blank line is likewise
+tolerated (a "loose" list is still one list); a run of two or more blank
+lines is a real break and starts a fresh block with its own start offset —
+handy for keeping multiple independent numbered lists in one file.
 
 ```markdown
 1. Product Module: ...
-   Note on Module Export: ...      ← deeper indent, sequence continues
-2. Tosca Version: ...              ← stays 2, not reset to 1
+Note on Module Export: ...        ← no blank line, sequence continues
+1. Tosca Version: ...             ← renumbered to 2, not left at 1
 ```
 
 **Feature toggles:** every feature can be switched off individually via

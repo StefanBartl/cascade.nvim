@@ -166,18 +166,28 @@ return function(H)
   cfg.setup({ lists = { renumber = false } })
   eq(rn.at(cfg.get("lists"), "edit"), false, "boolean false disables")
 
-  -- renumber.all over a multi-block buffer
+  -- renumber.all over a multi-block buffer: a single blank line is tolerated
+  -- inside a block (a "loose" list stays one block); a run of two or more
+  -- ends it and starts a fresh block with its own start offset.
   cfg.setup({})
   local lo = cfg.get("lists")
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "5. x", "9. y" })
   rn.all(buf, lo)
   local all = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   eq(all[2], "2. b", "all: block 1 renumbered")
-  eq(all[4], "5. x", "all: block 2 keeps start offset")
-  eq(all[5], "6. y", "all: block 2 sequential")
+  eq(all[4], "3. x", "all: a single blank line doesn't break the sequence")
+  eq(all[5], "4. y", "all: sequence keeps carrying on")
 
-  -- a deeper-indented continuation paragraph (no marker) does not break the
-  -- sequence; a flush/shallow paragraph between lists still does.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "", "5. x", "9. y" })
+  rn.all(buf, lo)
+  local twoblank = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(twoblank[2], "2. b", "all: block 1 renumbered")
+  eq(twoblank[5], "5. x", "all: two blank lines start a fresh block, own start offset kept")
+  eq(twoblank[6], "6. y", "all: fresh block renumbers sequentially")
+
+  -- A non-marker, non-blank line never breaks the sequence, regardless of its
+  -- own indent — matches Markdown "lazy continuation": without a blank line
+  -- separating it from the item above, it belongs to that item.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "  1. one",
     "    a wrapped continuation paragraph",
@@ -189,18 +199,35 @@ return function(H)
   eq(cont[3], "  2. two", "continuation: sequence carries on past deeper text")
   eq(cont[4], "  3. three", "continuation: sequence carries on past deeper text")
 
+  -- ...even a flush (unindented) paragraph, since there's no blank line.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "1. a",
     "1. b",
-    "Some unrelated paragraph at column 0.",
+    "A flush, unindented note right below — no blank line.",
     "5. x",
     "9. y",
   })
   rn.all(buf, lo)
-  local brk = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  eq(brk[2], "2. b", "break: block 1 still renumbered")
-  eq(brk[4], "5. x", "break: flush paragraph still ends block 1")
-  eq(brk[5], "6. y", "break: block 2 still sequential")
+  local flush = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(flush[2], "2. b", "flush continuation: block 1 renumbered")
+  eq(flush[4], "3. x", "flush continuation: no blank line means no break, even unindented")
+  eq(flush[5], "4. y", "flush continuation: sequence keeps carrying on")
+
+  -- The reported real-world case: flush notes directly under each item, with
+  -- repeated "1." source markers and no blank lines anywhere.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. item A",
+    "*note A*",
+    "1. item B",
+    "*note B*",
+    "1. item C",
+    "2. item D",
+  })
+  rn.all(buf, lo)
+  local repeated = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(repeated[3], "2. item B", "repeated-1.: flush note doesn't reset the sequence")
+  eq(repeated[5], "3. item C", "repeated-1.: sequence carries through both notes")
+  eq(repeated[6], "4. item D", "repeated-1.: sequence carries through both notes")
 
   -- transform.block_range must span a continuation paragraph the same way,
   -- so the interactive indent-on-edit path (indent.lua -> block_range ->
