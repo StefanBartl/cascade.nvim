@@ -25,6 +25,8 @@ Bound for every filetype.
 | --- | --- | --- | --- | --- |
 | `<C-y>` | n | `cycle_word_next` | cycle.word | Increment / cycle word |
 | `<C-x>` | n | `cycle_word_prev` | cycle.word | Decrement / cycle word |
+| `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
+| `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise) |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber) |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
 | `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber) |

@@ -23,8 +23,9 @@
 
 - **lists** — continue lists, renumber them, tick checkboxes, cycle marker
   types, indent/dedent (filetype-scoped).
-- **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …),
-  with a native `<C-y>`/`<C-x>` fallback for numbers (global).
+- **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …)
+  via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers and,
+  off `+`/`-`, for the plain line motion (global).
 
 ---
 
@@ -58,7 +59,7 @@
 | **lists**  | Move lines             | Move a line/selection up/down + reindent + renumber.               |
 | **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
-| **cycle**  | Number fallback        | Native `<C-y>`/`<C-x>` for int/float/hex.                          |
+| **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
 
 Safety & performance design decisions: no Treesitter (pure line scan), no
 `CursorMoved`/`TextChanged` autocmds (only explicit keys), `pcall` around every
@@ -141,9 +142,9 @@ require("cascade").setup({ keymaps = { preset = true } })
 require("cascade").setup({ keymaps = { preset = true } })
 ```
 
-Binds `<C-y>`/`<C-x>` globally (word cycle + number fallback) and, in the list
-filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
-`<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
+Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback) and,
+in the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx`
+(checkbox), `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
 ### Variant B — manual keymaps (full control)
 
@@ -156,6 +157,8 @@ vim.keymap.set("n", "o",       cascade.o)
 vim.keymap.set("n", "O",       cascade.O)
 vim.keymap.set("n", "<C-y>",   cascade.cycle_word_next)
 vim.keymap.set("n", "<C-x>",   cascade.cycle_word_prev)
+vim.keymap.set("n", "+",       cascade.increment)
+vim.keymap.set("n", "-",       cascade.decrement)
 vim.keymap.set("n", "<Tab>",   cascade.indent)
 vim.keymap.set("x", "<Tab>",   cascade.indent_visual)
 vim.keymap.set("n", "<S-Tab>", cascade.dedent)
@@ -179,6 +182,8 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `cycle_type_prev`             | n     | List type backward                        |
 | `cycle_word_next`             | n     | Word/number forward                       |
 | `cycle_word_prev`             | n     | Word/number backward                      |
+| `increment`                   | n     | Word/number forward (`+`; native line-down otherwise) |
+| `decrement`                   | n     | Word/number backward (`-`; native line-up otherwise) |
 | `indent` / `indent_visual`    | n / x | Indent + level-aware renumber             |
 | `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber             |
 | `move_up` / `move_up_visual`     | n / x | Move line/selection up + renumber         |
@@ -287,7 +292,7 @@ require("cascade").setup({
     enable = true,
     features = { word = true },              -- word/boolean cycle on/off
     filetypes = nil,                         -- nil = all filetypes
-    number_fallback = true,
+    number_fallback = true,                  -- native <C-a>/<C-x> on numbers; false = skip just that
     groups = { { "true", "false" }, { "on", "off" } },
     per_filetype = {                         -- e.g. only in Lua:
       -- lua = { { "pairs", "ipairs" } },
@@ -301,8 +306,8 @@ require("cascade").setup({
 different scope:
 
 - **`cycle`** (word/boolean + number inc/dec) is **global** — `cycle.filetypes =
-  nil` means *all* filetypes. `true`↔`false`, `on`↔`off` and `<C-y>`/`<C-x>`
-  work in `.txt`, `.lua`, `.md`, everywhere. Restrict it via e.g.
+  nil` means *all* filetypes. `true`↔`false`, `on`↔`off` and `<C-y>`/`<C-x>`/
+  `+`/`-` work in `.txt`, `.lua`, `.md`, everywhere. Restrict it via e.g.
   `cycle.filetypes = { "lua", "markdown", "text" }`.
 - **`lists`** (continue, checkbox, cycle_type, rotate, sort, reverse, strip,
   renumber) is scoped to `lists.filetypes` — sensible, since list markers are
@@ -339,8 +344,8 @@ so unrelated prose between two lists starts a fresh sequence as expected.
 **Feature toggles:** every feature can be switched off individually via
 `lists.features.*` or `cycle.features.*`. A disabled feature no longer runs its
 action and the preset does not bind its keys — keys with a native meaning
-(`<CR>`, `<A-Right>`, `<C-y>`) then stay native. `:checkhealth cascade` shows the
-status. Missing entries count as enabled.
+(`<CR>`, `<A-Right>`, `<C-y>`, `+`/`-`) then stay native. `:checkhealth cascade`
+shows the status. Missing entries count as enabled.
 
 **Note on `types`:** `ascii` (`a)`) and `roman` (`i.`) are opt-in because letters
 are ambiguous. With a mix enabled, the order in `types` decides. Templates in

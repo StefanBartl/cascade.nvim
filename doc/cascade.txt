@@ -59,6 +59,10 @@ keys you like with a normal |vim.keymap.set()|:
     cycle_type_prev          normal  cycle list marker type backward
     cycle_word_next          normal  cycle word / native increment
     cycle_word_prev          normal  cycle word / native decrement
+    increment                normal  cycle word / native increment / native
+                                      line-down (`+`'s own meaning) otherwise
+    decrement                normal  cycle word / native decrement / native
+                                      line-up (`-`'s own meaning) otherwise
     indent / indent_visual       n / x   indent + level-aware renumber
     dedent / dedent_visual       n / x   dedent + level-aware renumber
     move_up / move_up_visual     n / x   move line/selection up + renumber
@@ -96,6 +100,8 @@ With `keymaps.preset = true`:
   Global:
     <C-y>   ->  cycle_word_next
     <C-x>   ->  cycle_word_prev
+    +       ->  increment
+    -       ->  decrement
 
   Buffer-local in `lists.filetypes`:
     i <CR>          ->  cr
@@ -204,7 +210,11 @@ cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key
                                   = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
-cycle.number_fallback (boolean)   Use native <C-y>/<C-x> on numeric tokens.
+cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
+                                  (via <C-y>/<C-x> or +/-). false only skips
+                                  that; off a number and a cyclable word, the
+                                  pressed key still falls back to its own
+                                  native meaning either way.
 cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
 cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
 
