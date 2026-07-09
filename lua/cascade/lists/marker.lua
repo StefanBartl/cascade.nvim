@@ -82,19 +82,26 @@ function M.is_blank_line(line)
   return line:match("^%s*$") ~= nil
 end
 
---- Whether a non-marker `line` is deeper-indented *continuation* content of a
---- list item at `ref_w` (e.g. a wrapped paragraph under a list entry) rather
---- than a real break in the list. Blank lines and lines at/above the item's
---- own indent always count as a real break.
+--- How many *consecutive* blank lines are tolerated inside a list block
+--- before they count as a real break (CommonMark "lazy continuation": a
+--- non-blank line always belongs to the item above regardless of its own
+--- indent, as long as no blank line separates them; a single blank line
+--- still reads as one "loose" list, but two or more is a real section gap).
+M.MAX_BLANK_RUN = 1
+
+--- Whether a non-marker `line` continues the running block instead of
+--- breaking it: any non-blank line always does (indentation doesn't matter);
+--- a blank line does too, as long as `blanks_before` hasn't already reached
+--- `MAX_BLANK_RUN`.
 ---@param line string
----@param ref_w integer
----@return boolean
-function M.is_continuation(line, ref_w)
-  if M.is_blank_line(line) then
-    return false
+---@param blanks_before integer # consecutive blank lines seen immediately before `line`.
+---@return boolean continues, integer blanks_after
+function M.is_continuation(line, blanks_before)
+  if not M.is_blank_line(line) then
+    return true, 0
   end
-  local w = #(line:match("^(%s*)") or "")
-  return w > ref_w
+  local n = blanks_before + 1
+  return n <= M.MAX_BLANK_RUN, n
 end
 
 --- Rebuild the marker prefix string (everything before the item text).

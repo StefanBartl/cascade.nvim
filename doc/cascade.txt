@@ -200,11 +200,16 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                           buffer).
                                   A boolean is also accepted: true = { "edit" }.
 
-                                  A non-marker line deeper-indented than the
-                                  item (a wrapped continuation paragraph) does
-                                  not break the sequence; a line at/above the
-                                  item's own indent, or a blank line, still
-                                  does.
+                                  A non-marker, non-blank line (a wrapped
+                                  continuation paragraph or note) never
+                                  breaks the sequence, regardless of its own
+                                  indent — Markdown "lazy continuation": no
+                                  blank line separating it means it belongs
+                                  to the item above. A single blank line is
+                                  tolerated too (a "loose" list is still one
+                                  list); two or more is a real break and
+                                  starts a fresh block with its own start
+                                  offset.
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key
@@ -245,7 +250,8 @@ leaves closes its gap. The base level keeps its first item's start offset. >
       5. e                  4. e      (5 -> 4)
     2. bot                2. bot
 <
-Loose lists (items separated by blank lines) are treated as separate blocks.
+A single blank line between items is tolerated (still one block); a run of
+two or more starts a fresh block with its own start offset.
 
 ==============================================================================
 6. CYCLE DOMAIN                                                 *cascade-cycle*
