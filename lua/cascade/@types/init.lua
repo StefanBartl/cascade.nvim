@@ -30,6 +30,9 @@
 ---@field strip boolean # Block/visual remove checkboxes.
 ---@field indent boolean # Indent/outdent with level-aware renumber.
 ---@field move boolean # Move line/selection up/down with renumber.
+---@field bullet_toggle boolean # Quick "-" bullet on/off; works without an existing marker.
+---@field number_toggle boolean # Quick "1." marker on/off; works without an existing marker.
+---@field checkbox_toggle boolean # Quick "- [ ]" insert/cycle/remove; works without an existing marker.
 
 ---@class CascadeCycleFeatures
 ---@field word boolean # Cycle the word/boolean under the cursor.

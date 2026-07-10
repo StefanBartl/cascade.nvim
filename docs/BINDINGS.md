@@ -50,6 +50,9 @@ Buffer-local, bound per `lists.filetypes`.
 | `o` | n | `o` | continue | Open item below |
 | `O` | n | `O` | continue | Open item above |
 | `<leader>cx` | n | `toggle_checkbox` | checkbox | Toggle checkbox |
+| `<A-->` | n | `bullet_toggle` | bullet_toggle | Toggle "-" bullet (no marker required) |
+| `<A-0>` | n | `number_toggle` | number_toggle | Toggle "1." marker (no marker required) |
+| `<A-c>` | n | `checkbox_toggle` | checkbox_toggle | Toggle "- [ ]" checkbox (no marker required) |
 | `<leader>ct` | n | `cycle_type_next` | cycle_type | Cycle list type |
 | `<leader>cT` | n | `cycle_type_prev` | cycle_type | Cycle list type back |
 | `<leader>cr` | n | `renumber` | — | Renumber |

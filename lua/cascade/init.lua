@@ -14,6 +14,7 @@ local dotrepeat = require("cascade.util.dotrepeat")
 
 local continue = require("cascade.lists.continue")
 local checkbox = require("cascade.lists.checkbox")
+local quick_toggle = require("cascade.lists.quick_toggle")
 local cycle_type = require("cascade.lists.cycle_type")
 local indent_mod = require("cascade.lists.indent")
 local move_mod = require("cascade.lists.move")
@@ -174,6 +175,48 @@ local checkbox_work = function()
   end
 end
 
+--- Toggle a plain "-" bullet on the cursor line; works without an existing
+--- marker (unlike `checkbox`/`cycle_type`, which only ever advance one).
+local bullet_toggle_work = function()
+  local ctx = Context.new()
+  local opts = config.get("lists")
+  if lists_active(ctx) and lf("bullet_toggle") then
+    dispatch.try({
+      function(c)
+        return quick_toggle.bullet(c, opts)
+      end,
+    }, ctx)
+  end
+end
+
+--- Toggle a "1." numbered marker on the cursor line; works without an
+--- existing marker, and renumbers against its siblings once inserted.
+local number_toggle_work = function()
+  local ctx = Context.new()
+  local opts = config.get("lists")
+  if lists_active(ctx) and lf("number_toggle") then
+    dispatch.try({
+      function(c)
+        return quick_toggle.number(c, opts)
+      end,
+    }, ctx)
+  end
+end
+
+--- Cycle a "- [ ]" checkbox on the cursor line; creates it from scratch if
+--- needed and removes it again after the last configured state.
+local checkbox_toggle_work = function()
+  local ctx = Context.new()
+  local opts = config.get("lists")
+  if lists_active(ctx) and lf("checkbox_toggle") then
+    dispatch.try({
+      function(c)
+        return quick_toggle.checkbox(c, opts)
+      end,
+    }, ctx)
+  end
+end
+
 --- Cycle the list marker type at the cursor.
 ---@param dir integer
 ---@return fun()
@@ -221,6 +264,9 @@ local function cycle_word_work(dir, number_key, own_key)
 end
 
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
+M.bullet_toggle = dotrepeat.repeatable("bullet_toggle", bullet_toggle_work)
+M.number_toggle = dotrepeat.repeatable("number_toggle", number_toggle_work)
+M.checkbox_toggle = dotrepeat.repeatable("checkbox_toggle", checkbox_toggle_work)
 M.cycle_type_next = dotrepeat.repeatable("cycle_type_next", cycle_type_work(1))
 M.cycle_type_prev = dotrepeat.repeatable("cycle_type_prev", cycle_type_work(-1))
 M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-a>", "<C-y>"))

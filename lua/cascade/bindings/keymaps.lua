@@ -31,6 +31,15 @@ function M.bind_list_buffer()
   if on("checkbox") then
     map("n", "<leader>cx", api.toggle_checkbox, "cascade: toggle checkbox")
   end
+  if on("bullet_toggle") then
+    map("n", "<A-->", api.bullet_toggle, "cascade: toggle bullet point")
+  end
+  if on("number_toggle") then
+    map("n", "<A-0>", api.number_toggle, "cascade: toggle numbered list")
+  end
+  if on("checkbox_toggle") then
+    map("n", "<A-c>", api.checkbox_toggle, "cascade: toggle checkbox bullet")
+  end
   if on("cycle_type") then
     map("n", "<leader>ct", api.cycle_type_next, "cascade: cycle list type")
     map("n", "<leader>cT", api.cycle_type_prev, "cascade: cycle list type back")
