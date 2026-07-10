@@ -50,6 +50,9 @@
 | **lists**  | Empty-bullet deletion  | `<CR>` on an empty bullet ends the list.                            |
 | **lists**  | Renumber               | Context-aware, respects a start offset ≠ 1.                        |
 | **lists**  | Checkbox cycle         | Configurable N-state cycle (`[ ]`→`[x]`→…), dot-repeatable.          |
+| **lists**  | Quick bullet toggle    | `-` on/off any line, no existing marker required, dot-repeatable.    |
+| **lists**  | Quick number toggle    | `1.` on/off any line, no existing marker required, dot-repeatable.   |
+| **lists**  | Quick checkbox toggle  | `- [ ]` insert→cycle→remove on any line, dot-repeatable.             |
 | **lists**  | Cycle list type        | `-`→`*`→`+`→`1.`→`a)`→`I.`, dot-repeatable.                         |
 | **lists**  | Form rotation          | Rotate a block/selection through forms: `1.`→`1. [ ]`→`- [ ]`→`-`.   |
 | **lists**  | Sort A–Z               | Sort a block/selection alphabetically + renumber.                   |
@@ -144,7 +147,8 @@ require("cascade").setup({ keymaps = { preset = true } })
 
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback) and,
 in the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx`
-(checkbox), `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
+(checkbox), `<A-->`/`<A-0>`/`<A-c>` (quick bullet/number/checkbox toggle),
+`<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
 ### Variant B — manual keymaps (full control)
 
@@ -178,6 +182,9 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `o`                           | n     | Open item below                           |
 | `O`                           | n     | Open item above                           |
 | `toggle_checkbox`             | n     | Toggle/cycle checkbox                     |
+| `bullet_toggle`                | n     | Toggle `-` bullet (no marker required)    |
+| `number_toggle`                | n     | Toggle `1.` marker (no marker required)   |
+| `checkbox_toggle`              | n     | Toggle `- [ ]` checkbox (no marker required) |
 | `cycle_type_next`             | n     | List type forward                         |
 | `cycle_type_prev`             | n     | List type backward                        |
 | `cycle_word_next`             | n     | Word/number forward                       |
@@ -271,6 +278,7 @@ require("cascade").setup({
       continue = true, checkbox = true, cycle_type = true,
       rotate = true, sort = true, reverse = true, strip = true,
       indent = true, move = true,
+      bullet_toggle = true, number_toggle = true, checkbox_toggle = true,
     },
     filetypes = {                            -- prose/markup filetypes (lists no-op elsewhere)
       "markdown", "markdown.mdx", "mdx", "text", "txt", "tex", "plaintex",
@@ -322,6 +330,7 @@ different scope:
 | Indent/dedent, move | global (renumber only in `lists.filetypes`) |
 | Continue, cycle_type, rotate, sort, reverse | `lists.filetypes` |
 | Checkbox, strip | `lists.filetypes` (most useful in Markdown/org/norg) |
+| Quick bullet/number/checkbox toggle | `lists.filetypes` (work without an existing marker) |
 
 **Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
 `{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
@@ -378,7 +387,7 @@ cascade.nvim/
     core/{context,patterns}   -- 1 context/action, memoized patterns
     dispatch/init.lua         -- try-handlers → native fallback
     lists/                    -- marker, continue, renumber, checkbox,
-                                 cycle_type, indent, roman, alpha
+                                 quick_toggle, cycle_type, indent, roman, alpha
     cycle/                    -- token, word_cycle
     bindings/                 -- keymaps, user commands, autocmds, which-key
     util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat

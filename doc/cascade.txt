@@ -55,6 +55,9 @@ keys you like with a normal |vim.keymap.set()|:
     o                        normal  open continued item below
     O                        normal  open continued item above
     toggle_checkbox          normal  toggle / cycle checkbox
+    bullet_toggle            normal  toggle "-" bullet (no marker required)
+    number_toggle            normal  toggle "1." marker (no marker required)
+    checkbox_toggle          normal  toggle "- [ ]" checkbox (no marker required)
     cycle_type_next          normal  cycle list marker type forward
     cycle_type_prev          normal  cycle list marker type backward
     cycle_word_next          normal  cycle word / native increment
@@ -74,10 +77,16 @@ keys you like with a normal |vim.keymap.set()|:
     reverse / reverse_visual     n / x   reverse block/selection order
     strip_checkbox / _visual     n / x   remove checkboxes
 
-The checkbox, cycle-type, cycle-word, rotate-form (normal) and sort (normal)
-actions are dot-repeatable (|.|). rotate-form and sort have separate normal
-and visual functions: normal mode operates on the contiguous list block at the
-cursor, visual mode on the selected lines.
+The checkbox, bullet-toggle, number-toggle, checkbox-toggle, cycle-type,
+cycle-word, rotate-form (normal) and sort (normal) actions are dot-repeatable
+(|.|). rotate-form and sort have separate normal and visual functions: normal
+mode operates on the contiguous list block at the cursor, visual mode on the
+selected lines.
+
+Unlike `toggle_checkbox`/`cycle_type_next`, which only ever *advance* an
+existing marker (they no-op on a plain line), `bullet_toggle`, `number_toggle`
+and `checkbox_toggle` also work without one: they insert the marker from
+scratch, and toggle it back off again on a second press.
 
 USER COMMANDS                                               *cascade-commands*
 
@@ -108,6 +117,9 @@ With `keymaps.preset = true`:
     n o             ->  o
     n O             ->  O
     n <leader>cx    ->  toggle_checkbox
+    n <A-->         ->  bullet_toggle
+    n <A-0>         ->  number_toggle
+    n <A-c>         ->  checkbox_toggle
     n <leader>ct    ->  cycle_type_next
     n <leader>cT    ->  cycle_type_prev
     n <leader>cr    ->  renumber
@@ -169,10 +181,12 @@ Field reference ~
 
 lists.enable          (boolean)   Master switch for the list domain.
 lists.features        (table)     Per-feature on/off switches. Keys: continue,
-                                  checkbox, cycle_type, rotate, sort, reverse,
-                                  strip, indent, move. A disabled feature does
-                                  not run and the preset does not bind its keys;
-                                  native keys stay native. Missing key = enabled.
+                                  checkbox, bullet_toggle, number_toggle,
+                                  checkbox_toggle, cycle_type, rotate, sort,
+                                  reverse, strip, indent, move. A disabled
+                                  feature does not run and the preset does not
+                                  bind its keys; native keys stay native.
+                                  Missing key = enabled.
 lists.filetypes       (string[])  Prose/markup filetypes the list keys attach
                                   to. Actions no-op on lines without a marker, so
                                   a broad default is safe (markdown/text/tex/
@@ -238,6 +252,11 @@ Examples: >
     - [ ] task        ->  checkbox  ->  - [x] task
     a) alpha          ->  <CR>  ->  b)
     IV) roman         ->  <CR>  ->  V)
+<
+`bullet_toggle`/`number_toggle`/`checkbox_toggle` work even without an
+existing marker (they insert one), unlike the actions above: >
+    plain line  ->  bullet_toggle    ->  - plain line
+    plain line  ->  checkbox_toggle  ->  - [ ] plain line  ->  (again)  ->  - [x] plain line  ->  (again)  ->  plain line
 <
 Indent / dedent renumber every nesting level independently: a deeper level
 starts at 1, returning to a shallower level continues it, and the level a line

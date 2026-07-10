@@ -250,5 +250,52 @@ return function(H)
   eq(ind[5], "3. Visuals: ...", "indent-on-edit: base-level gap closed (3->3, unaffected)")
   eq(ind[6], "4. System Logs: ...", "indent-on-edit: base-level gap closed (4->4, unaffected)")
 
+  -- quick_toggle: bullet/number/checkbox work without an existing marker,
+  -- unlike checkbox.toggle/cycle_type.cycle which no-op without one.
+  cfg.setup({})
+  local qt = require("cascade.lists.quick_toggle")
+  local Context = require("cascade.core.context")
+
+  -- bullet: plain line -> "-" bullet -> plain line again.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Hello world" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  eq(qt.bullet(Context.new(), lo), true, "bullet: inserts")
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- Hello world", "bullet: inserted")
+  eq(qt.bullet(Context.new(), lo), true, "bullet: strips")
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "Hello world", "bullet: stripped back to plain text")
+
+  -- bullet: converts a different marker kind instead of stacking a new one,
+  -- preserving its checkbox (matches cycle_type.cycle's behavior).
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. [x] Hello" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  qt.bullet(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [x] Hello", "bullet: converts digit marker, keeps its checkbox")
+
+  -- number: plain line -> "1." -> renumbers against a sibling -> plain line.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. First", "Second" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  eq(qt.number(Context.new(), lo), true, "number: inserts")
+  local nl = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(nl[2], "2. Second", "number: inserted + renumbered against sibling")
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  eq(qt.number(Context.new(), lo), true, "number: strips")
+  eq(vim.api.nvim_buf_get_lines(buf, 1, 2, false)[1], "Second", "number: stripped back to plain text")
+
+  -- checkbox: full none -> "[ ]" -> "[x]" -> none cycle on a plain line.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Task item" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  qt.checkbox(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [ ] Task item", "checkbox: created from plain line")
+  qt.checkbox(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [x] Task item", "checkbox: advances to next state")
+  qt.checkbox(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "Task item", "checkbox: last state strips the whole item")
+
+  -- checkbox: promotes an existing marker instead of creating a new bullet.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. Buy milk" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  qt.checkbox(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "1. [ ] Buy milk", "checkbox: promotes existing digit marker")
+
   cfg.setup({})
 end

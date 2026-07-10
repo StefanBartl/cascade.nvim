@@ -20,6 +20,9 @@ local DEFAULTS = {
       strip = true, -- block/visual remove checkboxes
       indent = true, -- indent/outdent + level-aware renumber
       move = true, -- move line/selection up/down + renumber
+      bullet_toggle = true, -- quick "-" bullet on/off, no existing marker required
+      number_toggle = true, -- quick "1." marker on/off, no existing marker required
+      checkbox_toggle = true, -- quick "- [ ]" insert/cycle/remove, no existing marker required
     },
     -- Prose / markup filetypes the list features attach to. List actions no-op
     -- on lines without a marker, so a broad set is safe. The word/number cycle
