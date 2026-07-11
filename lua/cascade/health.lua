@@ -80,6 +80,14 @@ function M.check()
   else
     info("cycle: disabled")
   end
+
+  -- Transpose domain.
+  local trans = config.get("transpose")
+  if trans.enable then
+    ok("transpose: enabled (all filetypes)")
+  else
+    info("transpose: disabled")
+  end
 end
 
 return M

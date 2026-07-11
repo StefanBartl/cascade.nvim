@@ -19,13 +19,15 @@
 > step → otherwise fall back to native behavior.** That holds for Markdown lists
 > just as much as for `true`/`false` toggles in code.
 
-`cascade.nvim` unites two feature worlds under one roof:
+`cascade.nvim` unites three feature worlds under one roof:
 
 - **lists** — continue lists, renumber them, tick checkboxes, cycle marker
   types, indent/dedent (filetype-scoped).
 - **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …)
   via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers and,
   off `+`/`-`, for the plain line motion (global).
+- **transpose** — swap a character or a same-line selection with its
+  left/right neighbor, UTF-8 safe (global).
 
 ---
 
@@ -63,6 +65,8 @@
 | **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
+| **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable. |
+| **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char. |
 
 Safety & performance design decisions: no Treesitter (pure line scan), no
 `CursorMoved`/`TextChanged` autocmds (only explicit keys), `pcall` around every
@@ -145,9 +149,10 @@ require("cascade").setup({ keymaps = { preset = true } })
 require("cascade").setup({ keymaps = { preset = true } })
 ```
 
-Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback) and,
-in the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx`
-(checkbox), `<A-->`/`<A-0>`/`<A-c>` (quick bullet/number/checkbox toggle),
+Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
+`<leader><Right>`/`<leader><Left>` globally (char/selection swap) and, in the
+list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
+`<A-->`/`<A-0>`/`<A-c>` (quick bullet/number/checkbox toggle),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
 ### Variant B — manual keymaps (full control)
@@ -201,6 +206,8 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `sort` / `sort_visual`        | n / x | Sort block/selection A–Z                  |
 | `reverse` / `reverse_visual`  | n / x | Reverse block/selection order             |
 | `strip_checkbox` / `_visual`  | n / x | Strip checkboxes in block/selection       |
+| `swap_right` / `swap_left`    | n     | Swap char with right/left neighbor        |
+| `swap_right_visual` / `swap_left_visual` | x | Swap selection with right/left neighbor char |
 
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
@@ -226,6 +233,7 @@ In the preset, additionally buffer-local (each in Normal **and** Visual):
 **Globally** (all filetypes) the preset also binds:
 - Indent/dedent: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
 - Move lines: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
+- Char/selection swap: `<leader><Right>` / `<leader><Left>` (Normal, Visual).
 
 When moving a numbered list, it is reindented and the block is renumbered (text
 moves, numbers stay sequential). Outside of lists it is a plain `:move` with an
@@ -306,11 +314,15 @@ require("cascade").setup({
       -- lua = { { "pairs", "ipairs" } },
     },
   },
+  transpose = {
+    enable = true,
+    features = { char = true },              -- char/selection swap on/off
+  },
   keymaps = { preset = false },
 })
 ```
 
-**Scopes — global vs. ft-scoped:** cascade has two domains with deliberately
+**Scopes — global vs. ft-scoped:** cascade has domains with deliberately
 different scope:
 
 - **`cycle`** (word/boolean + number inc/dec) is **global** — `cycle.filetypes =
@@ -321,6 +333,8 @@ different scope:
   renumber) is scoped to `lists.filetypes` — sensible, since list markers are
   prose/markup specific. List actions **no-op** on lines without a marker, so a
   broad filetype list is harmless.
+- **`transpose`** (char/selection swap) is **global**, no filetype option at
+  all — swapping characters is filetype-agnostic by nature.
 - **Indent/dedent** and **move** are effectively **global**: list-aware in the
   list filetypes (with renumber), plain `>>`/`<<` or `:move` elsewhere.
 
@@ -331,6 +345,7 @@ different scope:
 | Continue, cycle_type, rotate, sort, reverse | `lists.filetypes` |
 | Checkbox, strip | `lists.filetypes` (most useful in Markdown/org/norg) |
 | Quick bullet/number/checkbox toggle | `lists.filetypes` (work without an existing marker) |
+| Char/selection swap | global (every filetype, no filetype option) |
 
 **Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
 `{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
@@ -354,10 +369,10 @@ Note on Module Export: ...        ← no blank line, sequence continues
 ```
 
 **Feature toggles:** every feature can be switched off individually via
-`lists.features.*` or `cycle.features.*`. A disabled feature no longer runs its
-action and the preset does not bind its keys — keys with a native meaning
-(`<CR>`, `<A-Right>`, `<C-y>`, `+`/`-`) then stay native. `:checkhealth cascade`
-shows the status. Missing entries count as enabled.
+`lists.features.*`, `cycle.features.*` or `transpose.features.*`. A disabled
+feature no longer runs its action and the preset does not bind its keys — keys
+with a native meaning (`<CR>`, `<A-Right>`, `<C-y>`, `+`/`-`) then stay native.
+`:checkhealth cascade` shows the status. Missing entries count as enabled.
 
 **Note on `types`:** `ascii` (`a)`) and `roman` (`i.`) are opt-in because letters
 are ambiguous. With a mix enabled, the order in `types` decides. Templates in
@@ -389,6 +404,7 @@ cascade.nvim/
     lists/                    -- marker, continue, renumber, checkbox,
                                  quick_toggle, cycle_type, indent, roman, alpha
     cycle/                    -- token, word_cycle
+    transpose/                -- char (swap with left/right neighbor)
     bindings/                 -- keymaps, user commands, autocmds, which-key
     util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat
     health.lua

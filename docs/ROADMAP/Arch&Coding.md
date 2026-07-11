@@ -25,7 +25,7 @@ Legende: ✅ erfüllt · ⚠️ bewusste Abweichung · ❌ offen · n/a nicht zu
 
 | Regel | Status | Beleg |
 | --- | --- | --- |
-| Modul = eine Verantwortung | ✅ | `lists/{marker,renumber,indent,move,checkbox,quick_toggle,cycle_type,roman,alpha,transform}`, `cycle/{token,word_cycle}`, `core/{context,patterns}` — je ein Zweck. |
+| Modul = eine Verantwortung | ✅ | `lists/{marker,renumber,indent,move,checkbox,quick_toggle,cycle_type,roman,alpha,transform}`, `cycle/{token,word_cycle}`, `transpose/char`, `core/{context,patterns}` — je ein Zweck. |
 | Reine Funktionen bevorzugen | ✅ | `roman`, `alpha`, `marker.parse/advance/render` sind seiteneffektfrei (direkt testbar). |
 | Lokale statt globale Funktionen | ✅ | Keine globalen Funktionen. |
 | Entwurfsmuster wenn sinnvoll | ✅ | „Facade" (`init.lua`) + „Chain of Responsibility" (`dispatch.try`). |

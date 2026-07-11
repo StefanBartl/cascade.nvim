@@ -22,6 +22,7 @@ local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
 local token = require("cascade.cycle.token")
+local transpose_char = require("cascade.transpose.char")
 
 local M = {}
 
@@ -71,6 +72,14 @@ end
 ---@return boolean
 local function cf(name)
   local f = config.get("cycle").features
+  return type(f) ~= "table" or f[name] ~= false
+end
+
+--- Whether a named transpose feature is enabled (missing entry = enabled).
+---@param name string
+---@return boolean
+local function xf(name)
+  local f = config.get("transpose").features
   return type(f) ~= "table" or f[name] ~= false
 end
 
@@ -466,6 +475,68 @@ function M._move_visual(dir)
   if not move_mod.selection(bufnr, s, e, dir, config.get("lists")) then
     feed("gv")
   end
+end
+
+-- ---------- transpose (swap char / selection with a neighbor) ----------
+
+--- Swap the char under the cursor with its right (`dir = 1`) or left
+--- (`dir = -1`) neighbor; no-op at the line boundary or when disabled.
+---@param dir integer
+---@return fun()
+local function swap_work(dir)
+  return function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local opts = config.get("transpose")
+    if not (opts.enable and xf("char") and Context.writable(bufnr)) then
+      return
+    end
+    transpose_char.char(Context.new(bufnr), dir)
+  end
+end
+
+M.swap_right = dotrepeat.repeatable("swap_right", swap_work(1))
+M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
+
+--- Swap the visual selection with its right (`dir = 1`) or left (`dir = -1`)
+--- neighbor char; no-op across multiple lines, at the line boundary, or when
+--- disabled. On success the selection is dropped (`<Esc>`); on no-op it is
+--- restored (`gv`), matching `_move_visual`'s convention.
+---@param dir integer
+---@return nil
+function M._swap_visual(dir)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local opts = config.get("transpose")
+  if not (opts.enable and xf("char") and Context.writable(bufnr)) then
+    feed("gv")
+    return
+  end
+  local row_v, col_v = vim.fn.line("v"), vim.fn.col("v")
+  local row_d, col_d = vim.fn.line("."), vim.fn.col(".")
+  if row_v ~= row_d then
+    feed("gv")
+    return
+  end
+  local scol, ecol = col_v - 1, col_d - 1
+  if scol > ecol then
+    scol, ecol = ecol, scol
+  end
+  if transpose_char.selection(bufnr, row_d - 1, scol, ecol, dir) then
+    feed("<Esc>")
+  else
+    feed("gv")
+  end
+end
+
+--- Swap the visual selection with its right neighbor char.
+---@return nil
+function M.swap_right_visual()
+  M._swap_visual(1)
+end
+
+--- Swap the visual selection with its left neighbor char.
+---@return nil
+function M.swap_left_visual()
+  M._swap_visual(-1)
 end
 
 -- Expose the transform functions so user commands can reference them by name.
