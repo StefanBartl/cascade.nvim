@@ -5,9 +5,9 @@ defined by `cascade.nvim`. This file is documentation only and mirrors the
 source of truth in `lua/cascade/bindings/`. Any change there must be reflected
 here.
 
-The `feature` column refers to `lists.features.*` / `cycle.features.*`
-toggles. Disabling a feature drops its preset key and turns its action into a
-no-op.
+The `feature` column refers to `lists.features.*` / `cycle.features.*` /
+`transpose.features.*` toggles. Disabling a feature drops its preset key and
+turns its action into a no-op.
 
 Every mapping binds directly onto a facade action (`require("cascade").<action>`)
 — there is no `<Plug>` indirection. which-key (if installed) only labels the
@@ -39,6 +39,10 @@ Bound for every filetype.
 | `<A-Down>` | x | `move_down_visual` | lists.move | Move selection down |
 | `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` (native) | lists.move | Move line up (insert) |
 | `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` (native) | lists.move | Move line down (insert) |
+| `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor |
+| `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor |
+| `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char |
+| `<leader><Left>` | x | `swap_left_visual` | transpose.char | Swap selection with left neighbor char |
 
 ### Buffer-local
 

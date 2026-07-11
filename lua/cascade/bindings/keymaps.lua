@@ -103,6 +103,20 @@ function M.bind_preset_globals(cfg)
     lib.map("i", "<A-Up>", "<C-o>:m .-2<CR><C-o>==", { silent = true, desc = "cascade: move line up (insert)" })
     lib.map("i", "<A-Down>", "<C-o>:m .+1<CR><C-o>==", { silent = true, desc = "cascade: move line down (insert)" })
   end
+
+  -- Global char transpose (all filetypes): swap with left/right neighbor.
+  local trans_feat = cfg.transpose.features or {}
+  if cfg.transpose.enable and trans_feat.char ~= false then
+    lib.map("n", "<leader><Right>", api.swap_right, { silent = true, desc = "cascade: swap char with right neighbor" })
+    lib.map("n", "<leader><Left>", api.swap_left, { silent = true, desc = "cascade: swap char with left neighbor" })
+    lib.map(
+      "x",
+      "<leader><Right>",
+      api.swap_right_visual,
+      { silent = true, desc = "cascade: swap selection with right neighbor" }
+    )
+    lib.map("x", "<leader><Left>", api.swap_left_visual, { silent = true, desc = "cascade: swap selection with left neighbor" })
+  end
 end
 
 return M

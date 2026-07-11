@@ -106,6 +106,13 @@ local DEFAULTS = {
     per_filetype = {},
   },
 
+  transpose = {
+    enable = true,
+    features = {
+      char = true, -- swap the char (or same-line selection) with its left/right neighbor
+    },
+  },
+
   keymaps = {
     preset = false,
   },

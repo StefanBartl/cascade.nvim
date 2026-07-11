@@ -57,12 +57,20 @@
 ---@field groups string[][] # Cycle groups; first match under the cursor wins.
 ---@field per_filetype table<string, string[][]> # Extra groups merged in per filetype.
 
+---@class CascadeTransposeFeatures
+---@field char boolean # Swap the char (or same-line selection) with its left/right neighbor.
+
+---@class CascadeTransposeOpts
+---@field enable boolean # Master switch for the transpose domain.
+---@field features CascadeTransposeFeatures # Per-feature on/off switches.
+
 ---@class CascadeKeymapOpts
 ---@field preset boolean # Bind the opinionated default keymaps on setup.
 
 ---@class CascadeConfig
 ---@field lists CascadeListOpts
 ---@field cycle CascadeCycleOpts
+---@field transpose CascadeTransposeOpts
 ---@field keymaps CascadeKeymapOpts
 
 -- #####################################################################

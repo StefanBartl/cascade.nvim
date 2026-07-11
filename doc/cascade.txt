@@ -9,13 +9,14 @@ CONTENTS                                                     *cascade-contents*
   4. Configuration ............................ |cascade-config|
   5. Lists domain ............................. |cascade-lists|
   6. Cycle domain ............................. |cascade-cycle|
-  7. Health ................................... |cascade-health|
-  8. lib.nvim integration ..................... |cascade-lib|
+  7. Transpose domain ......................... |cascade-transpose|
+  8. Health ................................... |cascade-health|
+  9. lib.nvim integration ..................... |cascade-lib|
 
 ==============================================================================
 1. INTRODUCTION                                          *cascade-introduction*
 
-cascade.nvim applies a single pattern to two feature domains:
+cascade.nvim applies a single pattern to three feature domains:
 
     detect the context under the cursor -> advance it one step -> fall back to
     the native key when nothing matches.
@@ -26,6 +27,8 @@ cascade.nvim applies a single pattern to two feature domains:
   - The *cycle* domain rotates the word under the cursor (true/false, on/off,
     ...) and defers to native |CTRL-A|/|CTRL-X| on numeric tokens. It is global
     by default.
+  - The *transpose* domain swaps a character (or a same-line selection) with
+    its left/right neighbor. It is global and filetype-agnostic.
 
 Requires Neovim 0.9+. No Treesitter, no autocommand-per-keystroke; all work is
 triggered by explicit keys, guarded with pcall, and uses one context object per
@@ -76,12 +79,14 @@ keys you like with a normal |vim.keymap.set()|:
     sort / sort_visual           n / x   sort block/selection A-Z
     reverse / reverse_visual     n / x   reverse block/selection order
     strip_checkbox / _visual     n / x   remove checkboxes
+    swap_right / swap_left       normal  swap char with right/left neighbor
+    swap_right_visual / swap_left_visual  x   swap selection with neighbor char
 
 The checkbox, bullet-toggle, number-toggle, checkbox-toggle, cycle-type,
-cycle-word, rotate-form (normal) and sort (normal) actions are dot-repeatable
-(|.|). rotate-form and sort have separate normal and visual functions: normal
-mode operates on the contiguous list block at the cursor, visual mode on the
-selected lines.
+cycle-word, swap-right/left (normal), rotate-form (normal) and sort (normal)
+actions are dot-repeatable (|.|). rotate-form and sort have separate normal
+and visual functions: normal mode operates on the contiguous list block at the
+cursor, visual mode on the selected lines.
 
 Unlike `toggle_checkbox`/`cycle_type_next`, which only ever *advance* an
 existing marker (they no-op on a plain line), `bullet_toggle`, `number_toggle`
@@ -147,6 +152,10 @@ With `keymaps.preset = true`:
     x   <A-Down>    ->  move_down_visual
     i   <A-Up>      ->  :m .-2 + ==   (native insert move)
     i   <A-Down>    ->  :m .+1 + ==   (native insert move)
+    n   <leader><Right>  ->  swap_right
+    n   <leader><Left>   ->  swap_left
+    x   <leader><Right>  ->  swap_right_visual
+    x   <leader><Left>   ->  swap_left_visual
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them yourself to `cascade.indent`/`cascade.dedent` if
@@ -173,6 +182,10 @@ Defaults: >lua
         number_fallback = true,
         groups = { { "true", "false" }, ... },
         per_filetype = {},
+      },
+      transpose = {
+        enable = true,
+        features = { char = true },
       },
       keymaps = { preset = false },
     }
@@ -237,6 +250,10 @@ cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
 cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
 cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
 
+transpose.enable      (boolean)   Master switch for the transpose domain.
+transpose.features    (table)     Per-feature switches. Key: char. Missing key
+                                  = enabled.
+
 keymaps.preset        (boolean)   Bind the default key set on setup.
 
 ==============================================================================
@@ -281,7 +298,24 @@ original capitalization (lower / UPPER / Capital). Numeric tokens are skipped so
 that native |CTRL-A|/|CTRL-X| can handle them when `number_fallback` is on.
 
 ==============================================================================
-7. HEALTH                                                      *cascade-health*
+7. TRANSPOSE DOMAIN                                         *cascade-transpose*
+
+Swaps a character (`swap_right`/`swap_left`), or a same-line selection
+(`swap_right_visual`/`swap_left_visual`), with the single character
+immediately to its right or left. UTF-8 safe — a multibyte character (e.g.
+"ä") moves as one unit rather than being torn apart — and, unlike the classic
+`xp`/`xhP` trick, it never touches the unnamed register.
+
+Examples: >
+    ab            ->  swap_right  ->  ba   (cursor follows to "a")
+    xyzw          ->  select "yz", swap_right  ->  xwyz
+<
+No-op at a line boundary (nothing to swap with) or, for the visual variant,
+across multiple lines — there is no single well-defined neighbor there. On a
+no-op the visual selection is restored (`gv`); on success it is dropped.
+
+==============================================================================
+8. HEALTH                                                      *cascade-health*
 
                                                           *:checkhealth-cascade*
 >vim
@@ -291,7 +325,7 @@ Reports the Neovim version, per-domain status, optional lib.nvim integration and
 basic configuration sanity.
 
 ==============================================================================
-8. LIB.NVIM INTEGRATION                                           *cascade-lib*
+9. LIB.NVIM INTEGRATION                                           *cascade-lib*
 
 cascade.nvim optionally uses the user's `lib.nvim` helpers (`lib.map`,
 `lib.notify`, `lib.augroup`) when they are on the runtimepath. If absent it
