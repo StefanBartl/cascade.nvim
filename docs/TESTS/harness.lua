@@ -22,6 +22,22 @@ function H.ok(v, msg)
   end
 end
 
+--- Assert two string-array (buffer-lines) values are equal element-by-element
+--- (`H.eq` compares tables by reference, which never matches two literals).
+---@param a string[] # actual
+---@param b string[] # expected
+---@param msg string|nil
+function H.eq_lines(a, b, msg)
+  if #a ~= #b then
+    error(("FAIL %s: expected %d lines, got %d (%s vs %s)"):format(msg or "", #b, #a, vim.inspect(b), vim.inspect(a)), 2)
+  end
+  for i = 1, #a do
+    if a[i] ~= b[i] then
+      error(("FAIL %s: line %d: expected %q, got %q"):format(msg or "", i, b[i], a[i]), 2)
+    end
+  end
+end
+
 --- Fresh scratch buffer, made current, with an optional filetype.
 --- `buftype=nofile`, so `cascade.core.context.writable()` is false — fine for
 --- exercising the `lists.*`/`cycle.*` modules directly, but any test that goes

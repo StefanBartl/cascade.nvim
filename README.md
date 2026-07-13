@@ -152,7 +152,8 @@ require("cascade").setup({ keymaps = { preset = true } })
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
 `<leader><Right>`/`<leader><Left>` globally (char/selection swap) and, in the
 list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
-`<A-->`/`<A-0>`/`<A-c>` (quick bullet/number/checkbox toggle),
+`<A-->`/`<A-*>`/`<A-0>`/`<A-c>` (quick bullet/star/number/checkbox toggle —
+also work on a Visual/Visual-line selection, each line toggled independently),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
 
 ### Variant B — manual keymaps (full control)
@@ -187,9 +188,10 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `o`                           | n     | Open item below                           |
 | `O`                           | n     | Open item above                           |
 | `toggle_checkbox`             | n     | Toggle/cycle checkbox                     |
-| `bullet_toggle`                | n     | Toggle `-` bullet (no marker required)    |
-| `number_toggle`                | n     | Toggle `1.` marker (no marker required)   |
-| `checkbox_toggle`              | n     | Toggle `- [ ]` checkbox (no marker required) |
+| `bullet_toggle` / `_visual`   | n / x | Toggle `-` bullet (no marker required)    |
+| `star_toggle` / `_visual`     | n / x | Toggle `*` bullet (no marker required)    |
+| `number_toggle` / `_visual`   | n / x | Toggle `1.` marker (no marker required)   |
+| `checkbox_toggle` / `_visual` | n / x | Toggle `- [ ]` checkbox (no marker required) |
 | `cycle_type_next`             | n     | List type forward                         |
 | `cycle_type_prev`             | n     | List type backward                        |
 | `cycle_word_next`             | n     | Word/number forward                       |
@@ -286,7 +288,7 @@ require("cascade").setup({
       continue = true, checkbox = true, cycle_type = true,
       rotate = true, sort = true, reverse = true, strip = true,
       indent = true, move = true,
-      bullet_toggle = true, number_toggle = true, checkbox_toggle = true,
+      bullet_toggle = true, number_toggle = true, checkbox_toggle = true, -- bullet_toggle also gates <A-*>
     },
     filetypes = {                            -- prose/markup filetypes (lists no-op elsewhere)
       "markdown", "markdown.mdx", "mdx", "text", "txt", "tex", "plaintex",

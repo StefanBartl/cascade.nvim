@@ -184,17 +184,22 @@ local checkbox_work = function()
   end
 end
 
---- Toggle a plain "-" bullet on the cursor line; works without an existing
---- marker (unlike `checkbox`/`cycle_type`, which only ever advance one).
-local bullet_toggle_work = function()
-  local ctx = Context.new()
-  local opts = config.get("lists")
-  if lists_active(ctx) and lf("bullet_toggle") then
-    dispatch.try({
-      function(c)
-        return quick_toggle.bullet(c, opts)
-      end,
-    }, ctx)
+--- Toggle a plain unordered bullet on the cursor line; works without an
+--- existing marker (unlike `checkbox`/`cycle_type`, which only ever advance
+--- one). Shared by the `-` and `*` variants.
+---@param single fun(ctx: CascadeContext, opts: CascadeListOpts): boolean
+---@return fun()
+local function bullet_toggle_work(single)
+  return function()
+    local ctx = Context.new()
+    local opts = config.get("lists")
+    if lists_active(ctx) and lf("bullet_toggle") then
+      dispatch.try({
+        function(c)
+          return single(c, opts)
+        end,
+      }, ctx)
+    end
   end
 end
 
@@ -273,7 +278,8 @@ local function cycle_word_work(dir, number_key, own_key)
 end
 
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
-M.bullet_toggle = dotrepeat.repeatable("bullet_toggle", bullet_toggle_work)
+M.bullet_toggle = dotrepeat.repeatable("bullet_toggle", bullet_toggle_work(quick_toggle.bullet))
+M.star_toggle = dotrepeat.repeatable("star_toggle", bullet_toggle_work(quick_toggle.star))
 M.number_toggle = dotrepeat.repeatable("number_toggle", number_toggle_work)
 M.checkbox_toggle = dotrepeat.repeatable("checkbox_toggle", checkbox_toggle_work)
 M.cycle_type_next = dotrepeat.repeatable("cycle_type_next", cycle_type_work(1))
@@ -353,6 +359,13 @@ M.reverse_visual = visual_work(transform.reverse, 1, "reverse")
 
 M.strip_checkbox = dotrepeat.repeatable("strip", block_work(transform.strip, 1, "strip"))
 M.strip_checkbox_visual = visual_work(transform.strip, 1, "strip")
+
+-- Visual variants of the quick toggles: apply independently to every
+-- non-blank line in the selection (each line keeps deciding its own fate).
+M.bullet_toggle_visual = visual_work(quick_toggle.bullet_range, 1, "bullet_toggle")
+M.star_toggle_visual = visual_work(quick_toggle.star_range, 1, "bullet_toggle")
+M.number_toggle_visual = visual_work(quick_toggle.number_range, 1, "number_toggle")
+M.checkbox_toggle_visual = visual_work(quick_toggle.checkbox_range, 1, "checkbox_toggle")
 
 --- Run a block transform from a `:command` (range-aware). Used by user commands.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean

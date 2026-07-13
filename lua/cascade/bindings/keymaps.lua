@@ -33,12 +33,17 @@ function M.bind_list_buffer()
   end
   if on("bullet_toggle") then
     map("n", "<A-->", api.bullet_toggle, "cascade: toggle bullet point")
+    map("x", "<A-->", api.bullet_toggle_visual, "cascade: toggle bullet point")
+    map("n", "<A-*>", api.star_toggle, "cascade: toggle star bullet")
+    map("x", "<A-*>", api.star_toggle_visual, "cascade: toggle star bullet")
   end
   if on("number_toggle") then
     map("n", "<A-0>", api.number_toggle, "cascade: toggle numbered list")
+    map("x", "<A-0>", api.number_toggle_visual, "cascade: toggle numbered list")
   end
   if on("checkbox_toggle") then
     map("n", "<A-c>", api.checkbox_toggle, "cascade: toggle checkbox bullet")
+    map("x", "<A-c>", api.checkbox_toggle_visual, "cascade: toggle checkbox bullet")
   end
   if on("cycle_type") then
     map("n", "<leader>ct", api.cycle_type_next, "cascade: cycle list type")
