@@ -4,6 +4,7 @@
 
 return function(H)
   local eq = H.eq
+  local eq_lines = H.eq_lines
   local cfg = require("cascade.config")
   cfg.setup({})
   local lopts = cfg.get("lists")
@@ -296,6 +297,51 @@ return function(H)
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
   qt.checkbox(Context.new(), lo)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "1. [ ] Buy milk", "checkbox: promotes existing digit marker")
+
+  -- star: same on/off toggle as bullet, using "*" instead of "-".
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Hello world" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  eq(qt.star(Context.new(), lo), true, "star: inserts")
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "* Hello world", "star: inserted")
+  eq(qt.star(Context.new(), lo), true, "star: strips")
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "Hello world", "star: stripped back to plain text")
+
+  -- quick_toggle _range: applied independently to every non-blank line in a
+  -- range, same as the Visual-mode <A-->/<A-*>/<A-0>/<A-c> bindings. Blank
+  -- lines and, for number, an already-mixed marker are handled per line.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two", "three" })
+  qt.bullet_range(buf, 0, 2, 1, lo)
+  eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), { "- one", "- two", "- three" }, "bullet_range: every line toggled on")
+  qt.bullet_range(buf, 0, 2, 1, lo)
+  eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), { "one", "two", "three" }, "bullet_range: every line toggled off")
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two", "three" })
+  qt.star_range(buf, 0, 2, 1, lo)
+  eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), { "* one", "* two", "* three" }, "star_range: every line toggled on")
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "- two", "three" })
+  qt.number_range(buf, 0, 2, 1, lo)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "1. one", "2. two", "3. three" },
+    "number_range: converts an existing different marker too, renumbered sequentially"
+  )
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two" })
+  qt.checkbox_range(buf, 0, 1, 1, lo)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "- [ ] one", "- [ ] two" },
+    "checkbox_range: every line gets a checkbox"
+  )
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "", "three" })
+  qt.bullet_range(buf, 0, 2, 1, lo)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "- one", "", "- three" },
+    "bullet_range: blank line inside is skipped"
+  )
 
   cfg.setup({})
 end

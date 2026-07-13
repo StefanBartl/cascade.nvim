@@ -3,6 +3,7 @@
 
 return function(H)
   local eq = H.eq
+  local eq_lines = H.eq_lines
   local cfg = require("cascade.config")
   local cascade = require("cascade")
 
@@ -62,5 +63,44 @@ return function(H)
   eq(l3[3], "3. c", "chained visual dedent back to original")
 
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
+
+  -- quick-toggle keys (<A-->, <A-*>, <A-0>, <A-c>) work on a real Visual
+  -- (charwise) and Visual-line selection, not just Normal mode.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("V2j<A-->"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "- one", "- two", "- three" },
+    "V + <A--> bullet-toggles the whole selection"
+  )
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("v2j$<A-*>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "* one", "* two", "* three" },
+    "v (charwise) + <A-*> star-toggles the whole selection"
+  )
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("V2j<A-0>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. one", "2. two", "3. three" },
+    "V + <A-0> numbers the whole selection"
+  )
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("Vj<A-c>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "- [ ] one", "- [ ] two" },
+    "V + <A-c> adds a checkbox to the whole selection"
+  )
+
   cfg.setup({})
 end

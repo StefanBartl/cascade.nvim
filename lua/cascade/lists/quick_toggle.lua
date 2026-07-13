@@ -53,20 +53,38 @@ local function apply(ctx, new_line)
   return true
 end
 
---- Toggle a plain `-` bullet on the cursor line: strip it if already an
---- unordered `-` item (checkbox included), otherwise set/convert the line to
---- one, preserving text and any existing checkbox.
+--- Toggle a plain unordered bullet on the cursor line: strip it if already an
+--- unordered item using this exact `char` (checkbox included), otherwise
+--- set/convert the line to one, preserving text and any existing checkbox.
+---@param ctx CascadeContext
+---@param opts CascadeListOpts
+---@param char string # bullet character to toggle, e.g. "-" or "*".
+---@return boolean handled
+local function toggle_unordered(ctx, opts, char)
+  local m = marker.parse(ctx.line, opts)
+  if m and m.kind == "unordered" and m.marker == char then
+    return apply(ctx, m.indent .. (m.text or ""))
+  end
+  local indent, text = indent_text(m, ctx.line)
+  local new_m =
+    { indent = indent, kind = "unordered", marker = char, delim = "", checkbox = m and m.checkbox or nil, text = text }
+  return apply(ctx, marker.render(new_m) .. text)
+end
+
+--- Toggle a plain `-` bullet on the cursor line. See `toggle_unordered`.
 ---@param ctx CascadeContext
 ---@param opts CascadeListOpts
 ---@return boolean handled
 function M.bullet(ctx, opts)
-  local m = marker.parse(ctx.line, opts)
-  if m and m.kind == "unordered" and m.marker == "-" then
-    return apply(ctx, m.indent .. (m.text or ""))
-  end
-  local indent, text = indent_text(m, ctx.line)
-  local new_m = { indent = indent, kind = "unordered", marker = "-", delim = "", checkbox = m and m.checkbox or nil, text = text }
-  return apply(ctx, marker.render(new_m) .. text)
+  return toggle_unordered(ctx, opts, "-")
+end
+
+--- Toggle a plain `*` bullet on the cursor line. See `toggle_unordered`.
+---@param ctx CascadeContext
+---@param opts CascadeListOpts
+---@return boolean handled
+function M.star(ctx, opts)
+  return toggle_unordered(ctx, opts, "*")
 end
 
 --- Toggle a `1.` numbered marker on the cursor line: strip it if already a
@@ -134,6 +152,74 @@ function M.checkbox(ctx, opts)
     text = text,
   }
   return apply(ctx, marker.render(new_m) .. text)
+end
+
+--- Apply a per-line toggle (`M.bullet`/`M.star`/`M.number`/`M.checkbox`) to
+--- every non-blank line in `[srow, erow]`, independently — each line decides
+--- its own fate from its own current state, same as pressing the key on it
+--- individually. Shared by the `_range` variants below.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param opts CascadeListOpts
+---@param single fun(ctx: table, opts: CascadeListOpts): boolean
+---@return boolean changed
+local function apply_range(bufnr, srow, erow, opts, single)
+  local changed = false
+  for r = srow, erow do
+    local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+    if l and l:match("%S") then
+      if single({ bufnr = bufnr, row0 = r, line = l }, opts) then
+        changed = true
+      end
+    end
+  end
+  return changed
+end
+
+--- Range/visual variant of `M.bullet`. `_dir` is unused (kept for the
+--- block/visual transform signature `fn(bufnr, srow, erow, dir, opts)`).
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.bullet_range(bufnr, srow, erow, _dir, opts)
+  return apply_range(bufnr, srow, erow, opts, M.bullet)
+end
+
+--- Range/visual variant of `M.star`. See `M.bullet_range`.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.star_range(bufnr, srow, erow, _dir, opts)
+  return apply_range(bufnr, srow, erow, opts, M.star)
+end
+
+--- Range/visual variant of `M.number`. See `M.bullet_range`.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.number_range(bufnr, srow, erow, _dir, opts)
+  return apply_range(bufnr, srow, erow, opts, M.number)
+end
+
+--- Range/visual variant of `M.checkbox`. See `M.bullet_range`.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param _dir integer
+---@param opts CascadeListOpts
+---@return boolean changed
+function M.checkbox_range(bufnr, srow, erow, _dir, opts)
+  return apply_range(bufnr, srow, erow, opts, M.checkbox)
 end
 
 return M

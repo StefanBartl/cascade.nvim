@@ -55,8 +55,13 @@ Buffer-local, bound per `lists.filetypes`.
 | `O` | n | `O` | continue | Open item above |
 | `<leader>cx` | n | `toggle_checkbox` | checkbox | Toggle checkbox |
 | `<A-->` | n | `bullet_toggle` | bullet_toggle | Toggle "-" bullet (no marker required) |
+| `<A-->` | x | `bullet_toggle_visual` | bullet_toggle | Toggle "-" bullet on every line in the selection |
+| `<A-*>` | n | `star_toggle` | bullet_toggle | Toggle "*" bullet (no marker required) |
+| `<A-*>` | x | `star_toggle_visual` | bullet_toggle | Toggle "*" bullet on every line in the selection |
 | `<A-0>` | n | `number_toggle` | number_toggle | Toggle "1." marker (no marker required) |
+| `<A-0>` | x | `number_toggle_visual` | number_toggle | Toggle "1." marker on every line in the selection |
 | `<A-c>` | n | `checkbox_toggle` | checkbox_toggle | Toggle "- [ ]" checkbox (no marker required) |
+| `<A-c>` | x | `checkbox_toggle_visual` | checkbox_toggle | Toggle "- [ ]" checkbox on every line in the selection |
 | `<leader>ct` | n | `cycle_type_next` | cycle_type | Cycle list type |
 | `<leader>cT` | n | `cycle_type_prev` | cycle_type | Cycle list type back |
 | `<leader>cr` | n | `renumber` | — | Renumber |
