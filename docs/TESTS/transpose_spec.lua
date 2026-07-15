@@ -41,14 +41,25 @@ return function(H)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "äab", "utf8 swap left: result")
 
   -- selection: same-line multi-char selection swaps with a single neighbor.
-  -- "xyzw" selecting "yz" (byte cols 1-2) right -> "xwyz".
+  -- "xyzw" selecting "yz" (byte cols 1-2) right -> "xwyz". The swapped-in
+  -- neighbor "w" moves into the selection's old slot, so the selected text
+  -- "yz" itself shifts right by one byte (col 2-3) — callers reselecting
+  -- the *new* bounds (not the original 1-2) keep the same text selected.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "xyzw" })
-  eq(char.selection(buf, 0, 1, 2, 1), true, "selection right: handled")
+  local ok, new_scol, new_ecol = char.selection(buf, 0, 1, 2, 1)
+  eq(ok, true, "selection right: handled")
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "xwyz", "selection right: result")
+  eq(new_scol, 2, "selection right: new_scol follows the shifted text")
+  eq(new_ecol, 3, "selection right: new_ecol follows the shifted text")
 
+  -- Swapping left shifts the selected text left by the neighbor's width:
+  -- "xyzw" selecting "yz" (cols 1-2) left -> "yzxw", "yz" now at cols 0-1.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "xyzw" })
-  eq(char.selection(buf, 0, 1, 2, -1), true, "selection left: handled")
+  local ok2, new_scol2, new_ecol2 = char.selection(buf, 0, 1, 2, -1)
+  eq(ok2, true, "selection left: handled")
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "yzxw", "selection left: result")
+  eq(new_scol2, 0, "selection left: new_scol follows the shifted text")
+  eq(new_ecol2, 1, "selection left: new_ecol follows the shifted text")
 
   -- selection boundary no-ops.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "xyzw" })

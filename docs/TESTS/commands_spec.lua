@@ -34,6 +34,7 @@ return function(H)
   -- visual indent/dedent must keep the selection active so a chained
   -- <A-Right>/<A-Left> works without re-selecting (regression: the previous
   -- reselect used :normal! which silently exits Visual mode).
+  vim.g.mapleader = " " -- must be set before setup(): <Leader> in a mapping's lhs resolves at bind time.
   cascade.setup({ keymaps = { preset = true } })
   local ebuf = H.editable("markdown")
   vim.bo[ebuf].expandtab = true
@@ -65,42 +66,83 @@ return function(H)
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
   -- quick-toggle keys (<A-->, <A-*>, <A-0>, <A-c>) work on a real Visual
-  -- (charwise) and Visual-line selection, not just Normal mode.
+  -- (charwise) and Visual-line selection, not just Normal mode, and keep
+  -- the selection active afterwards (regression: it used to be dropped via
+  -- a bare <Esc>, so a chained toggle needed re-selecting). Each block
+  -- opens with <Esc> since the previous block leaves its own selection
+  -- active on stale text.
   vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  vim.api.nvim_feedkeys(vim.keycode("V2j<A-->"), "mtx", false)
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>V2j<A-->"), "mtx", false)
   eq_lines(
     vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
     { "- one", "- two", "- three" },
     "V + <A--> bullet-toggles the whole selection"
   )
+  eq(vim.fn.mode(), "V", "selection survives <A--> bullet toggle")
 
   vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  vim.api.nvim_feedkeys(vim.keycode("v2j$<A-*>"), "mtx", false)
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>v2j$<A-*>"), "mtx", false)
   eq_lines(
     vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
     { "* one", "* two", "* three" },
     "v (charwise) + <A-*> star-toggles the whole selection"
   )
+  eq(vim.fn.mode(), "V", "selection survives <A-*> star toggle")
 
   vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two", "three" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  vim.api.nvim_feedkeys(vim.keycode("V2j<A-0>"), "mtx", false)
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>V2j<A-0>"), "mtx", false)
   eq_lines(
     vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
     { "1. one", "2. two", "3. three" },
     "V + <A-0> numbers the whole selection"
   )
+  eq(vim.fn.mode(), "V", "selection survives <A-0> number toggle")
+
+  -- second <A-0> WITHOUT reselecting: strips the numbering back off, proving
+  -- the surviving selection is chainable (same convention as visual indent).
+  vim.api.nvim_feedkeys(vim.keycode("<A-0>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "one", "two", "three" },
+    "chained <A-0> WITHOUT reselecting strips the numbering back off"
+  )
 
   vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one", "two" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
-  vim.api.nvim_feedkeys(vim.keycode("Vj<A-c>"), "mtx", false)
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>Vj<A-c>"), "mtx", false)
   eq_lines(
     vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
     { "- [ ] one", "- [ ] two" },
     "V + <A-c> adds a checkbox to the whole selection"
   )
+  eq(vim.fn.mode(), "V", "selection survives <A-c> checkbox toggle")
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
+
+  -- <leader><Right> (charwise) swaps the selection with its right neighbor
+  -- and keeps the *swapped text* selected — the neighbor moves into the
+  -- selection's old slot, so the reselect must follow the shifted text, not
+  -- the original byte columns (regression test for that shift).
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "abcde" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>vl <Right>"), "mtx", false)
+  eq_lines(vim.api.nvim_buf_get_lines(ebuf, 0, -1, false), { "cabde" }, "v + <leader><Right> swaps selection right")
+  eq(vim.fn.mode(), "v", "selection survives <leader><Right> swap")
+  eq(vim.fn.col("v"), 2, "selection follows the swapped text (start)")
+  eq(vim.fn.col("."), 3, "selection follows the swapped text (end)")
+
+  -- chained <leader><Right> WITHOUT reselecting: swaps the now-shifted
+  -- selection ("ab", at its new position) with its *new* right neighbor.
+  vim.api.nvim_feedkeys(vim.keycode(" <Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "cdabe" },
+    "chained <leader><Right> swaps the shifted selection again"
+  )
+  eq(vim.fn.mode(), "v", "selection survives chained <leader><Right> swap")
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
   cfg.setup({})
 end

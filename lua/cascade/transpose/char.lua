@@ -54,13 +54,18 @@ end
 
 --- Swap a same-line selection with the single character immediately to its
 --- right (`dir = 1`) or left (`dir = -1`). No-op across multiple lines or at
---- the line boundary.
+--- the line boundary. The swapped-in neighbor moves to the selection's old
+--- slot, so the selected text itself shifts by the neighbor's byte width —
+--- callers that need to keep the same *text* selected afterwards should
+--- reselect `new_scol`/`new_ecol`, not the original `scol0`/`ecol0`.
 ---@param bufnr integer
 ---@param row0 integer # 0-based line.
 ---@param scol0 integer # 0-based byte column, selection start.
 ---@param ecol0 integer # 0-based byte column, selection end (inclusive).
 ---@param dir integer
----@return boolean changed
+---@return boolean changed, integer|nil new_scol, integer|nil new_ecol
+--- new_scol/new_ecol: 0-based inclusive byte columns of the (moved)
+--- selection, only set when changed.
 function M.selection(bufnr, row0, scol0, ecol0, dir)
   local line = vim.api.nvim_buf_get_lines(bufnr, row0, row0 + 1, false)[1]
   if not line then
@@ -75,7 +80,7 @@ function M.selection(bufnr, row0, scol0, ecol0, dir)
   end
   local total = vim.fn.strchars(line)
 
-  local new_line
+  local new_line, new_scol, new_ecol
   if dir > 0 then
     if ec + 1 >= total then
       return false
@@ -85,6 +90,8 @@ function M.selection(bufnr, row0, scol0, ecol0, dir)
     local nxt = vim.fn.strcharpart(line, ec + 1, 1)
     local after = vim.fn.strcharpart(line, ec + 2)
     new_line = before .. nxt .. sel .. after
+    new_scol = #before + #nxt
+    new_ecol = new_scol + #sel - 1
   else
     if sc < 1 then
       return false
@@ -94,10 +101,12 @@ function M.selection(bufnr, row0, scol0, ecol0, dir)
     local sel = vim.fn.strcharpart(line, sc, ec - sc + 1)
     local after = vim.fn.strcharpart(line, ec + 1)
     new_line = before .. sel .. prev .. after
+    new_scol = #before
+    new_ecol = new_scol + #sel - 1
   end
 
   vim.api.nvim_buf_set_lines(bufnr, row0, row0 + 1, false, { new_line })
-  return true
+  return true, new_scol, new_ecol
 end
 
 return M
