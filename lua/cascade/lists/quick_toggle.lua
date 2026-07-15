@@ -12,6 +12,7 @@
 
 local marker = require("cascade.lists.marker")
 local renumber = require("cascade.lists.renumber")
+local transform = require("cascade.lists.transform")
 
 local M = {}
 
@@ -200,7 +201,39 @@ function M.star_range(bufnr, srow, erow, _dir, opts)
   return apply_range(bufnr, srow, erow, opts, M.star)
 end
 
---- Range/visual variant of `M.number`. See `M.bullet_range`.
+--- Renumber every digit-marker block touched by `[srow, erow]`, each
+--- expanded to its full contiguous run via `transform.block_range` (so a
+--- selection covering only part of an existing list still resequences the
+--- whole thing, and adjacent items just outside the selection line up
+--- too). Unlike the single-line `M.number` (which only renumbers on the
+--- "edit" trigger, so a lone edit can be fixed up manually later), a bulk
+--- "make this whole selection a numbered list" action has exactly one
+--- correct result — so this always runs, independent of that trigger.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param opts CascadeListOpts
+---@return nil
+local function renumber_touched(bufnr, srow, erow, opts)
+  local done_until = srow - 1
+  for r = srow, erow do
+    if r > done_until then
+      local l = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+      local m = l and marker.parse(l, opts)
+      if m and m.kind == "digit" then
+        local s, e = transform.block_range(bufnr, r, opts)
+        if s and e then
+          pcall(renumber.tree, bufnr, s, e, opts)
+          done_until = e
+        end
+      end
+    end
+  end
+end
+
+--- Range/visual variant of `M.number`. See `M.bullet_range`. Always leaves
+--- a clean sequential numbering behind (see `renumber_touched`), unlike a
+--- single `M.number` press.
 ---@param bufnr integer
 ---@param srow integer
 ---@param erow integer
@@ -208,7 +241,11 @@ end
 ---@param opts CascadeListOpts
 ---@return boolean changed
 function M.number_range(bufnr, srow, erow, _dir, opts)
-  return apply_range(bufnr, srow, erow, opts, M.number)
+  local changed = apply_range(bufnr, srow, erow, opts, M.number)
+  if changed then
+    renumber_touched(bufnr, srow, erow, opts)
+  end
+  return changed
 end
 
 --- Range/visual variant of `M.checkbox`. See `M.bullet_range`.

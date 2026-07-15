@@ -327,6 +327,22 @@ return function(H)
     "number_range: converts an existing different marker too, renumbered sequentially"
   )
 
+  -- number_range always leaves a correctly sequential result, even when the
+  -- renumber-on-edit trigger is off (regression: it used to rely on that
+  -- trigger firing per line as a side effect, so every line landed on "1."
+  -- instead of 1/2/3 when the trigger was disabled).
+  cfg.setup({ lists = { renumber = { on = { "save" } } } })
+  local lo_no_edit = cfg.get("lists")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two", "three" })
+  qt.number_range(buf, 0, 2, 1, lo_no_edit)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "1. one", "2. two", "3. three" },
+    "number_range: sequential even with the edit-trigger renumber disabled"
+  )
+  cfg.setup({})
+  lo = cfg.get("lists")
+
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two" })
   qt.checkbox_range(buf, 0, 1, 1, lo)
   eq_lines(
