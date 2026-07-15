@@ -11,6 +11,7 @@ local config = require("cascade.config")
 local Context = require("cascade.core.context")
 local dispatch = require("cascade.dispatch")
 local dotrepeat = require("cascade.util.dotrepeat")
+local lib = require("cascade.util.lib")
 
 local continue = require("cascade.lists.continue")
 local checkbox = require("cascade.lists.checkbox")
@@ -328,7 +329,8 @@ local function block_work(fn, dir, feature)
   end
 end
 
---- Visual-mode range transform.
+--- Visual-mode range transform. Keeps the same rows selected afterwards
+--- (see `cascade.util.lib.keep_lines`) instead of dropping the selection.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
 ---@param dir integer
 ---@param feature string # list feature this worker belongs to
@@ -340,9 +342,9 @@ local function visual_work(fn, dir, feature)
     if not (opts.enable and lf(feature) and Context.writable(bufnr) and ft_in(opts.filetypes, vim.bo[bufnr].filetype)) then
       return
     end
-    local s, e = visual_range()
-    fn(bufnr, s, e, dir, opts)
-    feed("<Esc>")
+    lib.keep_lines(function(s, e)
+      fn(bufnr, s, e, dir, opts)
+    end)
   end
 end
 
@@ -390,27 +392,21 @@ function M.run_command(fn, cmd, dir)
 end
 
 --- Shift the visual selection by one direction, renumbering list blocks, and
---- reselect the shifted lines. Works in any filetype (renumber only in list
---- filetypes).
+--- reselect the shifted lines (see `cascade.util.lib.keep_lines`; shifting
+--- never changes the line count, so the same rows still address them).
+--- Works in any filetype (renumber only in list filetypes).
 ---@param dir integer # 1 indent, -1 dedent.
 ---@return nil
 function M._shift_visual(dir)
   local count = vim.v.count1
   local bufnr = vim.api.nvim_get_current_buf()
-  local s, e = visual_range()
-  if Context.writable(bufnr) then
-    local opts = config.get("lists")
-    local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
-    indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
-  end
-  -- Reselect the shifted rows so repeated indent/dedent works without
-  -- re-selecting. A `:normal! V…` here would *exit* visual mode the moment it
-  -- returns (leaving us in normal mode), and `gv`'s '< / '> marks are unreliable
-  -- mid-visual. Instead queue the reselect via feedkeys so it runs after this
-  -- mapping returns: `<Esc>` normalizes the mode, then we select the same rows
-  -- linewise (shifting never changes the line count, so [s, e] still address
-  -- them).
-  feed(string.format("<Esc>%dGV%dG", s + 1, e + 1))
+  lib.keep_lines(function(s, e)
+    if Context.writable(bufnr) then
+      local opts = config.get("lists")
+      local renumber_ok = opts.enable and lf("indent") and ft_in(opts.filetypes, vim.bo[bufnr].filetype)
+      indent_mod.shift_range(bufnr, s, e, dir, count, opts, renumber_ok)
+    end
+  end)
 end
 
 --- Run an indent/dedent from a `:command` (range- and count-aware).
@@ -511,9 +507,14 @@ M.swap_right = dotrepeat.repeatable("swap_right", swap_work(1))
 M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
 
 --- Swap the visual selection with its right (`dir = 1`) or left (`dir = -1`)
---- neighbor char; no-op across multiple lines, at the line boundary, or when
---- disabled. On success the selection is dropped (`<Esc>`); on no-op it is
---- restored (`gv`), matching `_move_visual`'s convention.
+--- neighbor char, keeping the swapped text itself selected afterwards. The
+--- neighbor moves into the selection's old slot, so the selected text
+--- shifts by the neighbor's byte width — reselect the *new* bounds
+--- `transpose_char.selection` returns, not the original ones (unlike
+--- `keep_chars`, which assumes the selected span never moves). No-op across
+--- multiple lines, at the line boundary, or when disabled — the selection
+--- is restored via `gv` (matching `_move_visual`'s convention) in those
+--- cases.
 ---@param dir integer
 ---@return nil
 function M._swap_visual(dir)
@@ -523,18 +524,14 @@ function M._swap_visual(dir)
     feed("gv")
     return
   end
-  local row_v, col_v = vim.fn.line("v"), vim.fn.col("v")
-  local row_d, col_d = vim.fn.line("."), vim.fn.col(".")
-  if row_v ~= row_d then
+  local row, scol, ecol = lib.chars()
+  if not row then
     feed("gv")
     return
   end
-  local scol, ecol = col_v - 1, col_d - 1
-  if scol > ecol then
-    scol, ecol = ecol, scol
-  end
-  if transpose_char.selection(bufnr, row_d - 1, scol, ecol, dir) then
-    feed("<Esc>")
+  local changed, new_scol, new_ecol = transpose_char.selection(bufnr, row, scol, ecol, dir)
+  if changed then
+    lib.reselect_chars(row, new_scol, new_ecol)
   else
     feed("gv")
   end
