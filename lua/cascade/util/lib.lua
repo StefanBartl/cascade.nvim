@@ -192,6 +192,149 @@ function M.apply_shape(repl, shape)
   return repl:lower()
 end
 
+local ROMAN_STEPS = {
+  { 1000, "M" }, { 900, "CM" }, { 500, "D" }, { 400, "CD" },
+  { 100, "C" }, { 90, "XC" }, { 50, "L" }, { 40, "XL" },
+  { 10, "X" }, { 9, "IX" }, { 5, "V" }, { 4, "IV" }, { 1, "I" },
+}
+local ROMAN_VALUE = { I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1000 }
+
+local function roman_to_roman_fallback(n)
+  if type(n) ~= "number" or n < 1 or n > 3999 then
+    return nil
+  end
+  local rem = math.floor(n)
+  local out, k = {}, 0
+  for i = 1, #ROMAN_STEPS do
+    local v, sym = ROMAN_STEPS[i][1], ROMAN_STEPS[i][2]
+    while rem >= v do
+      k = k + 1
+      out[k] = sym
+      rem = rem - v
+    end
+  end
+  return table.concat(out)
+end
+
+local function roman_to_int_fallback(s)
+  if type(s) ~= "string" or s == "" then
+    return nil
+  end
+  local up = s:upper()
+  if not up:match("^[MDCLXVI]+$") then
+    return nil
+  end
+  local total = 0
+  for i = 1, #up do
+    local cur = ROMAN_VALUE[up:sub(i, i)]
+    local nxt = ROMAN_VALUE[up:sub(i + 1, i + 1)] or 0
+    if cur < nxt then
+      total = total - cur
+    else
+      total = total + cur
+    end
+  end
+  if roman_to_roman_fallback(total) ~= up then
+    return nil
+  end
+  return total
+end
+
+--- Convert an integer (1..3999) to an uppercase Roman numeral, or nil if out
+--- of range. Uses `lib.lua.numeral.roman` if available, else a local
+--- fallback.
+---@param n integer
+---@return string|nil
+function M.roman_to_roman(n)
+  local lib = try_require("lib.lua.numeral")
+  if lib and lib.roman and type(lib.roman.to_roman) == "function" then
+    local ok, result = pcall(lib.roman.to_roman, n)
+    if ok then
+      return result
+    end
+  end
+  return roman_to_roman_fallback(n)
+end
+
+--- Convert a Roman numeral (any case) to an integer, or nil if invalid
+--- (including non-canonical forms like "IIII"). Uses `lib.lua.numeral.roman`
+--- if available, else a local fallback.
+---@param s string
+---@return integer|nil
+function M.roman_to_int(s)
+  local lib = try_require("lib.lua.numeral")
+  if lib and lib.roman and type(lib.roman.to_int) == "function" then
+    local ok, result = pcall(lib.roman.to_int, s)
+    if ok then
+      return result
+    end
+  end
+  return roman_to_int_fallback(s)
+end
+
+local function alpha_to_int_fallback(s)
+  if type(s) ~= "string" or not s:match("^%a+$") then
+    return nil
+  end
+  local low = s:lower()
+  local n = 0
+  for i = 1, #low do
+    n = n * 26 + (low:byte(i) - 96)
+  end
+  return n
+end
+
+local function alpha_to_alpha_fallback(n)
+  if type(n) ~= "number" or n < 1 then
+    return nil
+  end
+  n = math.floor(n)
+  local rev, k = {}, 0
+  while n > 0 do
+    local r = (n - 1) % 26
+    k = k + 1
+    rev[k] = string.char(97 + r)
+    n = math.floor((n - 1) / 26)
+  end
+  local out = {}
+  for i = k, 1, -1 do
+    out[k - i + 1] = rev[i]
+  end
+  return table.concat(out)
+end
+
+--- Convert an alphabetic ordinal (any case; a=1, z=26, aa=27, ...) to an
+--- integer, or nil if invalid. Uses `lib.lua.numeral.alpha` if available,
+--- else a local fallback.
+---@param s string
+---@return integer|nil
+function M.alpha_to_int(s)
+  local lib = try_require("lib.lua.numeral")
+  if lib and lib.alpha and type(lib.alpha.to_int) == "function" then
+    local ok, result = pcall(lib.alpha.to_int, s)
+    if ok then
+      return result
+    end
+  end
+  return alpha_to_int_fallback(s)
+end
+
+--- Convert a positive integer to its lowercase alphabetic ordinal
+--- (spreadsheet-style: 1=a, 26=z, 27=aa, ...). Uses `lib.lua.numeral.alpha`
+--- if available, else a local fallback.
+---@param n integer
+---@return string|nil
+function M.alpha_to_alpha(n)
+  local lib = try_require("lib.lua.numeral")
+  if lib and lib.alpha and type(lib.alpha.to_alpha) == "function" then
+    local ok, result = pcall(lib.alpha.to_alpha, n)
+    if ok then
+      return result
+    end
+  end
+  return alpha_to_alpha_fallback(n)
+end
+
 --- No bridge to `lib.nvim` here, by design: the closest module is
 --- `lib.nvim.buf_win_tab.selection`, but its shape doesn't match what
 --- `keep_lines`/`keep_chars` need. `get_visual_selection()` returns
