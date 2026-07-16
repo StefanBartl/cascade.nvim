@@ -3,6 +3,8 @@
 ---@description
 --- Maps a -> 1, z -> 26, aa -> 27, ... (spreadsheet-style). No side effects, no
 --- Neovim API. Case is the caller's concern; conversion always works lowercase.
+--- Delegates to the soft lib.nvim bridge (util/lib.lua): lib.lua.numeral.alpha
+--- when available, else an equivalent standalone fallback.
 
 local M = {}
 
@@ -10,38 +12,14 @@ local M = {}
 ---@param s string
 ---@return integer|nil
 function M.to_int(s)
-  if type(s) ~= "string" or not s:match("^%a+$") then
-    return nil
-  end
-  local low = s:lower()
-  local n = 0
-  for i = 1, #low do
-    n = n * 26 + (low:byte(i) - 96)
-  end
-  return n
+  return require("cascade.util.lib").alpha_to_int(s)
 end
 
 --- Convert a positive integer to its lowercase alphabetic ordinal.
 ---@param n integer
 ---@return string|nil
 function M.to_alpha(n)
-  if type(n) ~= "number" or n < 1 then
-    return nil
-  end
-  n = math.floor(n)
-  local rev, k = {}, 0
-  while n > 0 do
-    local r = (n - 1) % 26
-    k = k + 1
-    rev[k] = string.char(97 + r)
-    n = math.floor((n - 1) / 26)
-  end
-  -- Built least-significant first; reverse into order.
-  local out = {}
-  for i = k, 1, -1 do
-    out[k - i + 1] = rev[i]
-  end
-  return table.concat(out)
+  return require("cascade.util.lib").alpha_to_alpha(n)
 end
 
 return M
