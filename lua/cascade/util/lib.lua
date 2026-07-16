@@ -9,32 +9,39 @@
 
 local M = {}
 
---- Resolve a sub-module of `lib` once, swallowing load errors.
+--- Resolve a sub-module of `lib` once, swallowing load errors. Accepts both
+--- table modules (`lib.nvim.notify`, `lib.nvim.autocmd.augroup`) and bare
+--- function modules (`lib.nvim.map` returns a function, not a table).
 ---@param name string
----@return table|nil
+---@return table|function|nil
 local function try_require(name)
   local ok, mod = pcall(require, name)
-  if ok and type(mod) == "table" then
+  if ok and (type(mod) == "table" or type(mod) == "function") then
     return mod
   end
   return nil
 end
 
---- Notify the user. Uses `lib.notify` if available, else `vim.notify`.
+--- Notify the user. Uses `lib.nvim.notify` if available, else `vim.notify`.
 ---@param msg string
 ---@param level integer|nil # vim.log.levels.*; defaults to INFO
 ---@return nil
 function M.notify(msg, level)
   level = level or vim.log.levels.INFO
-  local lib = try_require("lib.notify")
-  if lib and type(lib.notify) == "function" then
-    pcall(lib.notify, msg, level)
-    return
+  local lib = try_require("lib.nvim.notify")
+  if lib and type(lib.create) == "function" then
+    local ok, notifier = pcall(lib.create, "[cascade]")
+    if ok and type(notifier) == "table" and type(notifier.notify) == "function" then
+      local notify_ok = pcall(notifier.notify, msg, level)
+      if notify_ok then
+        return
+      end
+    end
   end
   vim.notify(("[cascade] %s"):format(msg), level)
 end
 
---- Set a keymap. Uses `lib.map` if available, else `vim.keymap.set`.
+--- Set a keymap. Uses `lib.nvim.map` if available, else `vim.keymap.set`.
 ---@param mode string|string[]
 ---@param lhs string
 ---@param rhs string|function
@@ -42,10 +49,12 @@ end
 ---@return nil
 function M.map(mode, lhs, rhs, opts)
   opts = opts or {}
-  local lib = try_require("lib.map")
-  if lib and type(lib.map) == "function" then
-    pcall(lib.map, mode, lhs, rhs, opts)
-    return
+  local lib = try_require("lib.nvim.map")
+  if type(lib) == "function" then
+    local ok = pcall(lib, mode, lhs, rhs, opts)
+    if ok then
+      return
+    end
   end
   vim.keymap.set(mode, lhs, rhs, opts)
 end
@@ -54,9 +63,9 @@ end
 ---@param name string
 ---@return integer
 function M.augroup(name)
-  local lib = try_require("lib.augroup")
-  if lib and type(lib.augroup) == "function" then
-    local ok, id = pcall(lib.augroup, name)
+  local lib = try_require("lib.nvim.autocmd.augroup")
+  if lib and type(lib.create) == "table" and type(lib.create.clear) == "function" then
+    local ok, id = pcall(lib.create.clear, name)
     if ok and type(id) == "number" then
       return id
     end
@@ -130,34 +139,29 @@ local function reselect_chars_fallback(row, scol, ecol)
   feed(keys)
 end
 
---- 0-based inclusive row range of the current Visual selection. Uses
---- `lib.nvim.selection` if available, else an inline equivalent.
+--- No bridge to `lib.nvim` here, by design: the closest module is
+--- `lib.nvim.buf_win_tab.selection`, but its shape doesn't match what
+--- `keep_lines`/`keep_chars` need. `get_visual_selection()` returns
+--- 1-based rows/cols plus the selected text, not the 0-based row-only or
+--- row+col bounds these functions traffic in; and `reselect_visual()`
+--- takes no bounds and re-enters Visual via `normal! gv`, which is exactly
+--- the unreliable-mid-selection behavior `reselect_lines_fallback`/
+--- `reselect_chars_fallback` exist to avoid (see their doc comments). An
+--- explicit-bounds reselect would need to be added to `lib.nvim` first;
+--- until then these stay standalone-only.
+
+--- 0-based inclusive row range of the current Visual selection.
 ---@return integer srow, integer erow
 function M.lines()
-  local lib = try_require("lib.nvim.selection")
-  if lib and type(lib.lines) == "function" then
-    local ok, srow, erow = pcall(lib.lines)
-    if ok then
-      return srow, erow
-    end
-  end
   return lines_fallback()
 end
 
 --- Restore a linewise (`V`) selection over `[srow, erow]` (0-based
---- inclusive). Uses `lib.nvim.selection` if available, else an inline
---- equivalent.
+--- inclusive).
 ---@param srow integer
 ---@param erow integer
 ---@return nil
 function M.reselect_lines(srow, erow)
-  local lib = try_require("lib.nvim.selection")
-  if lib and type(lib.reselect_lines) == "function" then
-    local ok = pcall(lib.reselect_lines, srow, erow)
-    if ok then
-      return
-    end
-  end
   reselect_lines_fallback(srow, erow)
 end
 
@@ -175,34 +179,20 @@ end
 
 --- 0-based row and inclusive byte-column range of the current Visual
 --- selection, if (and only if) it is charwise and confined to one line.
---- Uses `lib.nvim.selection` if available, else an inline equivalent.
+--- (No `lib.nvim` bridge — see the note above `M.lines`.)
 ---@return integer|nil row, integer|nil scol, integer|nil ecol
 function M.chars()
-  local lib = try_require("lib.nvim.selection")
-  if lib and type(lib.chars) == "function" then
-    local ok, row, scol, ecol = pcall(lib.chars)
-    if ok then
-      return row, scol, ecol
-    end
-  end
   return chars_fallback()
 end
 
 --- Restore a charwise (`v`) selection spanning byte columns `[scol, ecol]`
---- (0-based inclusive) on `row`. Uses `lib.nvim.selection` if available,
---- else an inline equivalent.
+--- (0-based inclusive) on `row`. (No `lib.nvim` bridge — see the note above
+--- `M.lines`.)
 ---@param row integer
 ---@param scol integer
 ---@param ecol integer
 ---@return nil
 function M.reselect_chars(row, scol, ecol)
-  local lib = try_require("lib.nvim.selection")
-  if lib and type(lib.reselect_chars) == "function" then
-    local ok = pcall(lib.reselect_chars, row, scol, ecol)
-    if ok then
-      return
-    end
-  end
   reselect_chars_fallback(row, scol, ecol)
 end
 
