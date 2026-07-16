@@ -19,6 +19,7 @@ local specs = {
   "cycle_spec.lua",
   "transpose_spec.lua",
   "commands_spec.lua",
+  "lib_util_spec.lua",
 }
 
 local failed = 0
