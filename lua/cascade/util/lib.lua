@@ -335,6 +335,30 @@ function M.alpha_to_alpha(n)
   return alpha_to_alpha_fallback(n)
 end
 
+local _pending_dotrepeat_fn = nil
+
+--- Stable operatorfunc dispatcher for the local dotrepeat_run fallback.
+--- Reached from Vimscript via v:lua; must keep this exact name/path.
+function M.dotrepeat_invoke()
+  local fn = _pending_dotrepeat_fn
+  if fn then pcall(fn) end
+end
+
+--- Run `fn` via native `.`-repeat (operatorfunc + `g@l`). Uses
+--- `lib.nvim.dotrepeat` if available, else a local fallback with the same
+--- mechanism (own stable dispatcher).
+---@param fn fun()
+function M.dotrepeat_run(fn)
+  local lib = try_require("lib.nvim.dotrepeat")
+  if lib and type(lib.run) == "function" then
+    local ok = pcall(lib.run, fn)
+    if ok then return end
+  end
+  _pending_dotrepeat_fn = fn
+  vim.o.operatorfunc = "v:lua.require'cascade.util.lib'.dotrepeat_invoke"
+  vim.api.nvim_feedkeys("g@l", "n", false)
+end
+
 --- No bridge to `lib.nvim` here, by design: the closest module is
 --- `lib.nvim.buf_win_tab.selection`, but its shape doesn't match what
 --- `keep_lines`/`keep_chars` need. `get_visual_selection()` returns
