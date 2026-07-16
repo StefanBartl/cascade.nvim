@@ -139,6 +139,59 @@ local function reselect_chars_fallback(row, scol, ecol)
   feed(keys)
 end
 
+--- Classify the capitalization of a token. Uses `lib.lua.strings.case` if
+--- available, else a local fallback.
+---@param s string
+---@return "lower"|"upper"|"capital"|"mixed"
+function M.case_shape(s)
+  local lib = try_require("lib.lua.strings.case")
+  if lib and type(lib.case_shape) == "function" then
+    local ok, shape = pcall(lib.case_shape, s)
+    if ok then
+      return shape
+    end
+  end
+
+  if s == "" then
+    return "lower"
+  end
+  local first, rest = s:sub(1, 1), s:sub(2)
+  if s == s:lower() then
+    return "lower"
+  end
+  if s == s:upper() then
+    return "upper"
+  end
+  if first == first:upper() and rest == rest:lower() then
+    return "capital"
+  end
+  return "mixed"
+end
+
+--- Apply a case shape to a replacement token. Uses `lib.lua.strings.case`
+--- if available, else a local fallback.
+---@param repl string
+---@param shape "lower"|"upper"|"capital"|"mixed"
+---@return string
+function M.apply_shape(repl, shape)
+  local lib = try_require("lib.lua.strings.case")
+  if lib and type(lib.apply_shape) == "function" then
+    local ok, result = pcall(lib.apply_shape, repl, shape)
+    if ok then
+      return result
+    end
+  end
+
+  if shape == "upper" then
+    return repl:upper()
+  elseif shape == "capital" then
+    return repl:sub(1, 1):upper() .. repl:sub(2):lower()
+  elseif shape == "mixed" then
+    return repl
+  end
+  return repl:lower()
+end
+
 --- No bridge to `lib.nvim` here, by design: the closest module is
 --- `lib.nvim.buf_win_tab.selection`, but its shape doesn't match what
 --- `keep_lines`/`keep_chars` need. `get_visual_selection()` returns

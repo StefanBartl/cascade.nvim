@@ -49,39 +49,23 @@ end
 
 ---@alias CascadeCaseShape "lower"|"upper"|"capital"|"mixed"
 
---- Classify the capitalization of a token.
+--- Classify the capitalization of a token. Delegates to the soft
+--- lib.nvim bridge (util/lib.lua): lib.lua.strings.case.case_shape when
+--- available, else an equivalent standalone fallback.
 ---@param s string
 ---@return CascadeCaseShape
 function M.case_shape(s)
-  if s == "" then
-    return "lower"
-  end
-  local first, rest = s:sub(1, 1), s:sub(2)
-  if s == s:lower() then
-    return "lower"
-  end
-  if s == s:upper() then
-    return "upper"
-  end
-  if first == first:upper() and rest == rest:lower() then
-    return "capital"
-  end
-  return "mixed"
+  return require("cascade.util.lib").case_shape(s)
 end
 
---- Apply a case shape to a replacement token.
+--- Apply a case shape to a replacement token. Delegates to the soft
+--- lib.nvim bridge (util/lib.lua): lib.lua.strings.case.apply_shape when
+--- available, else an equivalent standalone fallback.
 ---@param repl string
 ---@param shape CascadeCaseShape
 ---@return string
 function M.apply_shape(repl, shape)
-  if shape == "upper" then
-    return repl:upper()
-  elseif shape == "capital" then
-    return repl:sub(1, 1):upper() .. repl:sub(2):lower()
-  elseif shape == "mixed" then
-    return repl
-  end
-  return repl:lower()
+  return require("cascade.util.lib").apply_shape(repl, shape)
 end
 
 return M
