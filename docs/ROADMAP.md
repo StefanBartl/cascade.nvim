@@ -11,8 +11,14 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 - **Subtree-aware indent** — beim Ein-/Ausrücken Kind-Items (tiefer eingerückte
   Folgezeilen) automatisch mitnehmen (aktuell wird nur die/ die markierten
   Zeile(n) geshiftet, Kinder bleiben stehen).
-- **Loose-List-Support** — Items mit Leerzeilen dazwischen als ein Block
-  behandeln (aktuell beendet eine Leerzeile den Block fürs Renumbern).
+- ~~**Loose-List-Support**~~ — ✅ erledigt: `lists.renumber.blank_break`.
+  Default `0` (jede Leerzeile beendet den Block, jede Liste nummeriert
+  eigenständig); `1` behandelt Items mit einer Leerzeile dazwischen als einen
+  Block ("loose list" nach CommonMark).
+- **Renumbering-Marker (Anchors)** — explizite, nicht im Dokument stehende
+  Marker, die eine Blockgrenze unabhängig von der Struktur erzwingen.
+  Konzept + Bewertung: [renumbering_markers.md](ROADMAP/renumbering_markers.md)
+  (zurückgestellt, bis der Restbedarf nach `blank_break` feststeht).
 - **Start-Offset auf Subebenen erhalten** — Tree-Renumber setzt Subebenen
   immer auf `1`; ein bewusster Nicht-1-Start auf tieferen Ebenen geht verloren.
 - ~~**Visual-Mode-Operationen**~~ — ✅ erledigt: Form-Rotation (`:CascadeRotate`),
@@ -50,6 +56,7 @@ Ergebnisse und bewussten Abweichungen sind dokumentiert in:
 - [Zentral-Prinzipien.md](ROADMAP/Zentral-Prinzipien.md) — zentrale Modul-Prinzipien
 - [Checklist.md](ROADMAP/Checklist.md) — Master-Checklist (Schnell-Check/PR/Coding)
 - [NEOTREE_FEATURES.md](ROADMAP/NEOTREE_FEATURES.md) — Filetree-Audit (Ergebnis: keine)
+- [renumbering_markers.md](ROADMAP/renumbering_markers.md) — Konzept: persistente Renumbering-Anker
 
 **Bilanz:** überwiegend erfüllt; die verbleibenden Punkte sind niedrig-prior und
 optional:
