@@ -101,17 +101,30 @@ line in the selection is left untouched.
 
 USER COMMANDS                                               *cascade-commands*
 
-Both are |:command-range| aware. Without a range they act on the list block at
-the cursor; with a range (e.g. visual `:'<,'>`) on the selected lines.
-
-    :CascadeRotate [next|prev]     rotate list form forward/backward; the bang
-                                   form :CascadeRotate! rotates backward.
-    :CascadeSort                   sort the list A-Z; :CascadeSort! sorts Z-A.
-    :CascadeReverse                reverse the order of the list items.
-    :CascadeStrip                  remove checkboxes (markers are kept).
-    :CascadeIndent [n]             indent line/range by n levels (default 1) and
-                                   renumber; e.g. :'<,'>CascadeIndent 2.
-    :CascadeDedent [n]             dedent line/range by n levels and renumber.
+One command, :Cascade <subcommand> (built via lib.nvim.usercmd.composer, with
+<Tab> completion). All subcommands are |:command-range| aware: without a
+range they act on the list block at the cursor; with a range (e.g. visual
+`:'<,'>`) on the selected lines. Bang attaches to the VERB, not the
+subcommand: :Cascade! rotate (not :Cascade rotate!).
+                                                                    *:Cascade*
+    :Cascade rotate [next|prev]                             *:Cascade-rotate*
+                    rotate list form forward/backward; :Cascade! rotate
+                    rotates backward.
+    :Cascade sort                                             *:Cascade-sort*
+                    sort the list A-Z; :Cascade! sort sorts Z-A.
+    :Cascade reverse                                       *:Cascade-reverse*
+                    reverse the order of the list items.
+    :Cascade strip                                           *:Cascade-strip*
+                    remove checkboxes (markers are kept).
+    :Cascade indent [n]                                     *:Cascade-indent*
+                    indent line/range by n levels (default 1) and renumber;
+                    e.g. :'<,'>Cascade indent 2.
+    :Cascade dedent [n]                                     *:Cascade-dedent*
+                    dedent line/range by n levels and renumber.
+    :Cascade renumber [all]                               *:Cascade-renumber*
+                    renumber the ordered list block at the cursor (or the
+                    given range); :Cascade renumber all sweeps every list
+                    block in the buffer instead, each numbered independently.
 
 PRESET                                                         *cascade-preset*
 
@@ -234,7 +247,7 @@ lists.checkbox.states (string[])  Ordered single-char states cycled in `[ ]`.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
 lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   .enable (boolean) master switch; false = only
-                                          manual :CascadeRenumber.
+                                          manual :Cascade renumber.
                                   .on (string[]) any of "edit" (right after an
                                           edit) and "save" (BufWritePre, whole
                                           buffer).
@@ -343,15 +356,15 @@ no-op the visual selection is restored (`gv`); on success it is dropped.
 >vim
     :checkhealth cascade
 <
-Reports the Neovim version, per-domain status, optional lib.nvim integration and
-basic configuration sanity.
+Reports the Neovim version, per-domain status, lib.nvim availability (required
+— gates the :Cascade command) and basic configuration sanity.
 
 ==============================================================================
 9. LIB.NVIM INTEGRATION                                           *cascade-lib*
 
-cascade.nvim optionally uses the user's `lib.nvim` helpers (`lib.map`,
-`lib.notify`, `lib.augroup`) when they are on the runtimepath. If absent it
-falls back to the native API, so the plugin works fully standalone. There is no
-hard dependency.
+cascade.nvim REQUIRES `lib.nvim`: the :Cascade command is built on
+lib.nvim.usercmd.composer and fails to load without it. `lib.map`,
+`lib.notify`, `lib.augroup` remain soft-guarded — used when present, native
+API fallback otherwise (see lua/cascade/util/lib.lua).
 
 vim:tw=78:ts=8:ft=help:norl:

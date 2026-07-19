@@ -1,10 +1,11 @@
 ---@module 'cascade.util.lib'
----@brief Soft, guarded bridge to the optional `lib.nvim` helper library.
+---@brief Soft, guarded bridge to a handful of `lib.nvim` helpers.
 ---@description
---- cascade.nvim prefers the user's `lib.*` helpers (`lib.map`, `lib.notify`, ...)
---- when present, but must stay fully functional standalone. Every accessor here
---- probes the corresponding `lib` module with `pcall` and falls back to the
---- native Neovim API. No hard dependency is ever introduced.
+--- `lib.nvim` itself is now a required dependency (the :Cascade command is
+--- built on lib.nvim.usercmd.composer, see bindings/usrcmds.lua) — but these
+--- specific accessors (`lib.map`, `lib.notify`, ...) stay soft-guarded for
+--- callers that want a native-API fallback instead of a hard call, and each
+--- probes its module with `pcall` accordingly.
 ---@see lib-nvim-dependency
 
 local M = {}

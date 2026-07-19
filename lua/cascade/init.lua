@@ -391,6 +391,32 @@ function M.run_command(fn, cmd, dir)
   end
 end
 
+--- Run `:Cascade renumber` from a `:command` (range-aware; `scope == "all"`
+--- sweeps every list block in the buffer instead of just the current one).
+---@param cmd table # The nvim user-command argument table.
+---@param scope string|nil # "all", or nil/"block" for the range/cursor block.
+---@return nil
+function M.run_renumber_command(cmd, scope)
+  local opts = config.get("lists")
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not (opts.enable and Context.writable(bufnr)) then
+    return
+  end
+  if scope == "all" then
+    pcall(renumber.all, bufnr, opts)
+    return
+  end
+  local s, e
+  if cmd.range and cmd.range > 0 then
+    s, e = cmd.line1 - 1, cmd.line2 - 1
+  else
+    s, e = transform.block_range(bufnr, vim.api.nvim_win_get_cursor(0)[1] - 1, opts)
+  end
+  if s and e then
+    pcall(renumber.tree, bufnr, s, e, opts)
+  end
+end
+
 --- Shift the visual selection by one direction, renumbering list blocks, and
 --- reselect the shifted lines (see `cascade.util.lib.keep_lines`; shifting
 --- never changes the line count, so the same rows still address them).

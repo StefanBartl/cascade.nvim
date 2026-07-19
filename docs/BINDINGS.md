@@ -78,16 +78,22 @@ Buffer-local, bound per `lists.filetypes`.
 
 ## User Commands
 
-Always defined, regardless of the preset configuration.
+One command, `:Cascade <subcommand>` (built via
+[`lib.nvim.usercmd.composer`](https://github.com/StefanBartl/lib.nvim), with
+`<Tab>` completion), always defined regardless of the preset configuration.
+**Bang now attaches to the verb, not the subcommand**: `:CascadeRotate!` is
+now `:Cascade! rotate` (Vim's `!` always binds to the command name itself, so
+collapsing multiple commands into one verb moves it there).
 
-| name | args | bang | range | desc |
+| subcommand | args | bang | range | desc |
 | --- | --- | --- | --- | --- |
-| `:CascadeRotate` | `[next\|prev]` | yes | yes | Rotate list form (range-aware; `!` = backward) |
-| `:CascadeSort` | — | yes | yes | Sort list A-Z (range-aware; `!` = Z-A) |
-| `:CascadeReverse` | — | no | yes | Reverse list order (range-aware) |
-| `:CascadeStrip` | — | no | yes | Strip checkboxes (range-aware) |
-| `:CascadeIndent` | `[n]` | no | yes | Indent line/range (+renumber; arg = levels) |
-| `:CascadeDedent` | `[n]` | no | yes | Dedent line/range (+renumber; arg = levels) |
+| `:Cascade rotate` | `[next\|prev]` | yes (`:Cascade!`) | yes | Rotate list form (range-aware; `!` or `prev` = backward) |
+| `:Cascade sort` | — | yes (`:Cascade!`) | yes | Sort list A-Z (range-aware; `!` = Z-A) |
+| `:Cascade reverse` | — | no | yes | Reverse list order (range-aware) |
+| `:Cascade strip` | — | no | yes | Strip checkboxes (range-aware) |
+| `:Cascade indent` | `[n]` | no | yes | Indent line/range (+renumber; arg = levels) |
+| `:Cascade dedent` | `[n]` | no | yes | Dedent line/range (+renumber; arg = levels) |
+| `:Cascade renumber` | `[all]` | no | yes | Renumber list block (range-aware; `all` = every list in the buffer) |
 
 ## Autocommands
 

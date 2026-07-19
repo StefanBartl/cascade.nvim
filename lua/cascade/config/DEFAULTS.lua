@@ -59,7 +59,7 @@ local DEFAULTS = {
       delete_empty = true,
     },
     -- When ordered lists are auto-renumbered.
-    --   enable:      master switch (false = only manual :CascadeRenumber)
+    --   enable:      master switch (false = only manual :Cascade renumber)
     --   on:          any of "edit" (right after indent/move/continue/...) and
     --                "save" (BufWritePre). A plain boolean is also accepted:
     --                true = {"edit"}.
