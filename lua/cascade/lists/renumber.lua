@@ -6,8 +6,9 @@
 --- sequence starting from the first marker's value (so non-1 start offsets and
 --- alphabetic/Roman lists are preserved). A non-marker, non-blank line (e.g. a
 --- wrapped continuation paragraph or note under an item) never breaks the
---- sequence, regardless of its own indent — only a run of `marker.MAX_BLANK_RUN
---- + 1` or more consecutive blank lines does (see `cascade.lists.marker`).
+--- sequence, regardless of its own indent — only a run of more than
+--- `lists.renumber.blank_break` consecutive blank lines does (default `0`, i.e.
+--- any blank line breaks the block; see `cascade.lists.marker`).
 
 local marker = require("cascade.lists.marker")
 local roman = require("cascade.lists.roman")
@@ -74,6 +75,7 @@ end
 ---@return boolean changed
 function M.all(bufnr, opts)
   local total = vim.api.nvim_buf_line_count(bufnr)
+  local max_blank = marker.blank_run(opts)
   local changed = false
   local r = 0
   while r < total do
@@ -87,7 +89,7 @@ function M.all(bufnr, opts)
           break
         end
         local continues
-        continues, blanks = marker.is_continuation(nl, blanks)
+        continues, blanks = marker.is_continuation(nl, blanks, max_blank)
         if not continues then
           break
         end
@@ -154,13 +156,14 @@ function M.tree(bufnr, srow, erow, opts)
   local out = {} ---@type string[]
   local changed = false
   local blanks = 0
+  local max_blank = marker.blank_run(opts)
   for i = 1, #lines do
     local line = lines[i]
     out[i] = line
     local m = marker.parse(line, opts)
     if not m then
       local continues
-      continues, blanks = marker.is_continuation(line, blanks)
+      continues, blanks = marker.is_continuation(line, blanks, max_blank)
       if not continues then
         -- A real break (too many consecutive blank lines) ends every running
         -- sequence. Non-blank continuation content is left untouched instead.
@@ -214,6 +217,7 @@ function M.run(bufnr, row0, opts)
   end
 
   local indent_w = #cur.indent
+  local max_blank = marker.blank_run(opts)
   -- Find the first line of the block (scan upward over same-indent same-kind
   -- siblings, deeper child lines, and non-marker continuation content).
   local total = vim.api.nvim_buf_line_count(bufnr)
@@ -241,7 +245,7 @@ function M.run(bufnr, row0, opts)
       blanks = 0
     elseif not m and l then
       local continues
-      continues, blanks = marker.is_continuation(l, blanks)
+      continues, blanks = marker.is_continuation(l, blanks, max_blank)
       if not continues then
         break
       end
@@ -276,7 +280,7 @@ function M.run(bufnr, row0, opts)
         break
       end
       local continues
-      continues, blanks = marker.is_continuation(l, blanks)
+      continues, blanks = marker.is_continuation(l, blanks, max_blank)
       if not continues then
         break
       end

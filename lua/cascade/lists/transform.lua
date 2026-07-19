@@ -66,9 +66,9 @@ end
 --- The contiguous run of list-item lines containing `row0` (0-based,
 --- inclusive). A non-marker, non-blank line (e.g. a wrapped continuation
 --- paragraph or note under an item) extends the block instead of ending it,
---- regardless of its own indent; a run of `marker.MAX_BLANK_RUN + 1` or more
---- consecutive blank lines still does — matching `cascade.lists.renumber`'s
---- block detection.
+--- regardless of its own indent; a run of more than
+--- `lists.renumber.blank_break` consecutive blank lines still does — matching
+--- `cascade.lists.renumber`'s block detection.
 ---@param bufnr integer
 ---@param row0 integer
 ---@param opts CascadeListOpts
@@ -79,6 +79,7 @@ function M.block_range(bufnr, row0, opts)
     return nil, nil
   end
   local total = vim.api.nvim_buf_line_count(bufnr)
+  local max_blank = marker.blank_run(opts)
 
   local s, blanks = row0, 0
   while s - 1 >= 0 do
@@ -87,7 +88,7 @@ function M.block_range(bufnr, row0, opts)
       break
     end
     local continues
-    continues, blanks = marker.is_continuation(l, blanks)
+    continues, blanks = marker.is_continuation(l, blanks, max_blank)
     if not continues then
       break
     end
@@ -102,7 +103,7 @@ function M.block_range(bufnr, row0, opts)
       break
     end
     local continues
-    continues, blanks = marker.is_continuation(l, blanks)
+    continues, blanks = marker.is_continuation(l, blanks, max_blank)
     if not continues then
       break
     end

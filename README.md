@@ -304,6 +304,7 @@ require("cascade").setup({
     renumber = {                             -- WHEN it renumbers automatically
       enable = true,
       on = { "edit" },                       -- "edit" = immediately, "save" = on :w
+      blank_break = 0,                        -- blank lines that end a block (0 = any blank breaks it)
     },
   },
   cycle = {
@@ -359,10 +360,12 @@ renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 wrapped paragraph or note under an entry) never breaks the sequence, no matter
 its own indent — it is left untouched and the numbering carries on past it,
 matching Markdown's "lazy continuation": without a blank line separating it
-from the item above, it belongs to that item. A single blank line is likewise
-tolerated (a "loose" list is still one list); a run of two or more blank
-lines is a real break and starts a fresh block with its own start offset —
-handy for keeping multiple independent numbered lists in one file.
+from the item above, it belongs to that item. A **blank line**, by contrast,
+ends the block: the next list starts a fresh sequence with its own start
+offset — handy for keeping multiple independent numbered lists in one file.
+Raise `lists.renumber.blank_break` if you want blanks tolerated inside a block:
+`1` gives the CommonMark "loose list" reading (a single blank line between
+items still counts as one list; two or more end it).
 
 ```markdown
 1. Product Module: ...
