@@ -167,24 +167,36 @@ return function(H)
   cfg.setup({ lists = { renumber = false } })
   eq(rn.at(cfg.get("lists"), "edit"), false, "boolean false disables")
 
-  -- renumber.all over a multi-block buffer: a single blank line is tolerated
-  -- inside a block (a "loose" list stays one block); a run of two or more
-  -- ends it and starts a fresh block with its own start offset.
+  -- blank_break default (0): any blank line ends a block, so two visually
+  -- separate lists are each numbered on their own — the fresh block keeps its
+  -- own start offset instead of running on from the block above.
   cfg.setup({})
   local lo = cfg.get("lists")
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "5. x", "9. y" })
   rn.all(buf, lo)
+  local brk = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(brk[2], "2. b", "all: block 1 renumbered")
+  eq(brk[4], "5. x", "all: a blank line breaks the block, fresh start offset kept")
+  eq(brk[5], "6. y", "all: fresh block renumbers sequentially")
+
+  -- blank_break = 1: opt into the CommonMark "loose list" reading, where a
+  -- single blank line is tolerated inside a block but two or more end it.
+  cfg.setup({ lists = { renumber = { blank_break = 1 } } })
+  local loose = cfg.get("lists")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "5. x", "9. y" })
+  rn.all(buf, loose)
   local all = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  eq(all[2], "2. b", "all: block 1 renumbered")
-  eq(all[4], "3. x", "all: a single blank line doesn't break the sequence")
-  eq(all[5], "4. y", "all: sequence keeps carrying on")
+  eq(all[2], "2. b", "loose: block 1 renumbered")
+  eq(all[4], "3. x", "loose: a single blank line doesn't break the sequence")
+  eq(all[5], "4. y", "loose: sequence keeps carrying on")
 
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b", "", "", "5. x", "9. y" })
-  rn.all(buf, lo)
+  rn.all(buf, loose)
   local twoblank = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  eq(twoblank[2], "2. b", "all: block 1 renumbered")
-  eq(twoblank[5], "5. x", "all: two blank lines start a fresh block, own start offset kept")
-  eq(twoblank[6], "6. y", "all: fresh block renumbers sequentially")
+  eq(twoblank[2], "2. b", "loose: block 1 renumbered")
+  eq(twoblank[5], "5. x", "loose: two blank lines start a fresh block, own start offset kept")
+  eq(twoblank[6], "6. y", "loose: fresh block renumbers sequentially")
+  cfg.setup({})
 
   -- A non-marker, non-blank line never breaks the sequence, regardless of its
   -- own indent — matches Markdown "lazy continuation": without a blank line

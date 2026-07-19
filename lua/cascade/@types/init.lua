@@ -19,6 +19,7 @@
 ---@class CascadeRenumberOpts
 ---@field enable boolean # Master switch for automatic renumbering.
 ---@field on CascadeRenumberTrigger[] # When it runs: "edit" and/or "save".
+---@field blank_break integer # Consecutive blank lines that end a block (0 = any blank line breaks it).
 
 ---@class CascadeListFeatures
 ---@field continue boolean # `<CR>`/`o`/`O` continuation and empty-bullet deletion.

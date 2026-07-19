@@ -238,6 +238,10 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   .on (string[]) any of "edit" (right after an
                                           edit) and "save" (BufWritePre, whole
                                           buffer).
+                                  .blank_break (integer) consecutive blank
+                                          lines that end a block. 0 (default)
+                                          = any blank line breaks it; raise to
+                                          1 for the "loose list" reading.
                                   A boolean is also accepted: true = { "edit" }.
 
                                   A non-marker, non-blank line (a wrapped
@@ -245,11 +249,12 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   breaks the sequence, regardless of its own
                                   indent — Markdown "lazy continuation": no
                                   blank line separating it means it belongs
-                                  to the item above. A single blank line is
-                                  tolerated too (a "loose" list is still one
-                                  list); two or more is a real break and
-                                  starts a fresh block with its own start
-                                  offset.
+                                  to the item above. A blank line, by
+                                  contrast, ends the block: the next list
+                                  starts a fresh sequence with its own start
+                                  offset. Set .blank_break = 1 to tolerate a
+                                  single blank line inside one block (two or
+                                  more still break it).
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Key: word. Missing key
@@ -302,8 +307,9 @@ leaves closes its gap. The base level keeps its first item's start offset. >
       5. e                  4. e      (5 -> 4)
     2. bot                2. bot
 <
-A single blank line between items is tolerated (still one block); a run of
-two or more starts a fresh block with its own start offset.
+A blank line between items ends the block; the next list starts a fresh
+sequence with its own start offset. Raise `lists.renumber.blank_break` to
+tolerate blanks inside one block.
 
 ==============================================================================
 6. CYCLE DOMAIN                                                 *cascade-cycle*

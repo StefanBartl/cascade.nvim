@@ -59,12 +59,19 @@ local DEFAULTS = {
       delete_empty = true,
     },
     -- When ordered lists are auto-renumbered.
-    --   enable: master switch (false = only manual :CascadeRenumber)
-    --   on:     any of "edit" (right after indent/move/continue/...) and "save"
-    --           (BufWritePre). A plain boolean is also accepted: true = {"edit"}.
+    --   enable:      master switch (false = only manual :CascadeRenumber)
+    --   on:          any of "edit" (right after indent/move/continue/...) and
+    --                "save" (BufWritePre). A plain boolean is also accepted:
+    --                true = {"edit"}.
+    --   blank_break: how many *consecutive* blank lines a list block tolerates
+    --                before they end it. 0 (default) = any blank line separates
+    --                two lists, so each is numbered on its own. Raise to 1 for
+    --                the CommonMark "loose list" reading (a single blank line
+    --                between items still counts as one list).
     renumber = {
       enable = true,
       on = { "edit" },
+      blank_break = 0,
     },
   },
 

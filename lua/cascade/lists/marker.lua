@@ -82,26 +82,40 @@ function M.is_blank_line(line)
   return line:match("^%s*$") ~= nil
 end
 
---- How many *consecutive* blank lines are tolerated inside a list block
---- before they count as a real break (CommonMark "lazy continuation": a
---- non-blank line always belongs to the item above regardless of its own
---- indent, as long as no blank line separates them; a single blank line
---- still reads as one "loose" list, but two or more is a real section gap).
-M.MAX_BLANK_RUN = 1
+--- Default for how many *consecutive* blank lines are tolerated inside a list
+--- block before they count as a real break. `0` means any blank line ends the
+--- block — a plain, predictable default that avoids "run-on" numbering across
+--- visually separate lists. It can be raised via `lists.renumber.blank_break`
+--- (e.g. `1` for the CommonMark "loose list" reading, where a single blank line
+--- between items still belongs to one list).
+M.MAX_BLANK_RUN = 0
 
 --- Whether a non-marker `line` continues the running block instead of
 --- breaking it: any non-blank line always does (indentation doesn't matter);
 --- a blank line does too, as long as `blanks_before` hasn't already reached
---- `MAX_BLANK_RUN`.
+--- `max_blank_run`.
 ---@param line string
 ---@param blanks_before integer # consecutive blank lines seen immediately before `line`.
+---@param max_blank_run integer|nil # tolerated consecutive blanks; defaults to `M.MAX_BLANK_RUN`.
 ---@return boolean continues, integer blanks_after
-function M.is_continuation(line, blanks_before)
+function M.is_continuation(line, blanks_before, max_blank_run)
   if not M.is_blank_line(line) then
     return true, 0
   end
   local n = blanks_before + 1
-  return n <= M.MAX_BLANK_RUN, n
+  return n <= (max_blank_run or M.MAX_BLANK_RUN), n
+end
+
+--- The configured consecutive-blank-line tolerance for a list block, read from
+--- `opts.renumber.blank_break`, falling back to `M.MAX_BLANK_RUN`.
+---@param opts CascadeListOpts
+---@return integer
+function M.blank_run(opts)
+  local r = opts.renumber
+  if type(r) == "table" and type(r.blank_break) == "number" then
+    return r.blank_break
+  end
+  return M.MAX_BLANK_RUN
 end
 
 --- Rebuild the marker prefix string (everything before the item text).

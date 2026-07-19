@@ -36,7 +36,7 @@ local function deep_merge(base, override)
 end
 
 --- Normalize `lists.renumber`: accept a boolean (back-compat) or a partial table
---- and always end up with `{ enable = boolean, on = string[] }`.
+--- and always end up with `{ enable = boolean, on = string[], blank_break = int }`.
 ---@param o CascadeConfig
 ---@return nil
 local function normalize(o)
@@ -46,7 +46,7 @@ local function normalize(o)
   end
   local r = lists.renumber
   if type(r) == "boolean" then
-    lists.renumber = { enable = r, on = r and { "edit" } or {} }
+    lists.renumber = { enable = r, on = r and { "edit" } or {}, blank_break = 0 }
   elseif type(r) == "table" then
     if r.enable == nil then
       r.enable = true
@@ -54,8 +54,11 @@ local function normalize(o)
     if type(r.on) ~= "table" then
       r.on = { "edit" }
     end
+    if type(r.blank_break) ~= "number" or r.blank_break < 0 then
+      r.blank_break = 0
+    end
   else
-    lists.renumber = { enable = true, on = { "edit" } }
+    lists.renumber = { enable = true, on = { "edit" }, blank_break = 0 }
   end
 end
 
