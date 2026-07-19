@@ -1,8 +1,9 @@
 ---@module 'cascade.health'
 ---@brief `:checkhealth cascade` diagnostics.
 ---@description
---- Reports Neovim version, whether each domain is enabled, the optional
---- `lib.nvim` integration status, and basic config sanity (non-empty cycle
+--- Reports Neovim version, whether each domain is enabled, `lib.nvim`
+--- availability (required — the :Cascade command layer is built on
+--- lib.nvim.usercmd.composer), and basic config sanity (non-empty cycle
 --- groups / checkbox states). Read-only: never mutates state.
 
 local M = {}
@@ -30,11 +31,12 @@ function M.check()
     return
   end
 
-  -- Optional lib.nvim integration.
-  if pcall(require, "lib.map") then
-    ok("lib.nvim detected (using lib.map / lib.notify)")
+  -- lib.nvim: required for the :Cascade command layer (lib.nvim.usercmd.composer);
+  -- lib.map/lib.notify remain soft (util/lib.lua falls back to native APIs).
+  if pcall(require, "lib.nvim.usercmd.composer") then
+    ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
   else
-    info("lib.nvim not found — using native fallbacks (standalone mode)")
+    warn("lib.nvim not found — :Cascade will fail to load; install \"StefanBartl/lib.nvim\"")
   end
 
   -- Optional which-key integration.
@@ -63,7 +65,7 @@ function M.check()
     if type(r) == "table" and r.enable and type(r.on) == "table" and #r.on > 0 then
       info(("renumber: on (%s); indent/outdent is indent-level aware"):format(table.concat(r.on, ", ")))
     else
-      info("renumber: off — only manual :CascadeRenumber re-sequences lists")
+      info("renumber: off — only manual :Cascade renumber re-sequences lists")
     end
   else
     info("lists: disabled")

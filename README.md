@@ -85,9 +85,9 @@ buffer mutation, a single context object per action, memoized patterns,
 | `ft = { ... }` | Loads on list filetypes only | You only want cascade in Markdown/prose |
 | `lazy = false` | Loads immediately | Small config, want it available instantly |
 
-`lib.nvim` is an **optional** soft dependency — if present, cascade uses
-`lib.map`/`lib.notify`; otherwise it falls back to native equivalents and runs
-fully standalone.
+`lib.nvim` is a **required** dependency: the `:Cascade` command (built on
+`lib.nvim.usercmd.composer`) fails to load without it. `lib.map`/`lib.notify`
+remain soft — used when present, native fallback otherwise.
 
 ### lazy.nvim
 
@@ -96,7 +96,7 @@ fully standalone.
 ```lua
 {
   "StefanBartl/cascade.nvim",
-  dependencies = { "StefanBartl/lib.nvim" }, -- optional
+  dependencies = { "StefanBartl/lib.nvim" },
   event = "VeryLazy",
   opts = {
     keymaps = { preset = true },
@@ -109,6 +109,7 @@ fully standalone.
 ```lua
 {
   "StefanBartl/cascade.nvim",
+  dependencies = { "StefanBartl/lib.nvim" },
   ft = { "markdown", "markdown.mdx", "text", "tex", "norg" },
   opts = {
     keymaps = { preset = true },
@@ -121,7 +122,7 @@ fully standalone.
 ```lua
 use({
   "StefanBartl/cascade.nvim",
-  requires = { "StefanBartl/lib.nvim" }, -- optional
+  requires = { "StefanBartl/lib.nvim" },
   config = function()
     require("cascade").setup({ keymaps = { preset = true } })
   end,
@@ -131,7 +132,7 @@ use({
 ### vim-plug
 
 ```vim
-Plug 'StefanBartl/lib.nvim'  " optional
+Plug 'StefanBartl/lib.nvim'
 Plug 'StefanBartl/cascade.nvim'
 ```
 
@@ -219,14 +220,18 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 Range-aware — without a range they act on the list block at the cursor, with a
 range (e.g. Visual `:'<,'>`) on the selection:
 
-| Command                       | Effect                                              |
-| ----------------------------- | --------------------------------------------------- |
-| `:CascadeRotate [next\|prev]` | Rotate form forward/backward (`!` = backward).      |
-| `:CascadeSort`                | Sort block/selection A–Z (`!` = Z–A).               |
-| `:CascadeReverse`             | Reverse order.                                      |
-| `:CascadeStrip`               | Strip checkboxes.                                   |
-| `:CascadeIndent [n]`          | Indent (n levels) + renumber.                       |
-| `:CascadeDedent [n]`          | Dedent (n levels) + renumber.                       |
+One command, `:Cascade <subcommand>`, with `<Tab>` completion. Bang attaches
+to the verb: `:Cascade! rotate` (not `:Cascade rotate!`).
+
+| Command                     | Effect                                              |
+| ---------------------------- | --------------------------------------------------- |
+| `:Cascade rotate [next\|prev]` | Rotate form forward/backward (`!` = backward).    |
+| `:Cascade sort`                | Sort block/selection A–Z (`!` = Z–A).             |
+| `:Cascade reverse`             | Reverse order.                                    |
+| `:Cascade strip`               | Strip checkboxes.                                 |
+| `:Cascade indent [n]`          | Indent (n levels) + renumber.                     |
+| `:Cascade dedent [n]`          | Dedent (n levels) + renumber.                     |
+| `:Cascade renumber [all]`      | Renumber block at cursor/range (`all` = whole buffer). |
 
 In the preset, additionally buffer-local (each in Normal **and** Visual):
 `<leader>cf` / `<leader>cF` (form forward/backward), `<leader>cs` (sort),
@@ -353,7 +358,7 @@ different scope:
 **Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
 `{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
 via `BufWritePre`, the whole buffer) or both `{ "edit", "save" }`. `enable =
-false` turns everything off — then only `:CascadeRenumber` / `<leader>cr`
+false` turns everything off — then only `:Cascade renumber` / `<leader>cr`
 renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
 
 **Renumber and continuation paragraphs:** a non-marker, non-blank line (a
@@ -391,8 +396,8 @@ are ambiguous. With a mix enabled, the order in `types` decides. Templates in
 :checkhealth cascade
 ```
 
-Shows the Neovim version, domain status, `lib.nvim` integration (optional) and
-config sanity.
+Shows the Neovim version, domain status, `lib.nvim` availability (required —
+gates the `:Cascade` command) and config sanity.
 
 ---
 
@@ -418,8 +423,9 @@ cascade.nvim/
   doc/cascade.txt             -- :h cascade
 ```
 
-`lib.nvim` is a **soft, guarded** dependency: if present, `lib.map`/`lib.notify`/…
-are used, otherwise native fallbacks — the plugin runs fully standalone.
+`lib.nvim` is a **required** dependency: the `:Cascade` command layer is built
+on `lib.nvim.usercmd.composer`. `lib.map`/`lib.notify`/… stay soft-guarded —
+used when present, native fallback otherwise.
 
 ---
 

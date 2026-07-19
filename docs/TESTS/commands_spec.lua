@@ -7,14 +7,14 @@ return function(H)
   local cfg = require("cascade.config")
   local cascade = require("cascade")
 
-  -- user commands exist after setup
+  -- the :Cascade verb (composer-built) exists after setup, with every
+  -- subcommand reachable and completed
   cascade.setup({})
-  eq(vim.fn.exists(":CascadeRotate"), 2, ":CascadeRotate defined")
-  eq(vim.fn.exists(":CascadeSort"), 2, ":CascadeSort defined")
-  eq(vim.fn.exists(":CascadeReverse"), 2, ":CascadeReverse defined")
-  eq(vim.fn.exists(":CascadeStrip"), 2, ":CascadeStrip defined")
-  eq(vim.fn.exists(":CascadeIndent"), 2, ":CascadeIndent defined")
-  eq(vim.fn.exists(":CascadeDedent"), 2, ":CascadeDedent defined")
+  eq(vim.fn.exists(":Cascade"), 2, ":Cascade defined")
+  local subs = vim.fn.getcompletion("Cascade ", "cmdline")
+  table.sort(subs)
+  eq(table.concat(subs, ","), "dedent,indent,renumber,reverse,rotate,sort,strip",
+    ":Cascade completes every subcommand")
 
   -- feature toggles: disabling a feature makes its action a no-op.
   cfg.setup({ lists = { features = { checkbox = false, sort = false } } })
@@ -145,4 +145,32 @@ return function(H)
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
   cfg.setup({})
+
+  -- :Cascade renumber — no range = current list block at the cursor.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "3. b", "5. c" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  vim.cmd("Cascade renumber")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. a", "2. b", "3. c" },
+    ":Cascade renumber fixes the block at the cursor"
+  )
+
+  -- :Cascade renumber with an explicit range renumbers just that range.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "5. b", "9. c" })
+  vim.cmd("2,3Cascade renumber")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. a", "5. b", "6. c" },
+    ":Cascade renumber respects an explicit range"
+  )
+
+  -- :Cascade renumber all — every list block in the buffer, independently.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "3. b", "", "1. x", "9. y" })
+  vim.cmd("Cascade renumber all")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. a", "2. b", "", "1. x", "2. y" },
+    ":Cascade renumber all sweeps every block in the buffer"
+  )
 end

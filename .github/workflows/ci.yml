@@ -37,9 +37,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: cascade.nvim
+      # lib.nvim is a real runtime dependency (lib.nvim.usercmd.composer, the
+      # :Cascade verb) as of the composer migration, not just a lazily
+      # required optional extra -- checked out as a sibling so `rtp+=../lib.nvim`
+      # matches the local dev convention documented in docs/TESTS/README.md.
+      - uses: actions/checkout@v4
+        with:
+          repository: StefanBartl/lib.nvim
+          path: lib.nvim
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
           version: stable
       - name: Run docs/TESTS suite
-        run: nvim --headless -u NONE -c "set rtp+=." -c "luafile docs/TESTS/run.lua" -c "qa!"
+        working-directory: cascade.nvim
+        run: nvim --headless -u NONE -c "set rtp+=.,../lib.nvim" -c "luafile docs/TESTS/run.lua" -c "qa!"
