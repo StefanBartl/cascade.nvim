@@ -14,13 +14,36 @@ local alpha = require("cascade.lists.alpha")
 local M = {}
 
 --- Split an optional `[x]` checkbox off the front of a body string.
+---
+--- The payload may be any single character (the classic `[x]`/`[-]`/`[?]`
+--- markers) *or* a state listed in `opts.checkbox.states`, which is what allows
+--- multi-byte states such as `[✅]`. Accepting a longer payload only when it is
+--- explicitly configured is what keeps a Markdown link label — `- [see
+--- docs](url)` — from parsing as a checkbox; a bare `[^%]]*` match would
+--- swallow it.
 ---@param body string
+---@param opts CascadeListOpts|nil
 ---@return string|nil checkbox, string text
-local function split_checkbox(body)
-  local inner, rest = body:match("^%[(.)%]%s?(.*)$")
-  if inner then
+local function split_checkbox(body, opts)
+  local inner, rest = body:match("^%[([^%]]*)%]%s?(.*)$")
+  if not inner then
+    return nil, body
+  end
+
+  -- Exactly one byte: the historical behaviour of `^%[(.)%]`, preserved.
+  if #inner == 1 then
     return inner, rest
   end
+
+  local states = opts and opts.checkbox and opts.checkbox.states
+  if states then
+    for i = 1, #states do
+      if states[i] == inner then
+        return inner, rest
+      end
+    end
+  end
+
   return nil, body
 end
 
@@ -42,25 +65,25 @@ function M.parse(line, opts)
       local cls = patterns.unordered_class(opts.unordered_markers)
       local mk, after = rest:match("^(" .. cls .. ")%s(.*)$")
       if mk then
-        local cb, text = split_checkbox(after)
+        local cb, text = split_checkbox(after, opts)
         return { indent = indent, kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
       end
     elseif t == "digit" then
       local num, d, after = rest:match("^(%d+)([%.%)])%s(.*)$")
       if num then
-        local cb, text = split_checkbox(after)
+        local cb, text = split_checkbox(after, opts)
         return { indent = indent, kind = "digit", marker = num, delim = d, checkbox = cb, text = text }
       end
     elseif t == "ascii" then
       local ch, d, after = rest:match("^(%a)([%.%)])%s(.*)$")
       if ch and alpha.to_int(ch) then
-        local cb, text = split_checkbox(after)
+        local cb, text = split_checkbox(after, opts)
         return { indent = indent, kind = "ascii", marker = ch, delim = d, checkbox = cb, text = text }
       end
     elseif t == "roman" then
       local rm, d, after = rest:match("^(%a+)([%.%)])%s(.*)$")
       if rm and roman.to_int(rm) then
-        local cb, text = split_checkbox(after)
+        local cb, text = split_checkbox(after, opts)
         return { indent = indent, kind = "roman", marker = rm, delim = d, checkbox = cb, text = text }
       end
     end
