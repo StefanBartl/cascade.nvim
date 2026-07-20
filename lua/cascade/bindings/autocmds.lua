@@ -10,6 +10,8 @@
 local config = require("cascade.config")
 local Context = require("cascade.core.context")
 local renumber = require("cascade.lists.renumber")
+local autocmd = require("lib.nvim.autocmd")
+local lib = require("cascade.util.lib")
 
 local M = {}
 
@@ -37,11 +39,10 @@ local function setup_list_keymaps(cfg)
     return
   end
   local keymaps = require("cascade.bindings.keymaps")
-  local group = vim.api.nvim_create_augroup("cascade_list_keymaps", { clear = true })
-  vim.api.nvim_create_autocmd("FileType", {
+  local group = lib.augroup("cascade_list_keymaps")
+  autocmd.create("FileType", keymaps.bind_list_buffer, {
     group = group,
     pattern = cfg.lists.filetypes,
-    callback = keymaps.bind_list_buffer,
     desc = "cascade: bind list keymaps",
   })
   -- Cover buffers already open at setup time.
@@ -58,25 +59,24 @@ end
 --- trigger. Idempotent: the augroup is cleared on every setup() call.
 ---@return nil
 local function setup_save_renumber()
-  local group = vim.api.nvim_create_augroup("cascade_renumber_save", { clear = true })
+  local group = lib.augroup("cascade_renumber_save")
   local lists = config.get("lists")
   if not (lists.enable and renumber.at(lists, "save")) then
     return
   end
-  vim.api.nvim_create_autocmd("BufWritePre", {
+  autocmd.create("BufWritePre", function(args)
+    local opts = config.get("lists")
+    if not (opts.enable and renumber.at(opts, "save")) then
+      return
+    end
+    if not Context.writable(args.buf) or not ft_in(opts.filetypes, vim.bo[args.buf].filetype) then
+      return
+    end
+    pcall(renumber.all, args.buf, opts)
+  end, {
     group = group,
     pattern = "*",
     desc = "cascade: renumber lists on save",
-    callback = function(args)
-      local opts = config.get("lists")
-      if not (opts.enable and renumber.at(opts, "save")) then
-        return
-      end
-      if not Context.writable(args.buf) or not ft_in(opts.filetypes, vim.bo[args.buf].filetype) then
-        return
-      end
-      pcall(renumber.all, args.buf, opts)
-    end,
   })
 end
 
