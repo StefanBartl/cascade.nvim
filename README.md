@@ -304,7 +304,7 @@ require("cascade").setup({
     unordered_markers = { "-", "*", "+" },
     cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (single line)
     forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- form rotation (block/visual)
-    checkbox = { states = { " ", "x" } },    -- N-state cycle possible
+    checkbox = { states = { " ", "x" } },    -- N-state cycle; multi-byte states (e.g. emoji) also work if listed here
     continue = { delete_empty = true },
     renumber = {                             -- WHEN it renumbers automatically
       enable = true,

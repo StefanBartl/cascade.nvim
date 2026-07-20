@@ -38,5 +38,22 @@ return function(H)
 
   eq(marker.parse("just text", lopts), nil, "non-list line")
 
+  -- multi-byte checkbox states (emoji), gated behind explicit config
+  cfg.setup({ lists = { types = { "unordered", "digit" }, checkbox = { states = { "🔲", "✅", "❌" } } } })
+  local eopts = cfg.get("lists")
+
+  local em = marker.parse("- [✅] done", eopts)
+  eq(em and em.checkbox, "✅", "emoji checkbox inner")
+  eq(em.text, "done", "emoji checkbox text")
+  eq(marker.render(em) .. em.text, "- [✅] done", "emoji checkbox render round-trip")
+
+  local vs = marker.parse("- [☑️] variation selector", eopts)
+  eq(vs and vs.checkbox, nil, "unconfigured multi-byte state does not parse as checkbox")
+  eq(vs and vs.text, "[☑️] variation selector", "unrecognized bracket payload kept as plain text")
+
+  local link = marker.parse("- [see docs](url)", eopts)
+  eq(link and link.checkbox, nil, "markdown link label is not mistaken for a checkbox")
+  eq(link and link.text, "[see docs](url)", "markdown link label kept as plain text")
+
   cfg.setup({})
 end

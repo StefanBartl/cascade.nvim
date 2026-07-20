@@ -9,7 +9,7 @@
 -- config/DEFAULTS.lua
 
 ---@class CascadeCheckboxOpts
----@field states string[] # Ordered single-char states cycled inside `[ ]` (e.g. { " ", "x" }).
+---@field states string[] # Ordered states cycled inside `[ ]` (e.g. { " ", "x" }). A state is normally one character; longer states (e.g. the emoji `"✅"`) are supported but must be listed here to be recognized on parse.
 
 ---@class CascadeContinueOpts
 ---@field delete_empty boolean # `<CR>` on an empty bullet removes the bullet instead of continuing.

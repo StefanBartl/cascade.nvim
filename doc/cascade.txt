@@ -243,7 +243,10 @@ lists.forms           (string[])  Form-rotation templates for block/visual
                                   transforms. A form is a cycle template plus an
                                   optional `[ ]` suffix, e.g. "1.", "1. [ ]",
                                   "- [ ]", "-".
-lists.checkbox.states (string[])  Ordered single-char states cycled in `[ ]`.
+lists.checkbox.states (string[])  Ordered states cycled in `[ ]`. Normally one
+                                  character; a longer state (e.g. an emoji) is
+                                  also accepted but must be listed here to be
+                                  recognized on parse.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
 lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   .enable (boolean) master switch; false = only
