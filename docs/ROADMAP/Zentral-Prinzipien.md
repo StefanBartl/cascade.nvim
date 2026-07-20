@@ -54,8 +54,13 @@ von Modulen *innerhalb* der Config ausgeht).
 ## 5. Event oder Command? — ✅
 
 - Nahezu alles ist **explizit** (Tasten/`:Cascade*`-Commands), nicht automatisch.
-  Das einzige zustandsgetriebene Event (`BufWritePre`-Renumber) ist opt-in über
-  `lists.renumber.on = { "save" }`.
+  Das einzige zustandsgetriebene Event (`BufWritePre`-Renumber) hängt an
+  `lists.renumber.on`, das per Default sowohl `"edit"` als auch `"save"`
+  enthält — abschaltbar über `lists.renumber.enable = false` oder ein
+  engeres `on`. Grund für den Default-Wechsel: `"edit"` feuert nur bei
+  cascade-eigenen Aktionen (indent/move/continue/…); Text, der direkt mit
+  zwei `1.`-Markern getippt oder eingefügt wird, löst nie ein Edit-Event
+  aus und blieb ohne `"save"` als Sicherheitsnetz dauerhaft unrenumbert.
 
 ## 6. Treesitter notwendig oder nicht? — ✅
 

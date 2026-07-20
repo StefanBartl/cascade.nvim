@@ -46,19 +46,19 @@ local function normalize(o)
   end
   local r = lists.renumber
   if type(r) == "boolean" then
-    lists.renumber = { enable = r, on = r and { "edit" } or {}, blank_break = 0 }
+    lists.renumber = { enable = r, on = r and { "edit", "save" } or {}, blank_break = 0 }
   elseif type(r) == "table" then
     if r.enable == nil then
       r.enable = true
     end
     if type(r.on) ~= "table" then
-      r.on = { "edit" }
+      r.on = { "edit", "save" }
     end
     if type(r.blank_break) ~= "number" or r.blank_break < 0 then
       r.blank_break = 0
     end
   else
-    lists.renumber = { enable = true, on = { "edit" }, blank_break = 0 }
+    lists.renumber = { enable = true, on = { "edit", "save" }, blank_break = 0 }
   end
 end
 
