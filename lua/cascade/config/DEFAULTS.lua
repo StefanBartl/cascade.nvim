@@ -61,8 +61,12 @@ local DEFAULTS = {
     -- When ordered lists are auto-renumbered.
     --   enable:      master switch (false = only manual :Cascade renumber)
     --   on:          any of "edit" (right after indent/move/continue/...) and
-    --                "save" (BufWritePre). A plain boolean is also accepted:
-    --                true = {"edit"}.
+    --                "save" (BufWritePre). Both are on by default: "edit"
+    --                keeps in-progress edits clean immediately, "save" is the
+    --                safety net for everything "edit" can't see — a pasted
+    --                block, a list typed by hand with every marker left at
+    --                "1.", a plugin/external edit. A plain boolean is also
+    --                accepted: true = {"edit", "save"}.
     --   blank_break: how many *consecutive* blank lines a list block tolerates
     --                before they end it. 0 (default) = any blank line separates
     --                two lists, so each is numbered on its own. Raise to 1 for
@@ -70,7 +74,7 @@ local DEFAULTS = {
     --                between items still counts as one list).
     renumber = {
       enable = true,
-      on = { "edit" },
+      on = { "edit", "save" },
       blank_break = 0,
     },
   },

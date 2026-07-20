@@ -308,7 +308,7 @@ require("cascade").setup({
     continue = { delete_empty = true },
     renumber = {                             -- WHEN it renumbers automatically
       enable = true,
-      on = { "edit" },                       -- "edit" = immediately, "save" = on :w
+      on = { "edit", "save" },               -- "edit" = immediately, "save" = on :w (safety net)
       blank_break = 0,                        -- blank lines that end a block (0 = any blank breaks it)
     },
   },
@@ -357,9 +357,12 @@ different scope:
 
 **Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
 `{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
-via `BufWritePre`, the whole buffer) or both `{ "edit", "save" }`. `enable =
-false` turns everything off — then only `:Cascade renumber` / `<leader>cr`
-renumbers manually. A plain boolean is still accepted (`true` = `{ "edit" }`).
+via `BufWritePre`, the whole buffer) or both. Both are on by default: "edit"
+keeps in-progress edits clean, "save" is the safety net for lists it never
+saw an edit event for — pasted in, typed by hand with every marker left at
+"1.", or produced by another plugin. `enable = false` turns everything off —
+then only `:Cascade renumber` / `<leader>cr` renumbers manually. A plain
+boolean is still accepted (`true` = `{ "edit", "save" }`).
 
 **Renumber and continuation paragraphs:** a non-marker, non-blank line (a
 wrapped paragraph or note under an entry) never breaks the sequence, no matter
