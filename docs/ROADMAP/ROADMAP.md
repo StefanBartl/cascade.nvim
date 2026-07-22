@@ -5,25 +5,15 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 
 ## Lists
 
-- ~~**Ebenen-bewusster Indent + Renumber**~~ — ✅ erledigt: `<A-Right>`/`<A-Left>`,
-  `:CascadeIndent`/`:CascadeDedent`, Normal + Visual, `count` = Ebenen, mit
-  Per-Level-Renumber (`renumber.tree`).
 - **Subtree-aware indent** — beim Ein-/Ausrücken Kind-Items (tiefer eingerückte
   Folgezeilen) automatisch mitnehmen (aktuell wird nur die/ die markierten
   Zeile(n) geshiftet, Kinder bleiben stehen).
-- ~~**Loose-List-Support**~~ — ✅ erledigt: `lists.renumber.blank_break`.
-  Default `0` (jede Leerzeile beendet den Block, jede Liste nummeriert
-  eigenständig); `1` behandelt Items mit einer Leerzeile dazwischen als einen
-  Block ("loose list" nach CommonMark).
 - **Renumbering-Marker (Anchors)** — explizite, nicht im Dokument stehende
   Marker, die eine Blockgrenze unabhängig von der Struktur erzwingen.
   Konzept + Bewertung: [renumbering_markers.md](ROADMAP/renumbering_markers.md)
   (zurückgestellt, bis der Restbedarf nach `blank_break` feststeht).
 - **Start-Offset auf Subebenen erhalten** — Tree-Renumber setzt Subebenen
   immer auf `1`; ein bewusster Nicht-1-Start auf tieferen Ebenen geht verloren.
-- ~~**Visual-Mode-Operationen**~~ — ✅ erledigt: Form-Rotation (`:CascadeRotate`),
-  Sort A–Z (`:CascadeSort`), Reihenfolge umkehren (`:CascadeReverse`) und
-  Checkbox entfernen (`:CascadeStrip`) auf Block + Visual.
 - **`gq`/`textwidth`-Awareness** — Fortführung respektiert Umbruch und hängende
   Einrückung (hanging indent).
 - **Mehr-Zeichen-Checkbox-States** — aktuell sind States Ein-Zeichen (`[ ]`);
@@ -41,9 +31,6 @@ ist grob nach Wert/Aufwand, nicht verbindlich.
 
 - **Treesitter-optionaler Präzisionsmodus** — opt-in, nur wo echte
   Syntax-Semantik gebraucht wird; Default bleibt reiner Zeilen-Scan.
-- ~~**Test-Suite**~~ — ✅ erledigt: `docs/TESTS/` mit Runner (`run.lua`),
-  Harness und Specs (units/lists/cycle/commands); `scripts/smoke.lua` ist nur
-  noch ein dünner Kompatibilitäts-Shim.
 - **vim-repeat-Interop** — neben dem operatorfunc-Trick optional
   `repeat#set` nutzen, wenn vorhanden.
 
@@ -61,9 +48,6 @@ Ergebnisse und bewussten Abweichungen sind dokumentiert in:
 **Bilanz:** überwiegend erfüllt; die verbleibenden Punkte sind niedrig-prior und
 optional:
 
-- ~~**CI/Tooling** (Checklist §7)~~ — ✅ erledigt: `.github/workflows/ci.yml`
-  mit `stylua --check`, `luacheck` und headless `docs/TESTS/run.lua`; Configs
-  `stylua.toml`, `.styluaignore`, `.luacheckrc`.
 - **Debug-Schalter** (Zentrale-Prinzipien §9, optional) — `cascade.debug = true`
   + `lib`-basiertes Logging; nur bei Bedarf.
 - **Bewusst abweichend (kein Handlungsbedarf):** kein `safe_call`-Envelope
