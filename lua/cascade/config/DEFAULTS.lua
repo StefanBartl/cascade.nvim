@@ -50,6 +50,14 @@ local DEFAULTS = {
     },
     types = { "unordered", "digit" },
     unordered_markers = { "-", "*", "+" },
+    -- Custom, non-incrementing marker patterns per filetype, tried before the
+    -- built-in kinds (unordered/digit/ascii/roman) -- e.g. LaTeX's `\item`,
+    -- which isn't any of those. Each pattern needs exactly two Lua-pattern
+    -- captures: the marker token, then the rest of the line after the
+    -- required separating whitespace, e.g. `"^(\\item)%s(.*)$"`. Matches
+    -- are always treated as an "unordered" kind (fixed token, never
+    -- renumbered) -- an ordered custom marker should use `types` instead.
+    per_filetype_patterns = {},
     cycle = { "-", "*", "+", "1.", "a)", "I." },
     forms = { "1.", "1. [ ]", "- [ ]", "-" },
     checkbox = {
@@ -57,6 +65,11 @@ local DEFAULTS = {
     },
     continue = {
       delete_empty = true,
+      -- Sets buffer-local 'formatlistpat' (from `types`/`unordered_markers`)
+      -- and adds `n` to 'formatoptions' on the configured list filetypes, so
+      -- native `gq`/auto-wrap hang-indents a wrapped item under its text
+      -- instead of back at the margin. false = leave both options alone.
+      hanging_indent = true,
     },
     -- When ordered lists are auto-renumbered.
     --   enable:      master switch (false = only manual :Cascade renumber)
@@ -77,12 +90,22 @@ local DEFAULTS = {
       on = { "edit", "save" },
       blank_break = 0,
     },
+    -- Opt-in Treesitter precision: "off" (default) is cascade's plain
+    -- line-scan everywhere, blind to syntax. "treesitter" additionally skips
+    -- single-cursor list actions (continuation, toggles, single-line
+    -- indent, ...) when the cursor sits inside a configured "skip" node
+    -- (default: a markdown/norg fenced code block) -- see
+    -- cascade.core.treesitter for the default node types and the pcall-safe
+    -- fallback when no parser is installed.
+    precision = "off",
+    precision_nodes = {},
   },
 
   cycle = {
     enable = true,
     features = {
       word = true, -- cycle the word/boolean under the cursor
+      date = true, -- step the year/month/day segment of an ISO date (YYYY-MM-DD) under the cursor
     },
     filetypes = nil,
     number_fallback = true,
@@ -113,6 +136,13 @@ local DEFAULTS = {
       { "asc", "desc" },
       -- multi-state cycles (wrap around)
       { ".", "/", "\\" },
+      -- operator flips: not 'iskeyword' characters, so word_cycle.lua matches
+      -- these via a literal-position scan (token.operator_span) rather than
+      -- the keyword-span used for the word groups above.
+      { "==", "!=" },
+      { "&&", "||" },
+      { "<", ">" },
+      { "+", "-" },
     },
     per_filetype = {},
   },
@@ -127,6 +157,13 @@ local DEFAULTS = {
   keymaps = {
     preset = false,
   },
+
+  -- Debug logging at cascade's central decision points (detect -> advance ->
+  -- fallback): dispatch.try's handler chain, and lists_active()'s gate.
+  -- Bridges to lib.nvim.logger (a cached "cascade" instance) when available,
+  -- else vim.notify at DEBUG level. False by default -- even the check is a
+  -- single cheap boolean read when off.
+  debug = false,
 }
 
 return DEFAULTS

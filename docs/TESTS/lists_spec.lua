@@ -117,6 +117,51 @@ return function(H)
   local t3 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   eq(t3[7], "  6. bot", "indented item appends as 6.")
 
+  -- (c2) preserve_start = false (default): a nested level always resets to 1
+  -- on its first occurrence, even if it already carries a higher number —
+  -- the right call right after indenting a single item deeper.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. top",
+    "  2. a",
+    "    5. b",
+    "    6. c",
+    "  3. d",
+  })
+  rn.tree(buf, 0, 4, lopts)
+  local t4 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(t4[3], "    1. b", "default: nested run resets to 1")
+  eq(t4[4], "    2. c", "default: nested run continues from 1")
+
+  -- (c3) preserve_start = true: the same nested run instead keeps its own
+  -- deliberately-authored start offset — used when renumbering already
+  -- existing text (M.all on save, the explicit :Cascade renumber command).
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. top",
+    "  2. a",
+    "    5. b",
+    "    6. c",
+    "  3. d",
+  })
+  rn.tree(buf, 0, 4, lopts, true)
+  local t5 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(t5[3], "    5. b", "preserve_start: nested run keeps its own start offset")
+  eq(t5[4], "    6. c", "preserve_start: nested run continues from 5")
+
+  -- M.all (save sweep) preserves a nested list's own start offset too.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. top",
+    "  5. x",
+    "  6. y",
+    "  7. z",
+    "2. bot",
+  })
+  rn.all(buf, lopts)
+  local t6 = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(t6[2], "  5. x", "all: nested list keeps its own start offset")
+  eq(t6[3], "  6. y", "all: nested list continues from 5")
+  eq(t6[4], "  7. z", "all: nested list continues from 5")
+  eq(t6[5], "2. bot", "all: base level unaffected")
+
   -- (d) indent.shift_line integration: shift a single list line + renumber.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
   vim.bo[buf].expandtab = true
@@ -126,6 +171,36 @@ return function(H)
   local si = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   eq(si[2], "  1. b", "shifted line deeper -> new run 1.")
   eq(si[3], "2. c", "old level closes gap (3->2)")
+
+  -- (e) subtree-aware indent: indenting an item carries its deeper-indented
+  -- children (grandchildren here) along; a sibling at the item's old level
+  -- is untouched by the shift and closes the numbering gap it left behind.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. top",
+    "  1. item",
+    "    1. grandchild x",
+    "    2. grandchild y",
+    "  2. sibling",
+    "2. bot",
+  })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  require("cascade.lists.indent").shift_line(require("cascade.core.context").new(), lopts, 1, 1)
+  local sub = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(sub[1], "1. top", "subtree: top untouched")
+  eq(sub[2], "    1. item", "subtree: shifted item now two levels deep")
+  eq(sub[3], "      1. grandchild x", "subtree: grandchild carried along with its parent")
+  eq(sub[4], "      2. grandchild y", "subtree: second grandchild carried along too")
+  eq(sub[5], "  1. sibling", "subtree: sibling untouched by the shift, closes the gap it left")
+  eq(sub[6], "2. bot", "subtree: base level unaffected")
+
+  -- dedent is the inverse: the subtree follows back out too.
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  require("cascade.lists.indent").shift_line(require("cascade.core.context").new(), lopts, 1, -1)
+  local unsub = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(unsub[2], "  1. item", "subtree dedent: item back at its original depth")
+  eq(unsub[3], "    1. grandchild x", "subtree dedent: grandchild follows back out")
+  eq(unsub[4], "    2. grandchild y", "subtree dedent: second grandchild follows back out")
+  eq(unsub[5], "  2. sibling", "subtree dedent: sibling renumbers back to 2, round trip complete")
 
   -- move line down re-sequences the ordered list.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
@@ -371,6 +446,135 @@ return function(H)
     { "- one", "", "- three" },
     "bullet_range: blank line inside is skipped"
   )
+
+  cfg.setup({})
+
+  -- lists.format: 'formatlistpat' derived from the configured marker types,
+  -- so native gq/auto-wrap hang-indents a wrapped item under its text.
+  local format = require("cascade.lists.format")
+  cfg.setup({})
+  local fmt_opts = cfg.get("lists") -- default types = { "unordered", "digit" }
+  local pat = format.list_pat(fmt_opts)
+  eq(vim.fn.match("- one", pat) >= 0, true, "formatlistpat: matches a configured unordered bullet")
+  eq(vim.fn.match("1. one", pat) >= 0, true, "formatlistpat: matches a configured digit marker")
+  eq(vim.fn.match("i. one", pat) >= 0, false, "formatlistpat: roman not matched when types doesn't include it")
+  eq(vim.fn.match("just text", pat) >= 0, false, "formatlistpat: plain text doesn't match")
+
+  cfg.setup({ lists = { types = { "unordered", "digit", "ascii", "roman" } } })
+  local fmt_all = cfg.get("lists")
+  local pat_all = format.list_pat(fmt_all)
+  eq(vim.fn.match("i. one", pat_all) >= 0, true, "formatlistpat: roman matched once configured")
+  eq(vim.fn.match("a) one", pat_all) >= 0, true, "formatlistpat: ascii matched once configured")
+
+  -- apply() sets the buffer options; is additive (doesn't strip existing
+  -- 'formatoptions' flags) and is a no-op when hanging_indent = false.
+  cfg.setup({})
+  vim.bo[buf].formatoptions = "tcq"
+  format.apply(buf, cfg.get("lists"))
+  eq(vim.bo[buf].formatlistpat, format.list_pat(cfg.get("lists")), "format.apply: sets formatlistpat")
+  eq(vim.bo[buf].formatoptions:find("n", 1, true) ~= nil, true, "format.apply: adds 'n' to formatoptions")
+  eq(vim.bo[buf].formatoptions:find("t", 1, true) ~= nil, true, "format.apply: keeps pre-existing 't' flag")
+  eq(vim.bo[buf].formatoptions:find("c", 1, true) ~= nil, true, "format.apply: keeps pre-existing 'c' flag")
+
+  vim.bo[buf].formatlistpat = ""
+  cfg.setup({ lists = { continue = { hanging_indent = false } } })
+  format.apply(buf, cfg.get("lists"))
+  eq(vim.bo[buf].formatlistpat, "", "format.apply: hanging_indent = false is a no-op")
+
+  -- per-filetype custom marker patterns: a filetype-specific pattern (e.g.
+  -- LaTeX's \item, which isn't any of the built-in kinds) is recognized only
+  -- on its own filetype, always as a fixed, non-incrementing "unordered"-kind
+  -- marker.
+  cfg.setup({
+    lists = {
+      per_filetype_patterns = {
+        tex = { "^(\\item)%s(.*)$" },
+      },
+    },
+  })
+  local marker = require("cascade.lists.marker")
+  local pf = cfg.get("lists")
+
+  vim.bo[buf].filetype = "tex"
+  local m_tex = marker.parse("\\item Hello world", pf)
+  eq(m_tex ~= nil, true, "per_filetype_patterns: \\item recognized on its configured filetype")
+  eq(m_tex.kind, "unordered", "per_filetype_patterns: custom marker is kind=unordered")
+  eq(m_tex.marker, "\\item", "per_filetype_patterns: marker token captured verbatim")
+  eq(m_tex.text, "Hello world", "per_filetype_patterns: text captured after the marker")
+
+  vim.bo[buf].filetype = "markdown"
+  eq(marker.parse("\\item Hello world", pf), nil, "per_filetype_patterns: not recognized on a different filetype")
+
+  -- continuation keeps repeating the same fixed token (unordered semantics),
+  -- and renumber leaves it alone (it's never treated as ordered).
+  vim.bo[buf].filetype = "tex"
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "\\item one" })
+  vim.api.nvim_win_set_cursor(0, { 1, #"\\item " }) -- just after the marker, before "one"
+  require("cascade.lists.continue").cr(require("cascade.core.context").new(), pf)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "\\item ", "\\item one" },
+    "per_filetype_patterns: <CR> continuation repeats the same fixed token"
+  )
+  vim.bo[buf].filetype = "markdown"
+
+  -- lists.precision = "treesitter": skip a configured node type (default: a
+  -- markdown fenced code block) so a line that only *looks* like a marker
+  -- inside a code fence isn't treated as a real list item. The pure/pcall-
+  -- safety checks always run; the "actually detects a code fence"
+  -- assertions are skipped gracefully if no markdown Treesitter parser is
+  -- installed (CI may not have one -- cascade's default line-scan behavior
+  -- must never depend on it).
+  local treesitter = require("cascade.core.treesitter")
+
+  cfg.setup({})
+  eq(treesitter.in_skip_node(buf, 0, 0, "markdown", cfg.get("lists")), false, "precision off (default): never skips")
+
+  cfg.setup({ lists = { precision = "treesitter" } })
+  eq(
+    treesitter.in_skip_node(buf, 0, 0, "text", cfg.get("lists")),
+    false,
+    "precision on: no configured skip nodes for this filetype"
+  )
+
+  cfg.setup({ lists = { precision = "treesitter", precision_nodes = { text = { "bogus_node_type" } } } })
+  local safe_ok = pcall(treesitter.in_skip_node, buf, 0, 0, "text", cfg.get("lists"))
+  eq(safe_ok, true, "precision: never errors even against a parser cascade can't find")
+
+  local has_md_parser = pcall(vim.treesitter.get_parser, buf, "markdown")
+  if has_md_parser then
+    cfg.setup({ lists = { precision = "treesitter" } })
+    local pbuf = H.editable("markdown")
+    vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, {
+      "prose",
+      "",
+      "```sh",
+      "- flag",
+      "```",
+      "",
+      "- outside the fence",
+    })
+    local popts = cfg.get("lists")
+    eq(treesitter.in_skip_node(pbuf, 3, 0, "markdown", popts), true, "precision: detects a line inside a fenced code block")
+    eq(treesitter.in_skip_node(pbuf, 6, 0, "markdown", popts), false, "precision: prose outside the fence is unaffected")
+
+    -- facade-level: checkbox toggle no-ops inside the fence (the precision
+    -- gate lives in lists_active(), shared by every single-cursor action),
+    -- but works normally outside it.
+    vim.api.nvim_win_set_cursor(0, { 4, 0 }) -- "- flag", inside the fence
+    cascade.toggle_checkbox()
+    vim.api.nvim_feedkeys("", "x", false)
+    eq(vim.api.nvim_buf_get_lines(pbuf, 3, 4, false)[1], "- flag", "precision: checkbox toggle no-ops inside a fenced code block")
+
+    vim.api.nvim_win_set_cursor(0, { 7, 0 }) -- "- outside the fence"
+    cascade.toggle_checkbox()
+    vim.api.nvim_feedkeys("", "x", false)
+    eq(
+      vim.api.nvim_buf_get_lines(pbuf, 6, 7, false)[1],
+      "- [ ] outside the fence",
+      "precision: checkbox toggle still works outside the fence"
+    )
+  end
 
   cfg.setup({})
 end

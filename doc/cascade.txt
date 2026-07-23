@@ -71,6 +71,7 @@ keys you like with a normal |vim.keymap.set()|:
                                       line-down (`+`'s own meaning) otherwise
     decrement                normal  cycle word / native decrement / native
                                       line-up (`-`'s own meaning) otherwise
+    cycle_pick                normal  pick a cycle-group value via vim.ui.select
     indent / indent_visual       n / x   indent + level-aware renumber
     dedent / dedent_visual       n / x   dedent + level-aware renumber
     move_up / move_up_visual     n / x   move line/selection up + renumber
@@ -89,6 +90,11 @@ cycle-word, swap-right/left (normal), rotate-form (normal) and sort (normal)
 actions are dot-repeatable (|.|). rotate-form and sort have separate normal
 and visual functions: normal mode operates on the contiguous list block at the
 cursor, visual mode on the selected lines.
+
+Dot-repeat is native (`operatorfunc` + `g@l`), not a `tpope/vim-repeat`
+dependency. If vim-repeat happens to be installed, cascade also calls its
+`repeat#set` alongside the native trick, purely as optional interop -- `.`
+works identically either way.
 
 Unlike `toggle_checkbox`/`cycle_type_next`, which only ever *advance* an
 existing marker (they no-op on a plain line), `bullet_toggle`, `star_toggle`,
@@ -131,10 +137,11 @@ PRESET                                                         *cascade-preset*
 With `keymaps.preset = true`:
 
   Global:
-    <C-y>   ->  cycle_word_next
-    <C-x>   ->  cycle_word_prev
-    +       ->  increment
-    -       ->  decrement
+    <C-y>       ->  cycle_word_next
+    <C-x>       ->  cycle_word_prev
+    +           ->  increment
+    -           ->  decrement
+    <leader>cp  ->  cycle_pick
 
   Buffer-local in `lists.filetypes`:
     i <CR>          ->  cr
@@ -212,6 +219,7 @@ Defaults: >lua
         features = { char = true },
       },
       keymaps = { preset = false },
+      debug = false,
     }
 <
 Field reference ~
@@ -236,6 +244,21 @@ lists.types           (string[])  Enabled marker kinds, in detection order:
                                   "unordered", "digit", "ascii", "roman".
                                   ascii/roman are opt-in (letters are ambiguous).
 lists.unordered_markers (string[]) Accepted bullet characters.
+lists.per_filetype_patterns (table<string,string[]>) Custom, non-incrementing
+                                  marker patterns per filetype, tried before
+                                  `types` -- e.g. LaTeX's `\item`, which isn't
+                                  any of the built-in kinds. Each pattern needs
+                                  exactly two Lua-pattern captures: the marker
+                                  token, then the rest of the line after the
+                                  required separating whitespace: >lua
+    per_filetype_patterns = {
+      tex = { "^(\\item)%s(.*)$" },
+    },
+<
+                                  A match is always an "unordered"-style
+                                  marker (fixed token, never renumbered); an
+                                  ordered custom marker should use `types`
+                                  instead.
 lists.cycle           (string[])  Marker templates for cycle-type (single line).
                                   Convention: digits => digit, a/A => alpha,
                                   i/I => roman, any other single char => bullet.
@@ -248,6 +271,13 @@ lists.checkbox.states (string[])  Ordered states cycled in `[ ]`. Normally one
                                   also accepted but must be listed here to be
                                   recognized on parse.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
+lists.continue.hanging_indent (boolean) Sets buffer-local 'formatlistpat' (from
+                                  `types`/`unordered_markers`) and adds `n` to
+                                  'formatoptions' on the configured list
+                                  filetypes, so native `gq`/auto-wrap
+                                  hang-indents a wrapped item under its text
+                                  instead of back at the margin. Default true;
+                                  set false to leave both options alone.
 lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   .enable (boolean) master switch; false = only
                                           manual :Cascade renumber.
@@ -272,9 +302,35 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                   single blank line inside one block (two or
                                   more still break it).
 
+lists.precision       ("off"|"treesitter") Default "off": cascade is a pure
+                                  line-scan plugin everywhere (no Treesitter).
+                                  "treesitter" additionally skips
+                                  single-cursor list actions (continuation,
+                                  toggles, single-line indent, ...) when the
+                                  cursor sits inside a configured "skip" node
+                                  -- by default, a markdown/norg fenced code
+                                  block, so a line that only *looks* like a
+                                  marker inside one (a shell `- flag`, a
+                                  Python `# 1. note`) isn't treated as a real
+                                  list item. Falls back safely to "off"
+                                  behavior (via `pcall`) if no Treesitter
+                                  parser is installed for the buffer's
+                                  filetype -- this is opt-in precision, never
+                                  a hard dependency. Range/whole-buffer
+                                  operations (visual shifts, `:Cascade`
+                                  commands, save-time renumber-all) aren't
+                                  covered: "inside a skip node" isn't
+                                  well-defined for an arbitrary range.
+lists.precision_nodes (table<string,string[]>) Per-filetype skip-node type
+                                  overrides for `precision = "treesitter"`;
+                                  falls back to
+                                  `cascade.core.treesitter.default_skip_nodes`
+                                  (markdown/markdown.mdx: fenced code blocks;
+                                  norg: verbatim tags).
+
 cycle.enable          (boolean)   Master switch for the cycle domain.
-cycle.features        (table)     Per-feature switches. Key: word. Missing key
-                                  = enabled.
+cycle.features        (table)     Per-feature switches. Keys: word, date.
+                                  Missing key = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
 cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
                                   (via <C-y>/<C-x> or +/-). false only skips
@@ -282,13 +338,51 @@ cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
                                   pressed key still falls back to its own
                                   native meaning either way.
 cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
+                                  A group entry that isn't a plain word (e.g.
+                                  "==", "&&", "<") is matched by literal
+                                  position instead of 'iskeyword', so operator
+                                  flips work out of the box: "==" <-> "!=",
+                                  "&&" <-> "||", "<" <-> ">", "+" <-> "-".
 cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
+
+`cycle_pick` (preset: <leader>cp) shows every entry of the cursor's cycle
+group via |vim.ui.select()| and replaces it with whichever one you pick,
+instead of only stepping forward/backward one at a time. cascade calls the
+plain `vim.ui.select()` API, so it's Telescope-backed automatically if you
+have `telescope-ui-select.nvim` (or `dressing.nvim`, `fzf-lua`'s register,
+...) registered as its handler -- no extra cascade-side dependency needed.
+
+On an ISO date (`YYYY-MM-DD`) under the cursor, +/- (and <C-y>/<C-x>) step the
+year/month/day segment the cursor is on, normalizing through Lua's
+`os.time`/`os.date` -- so incrementing the last day of a month rolls into the
+next one instead of producing an invalid date. Native <C-a>/<C-x> can't do
+this: it only sees the numeric island touching the cursor and misreads the
+"-" before it as a minus sign. >
+    2024-01-31   +  (cursor on "31")  ->  2024-02-01
+    2024-01-31   -  (cursor on "2024")  ->  2023-01-31
+<
+Set `cycle.features.date = false` to turn this off and fall back to the
+native (date-unaware) behavior.
 
 transpose.enable      (boolean)   Master switch for the transpose domain.
 transpose.features    (table)     Per-feature switches. Key: char. Missing key
                                   = enabled.
 
 keymaps.preset        (boolean)   Bind the default key set on setup.
+
+debug                 (boolean)   Debug logging at cascade's central
+                                  decision points: dispatch.try's handler
+                                  chain (detect/advance) and lists_active()'s
+                                  gate (why an action did or didn't run —
+                                  disabled feature, unwritable buffer, wrong
+                                  filetype, inside a Treesitter skip node).
+                                  Bridges to `lib.nvim.logger` (one cached
+                                  "cascade" instance -- inspect with
+                                  `:LibLogger` or its ring/file sinks) when
+                                  installed, else falls back to `vim.notify`
+                                  at DEBUG level. Default false; even the
+                                  check is a single cheap boolean read when
+                                  off.
 
 ==============================================================================
 5. LISTS DOMAIN                                                 *cascade-lists*
@@ -323,9 +417,26 @@ leaves closes its gap. The base level keeps its first item's start offset. >
       5. e                  4. e      (5 -> 4)
     2. bot                2. bot
 <
+Indenting/dedenting a single line (normal-mode `>>`/`<<`) carries its subtree
+along: any deeper-indented lines directly following it (nested children, or
+the item's own wrapped continuation text) shift by the same amount. >
+    1. top                1. top
+      1. item    (>>)         1. item
+        1. x                    1. x
+        2. y                    2. y
+      2. sibling            1. sibling  (gap closed: 2 -> 1)
+<
 A blank line between items ends the block; the next list starts a fresh
 sequence with its own start offset. Raise `lists.renumber.blank_break` to
 tolerate blanks inside one block.
+
+Renumbering *already-existing* text — `M.all` (on save), and the explicit
+`:Cascade renumber`/`:Cascade renumber all` commands — behaves slightly
+differently for nested levels: instead of resetting a nested level to `1` the
+first time it's seen, it keeps that level's own first marker value, so a
+deliberately authored non-1 start (e.g. a sub-list starting at "5.") survives
+a save. Only the live indent/outdent/move actions reset a freshly-touched
+nested level to 1.
 
 ==============================================================================
 6. CYCLE DOMAIN                                                 *cascade-cycle*

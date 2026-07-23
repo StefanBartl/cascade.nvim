@@ -42,6 +42,52 @@ function M.notify(msg, level)
   vim.notify(("[cascade] %s"):format(msg), level)
 end
 
+--- Cached `lib.nvim.logger` instance for cascade (`false` once probed absent,
+--- so the check is never retried).
+---@type table|false|nil
+local _debug_logger = nil
+
+--- Resolve (and cache) the `lib.nvim.logger` instance for cascade, or
+--- `false` if unavailable.
+---@return table|false
+local function debug_logger()
+  if _debug_logger ~= nil then
+    return _debug_logger
+  end
+  local lib = try_require("lib.nvim.logger")
+  if lib and type(lib.new) == "function" then
+    local ok, inst = pcall(lib.new, { name = "cascade" })
+    _debug_logger = (ok and type(inst) == "table") and inst or false
+  else
+    _debug_logger = false
+  end
+  return _debug_logger
+end
+
+--- Debug-log `msg` (+ optional structured `ctx`) at cascade's central
+--- decision points (detect -> advance -> fallback), when `cascade.debug` is
+--- enabled. Bridges to `lib.nvim.logger` (one cached "cascade" instance)
+--- when available; falls back to `vim.notify` at DEBUG level otherwise --
+--- there's no good native substitute for a structured logger, but debug
+--- output should still be visible rather than silently dropped. A no-op
+--- call (the common case, debug off) costs one boolean check.
+---@param enabled boolean
+---@param msg string
+---@param ctx table|nil
+---@return nil
+function M.debug_log(enabled, msg, ctx)
+  if not enabled then
+    return
+  end
+  local logger = debug_logger()
+  if logger then
+    pcall(logger.debug, msg, ctx)
+    return
+  end
+  local text = ctx and ("%s %s"):format(msg, vim.inspect(ctx)) or msg
+  vim.notify(("[cascade] %s"):format(text), vim.log.levels.DEBUG)
+end
+
 --- Set a keymap. Uses `lib.nvim.map` if available, else `vim.keymap.set`.
 ---@param mode string|string[]
 ---@param lhs string
@@ -345,19 +391,46 @@ function M.dotrepeat_invoke()
   if fn then pcall(fn) end
 end
 
+--- Also register with the classic vim-repeat plugin (tpope/vim-repeat), if
+--- installed, alongside the operatorfunc/g@l trick below. Purely optional
+--- interop, never a dependency: vim-repeat's own `.` falls back to Neovim's
+--- native last-change repeat when nothing was explicitly `repeat#set`, and
+--- that native repeat already correctly replays the `g@l` this triggers --
+--- this just makes it explicit for anything that specifically watches
+--- vim-repeat's state instead of Neovim's native repeat.
+---
+--- No `exists("*repeat#set")` precheck: `repeat#set` is an autoload
+--- function, and Neovim's `exists()` only reflects functions *already*
+--- sourced -- vim-repeat's own plugin/repeat.vim only registers a mapping
+--- that *references* the name, so on a fresh session (before the user has
+--- ever pressed `.`) the precheck would report "absent" even when the
+--- plugin is genuinely installed and would load correctly on first call.
+--- Calling straight through (wrapped in `pcall`) lets Neovim's autoload
+--- mechanism do the real detection: it either finds and sources
+--- `autoload/repeat.vim`, or `pcall` swallows the "unknown function" error
+--- exactly as if the precheck had failed.
+local function set_vim_repeat()
+  pcall(vim.fn["repeat#set"], "g@l")
+end
+
 --- Run `fn` via native `.`-repeat (operatorfunc + `g@l`). Uses
 --- `lib.nvim.dotrepeat` if available, else a local fallback with the same
---- mechanism (own stable dispatcher).
+--- mechanism (own stable dispatcher). Either way, also calls `repeat#set`
+--- when vim-repeat is installed (see `set_vim_repeat`).
 ---@param fn fun()
 function M.dotrepeat_run(fn)
   local lib = try_require("lib.nvim.dotrepeat")
   if lib and type(lib.run) == "function" then
     local ok = pcall(lib.run, fn)
-    if ok then return end
+    if ok then
+      set_vim_repeat()
+      return
+    end
   end
   _pending_dotrepeat_fn = fn
   vim.o.operatorfunc = "v:lua.require'cascade.util.lib'.dotrepeat_invoke"
   vim.api.nvim_feedkeys("g@l", "n", false)
+  set_vim_repeat()
 end
 
 --- No bridge to `lib.nvim` here, by design: the closest module is

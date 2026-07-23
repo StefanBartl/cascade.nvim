@@ -27,6 +27,7 @@ Bound for every filetype.
 | `<C-x>` | n | `cycle_word_prev` | cycle.word | Decrement / cycle word |
 | `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
 | `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise) |
+| `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber) |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
 | `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber) |
@@ -102,4 +103,5 @@ Registered by `setup()`.
 | event | group | pattern | when | desc |
 | --- | --- | --- | --- | --- |
 | `FileType` | `cascade_list_keymaps` | `lists.filetypes` | `keymaps.preset = true` | Bind buffer-local list keymaps |
+| `FileType` | `cascade_list_format` | `lists.filetypes` | `lists.continue.hanging_indent` | Set `formatlistpat`/`formatoptions` for `gq` hanging indent |
 | `BufWritePre` | `cascade_renumber_save` | `*` | `"save" in lists.renumber.on` | Renumber ordered lists on save |

@@ -16,6 +16,18 @@ return function(H)
   eq(table.concat(subs, ","), "dedent,indent,renumber,reverse,rotate,sort,strip",
     ":Cascade completes every subcommand")
 
+  -- lists.format's hanging-indent options apply via their own FileType
+  -- autocmd, independent of the keymaps.preset switch (regression: they used
+  -- to piggyback on the keymap-preset-only autocmd and never fired for the
+  -- default, non-preset setup — the common case).
+  cfg.setup({})
+  local fmt_buf = H.scratch()
+  vim.bo[fmt_buf].filetype = "markdown"
+  local format = require("cascade.lists.format")
+  eq(vim.bo[fmt_buf].formatlistpat, format.list_pat(cfg.get("lists")), "FileType autocmd sets formatlistpat without preset")
+  local has_n = vim.bo[fmt_buf].formatoptions:find("n", 1, true) ~= nil
+  eq(has_n, true, "FileType autocmd adds 'n' to formatoptions without keymaps.preset")
+
   -- feature toggles: disabling a feature makes its action a no-op.
   cfg.setup({ lists = { features = { checkbox = false, sort = false } } })
   local lopts2 = cfg.get("lists")

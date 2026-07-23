@@ -47,6 +47,37 @@ function M.is_numeric(s)
   return false
 end
 
+--- Find an operator-style group entry (e.g. `"=="`, `"&&"`, `"<"`) touching
+--- the cursor, via a literal-position scan rather than `span`'s keyword scan
+--- -- operator characters aren't `'iskeyword'`, so `\k\+` never sees them.
+--- Only entries that aren't plain word characters are considered, so this
+--- never shadows the word groups. Prefers the longest match at the cursor
+--- (e.g. `"!="` over a hypothetical single-char `"="` entry).
+---@param line string
+---@param col0 integer # 0-based cursor byte column.
+---@param groups string[][]
+---@return integer|nil s0, integer|nil e0, string|nil text # 0-based half-open span [s0, e0).
+function M.operator_span(line, col0, groups)
+  local best_s, best_e, best_text
+  for i = 1, #groups do
+    local grp = groups[i]
+    for j = 1, #grp do
+      local entry = grp[j]
+      if entry ~= "" and not entry:match("^%w+$") then
+        local len = #entry
+        for p = math.max(0, col0 - len + 1), col0 do
+          if p + len <= #line and line:sub(p + 1, p + len) == entry then
+            if not best_text or len > #best_text then
+              best_s, best_e, best_text = p, p + len, entry
+            end
+          end
+        end
+      end
+    end
+  end
+  return best_s, best_e, best_text
+end
+
 ---@alias CascadeCaseShape "lower"|"upper"|"capital"|"mixed"
 
 --- Classify the capitalization of a token. Delegates to the soft

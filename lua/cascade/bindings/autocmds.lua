@@ -1,15 +1,20 @@
 ---@module 'cascade.bindings.autocmds'
----@brief Autocommands: per-filetype list keymaps and the save-time renumber.
+---@brief Autocommands: per-filetype list keymaps, hanging-indent options, and
+--- the save-time renumber.
 ---@description
---- Two autocmds, both idempotent (their augroups are cleared on every setup):
+--- Three autocmds, all idempotent (their augroups are cleared on every setup):
 ---   - a FileType autocmd that binds the buffer-local list keys on the
 ---     configured `lists.filetypes` (only when the preset is enabled);
+---   - a FileType autocmd that applies the hanging-indent `formatlistpat`/
+---     `formatoptions` on the same filetypes (independent of the keymap
+---     preset — it's a `lists` behavior, not a keymap one);
 ---   - a BufWritePre autocmd that renumbers ordered lists on save (only when
 ---     "save" is a configured `lists.renumber.on` trigger).
 
 local config = require("cascade.config")
 local Context = require("cascade.core.context")
 local renumber = require("cascade.lists.renumber")
+local format = require("cascade.lists.format")
 local autocmd = require("lib.nvim.autocmd")
 local lib = require("cascade.util.lib")
 
@@ -55,6 +60,33 @@ local function setup_list_keymaps(cfg)
   end
 end
 
+--- Apply the hanging-indent `formatlistpat`/`formatoptions` per filetype.
+--- Independent of the keymap preset: it's a `lists` behavior (gated by
+--- `lists.continue.hanging_indent`), not a keymap one.
+---@param cfg CascadeConfig
+---@return nil
+local function setup_hanging_indent(cfg)
+  if not (cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0) then
+    return
+  end
+  local group = lib.augroup("cascade_list_format")
+  autocmd.create("FileType", function(args)
+    format.apply(args.buf, config.get("lists"))
+  end, {
+    group = group,
+    pattern = cfg.lists.filetypes,
+    desc = "cascade: hanging-indent formatlistpat",
+  })
+  -- Cover buffers already open at setup time.
+  local cur_ft = vim.bo.filetype
+  for i = 1, #cfg.lists.filetypes do
+    if cfg.lists.filetypes[i] == cur_ft then
+      format.apply(0, cfg.lists)
+      break
+    end
+  end
+end
+
 --- Register the BufWritePre renumber autocmd when "save" is a configured
 --- trigger. Idempotent: the augroup is cleared on every setup() call.
 ---@return nil
@@ -87,6 +119,7 @@ function M.setup(cfg)
   if cfg.keymaps and cfg.keymaps.preset then
     setup_list_keymaps(cfg)
   end
+  setup_hanging_indent(cfg)
   setup_save_renumber()
 end
 

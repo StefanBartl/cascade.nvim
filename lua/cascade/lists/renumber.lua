@@ -70,6 +70,9 @@ function M.at(opts, trigger)
 end
 
 --- Tree-renumber every contiguous list block in the buffer (used on save).
+--- Renumbers existing, already-typed text rather than reacting to a live
+--- indent/outdent, so nested levels preserve their own start offset
+--- (`preserve_start = true`; see `M.tree`).
 ---@param bufnr integer
 ---@param opts CascadeListOpts
 ---@return boolean changed
@@ -95,7 +98,7 @@ function M.all(bufnr, opts)
         end
         e = e + 1
       end
-      if M.tree(bufnr, r, e, opts) then
+      if M.tree(bufnr, r, e, opts, true) then
         changed = true
       end
       r = e + 1
@@ -108,16 +111,24 @@ end
 
 --- Indent-aware renumber of the whole block `[srow, erow]` (0-based, inclusive).
 ---
---- Walks the block once with a counter per indent width: a deeper level resets
---- to 1, returning to a shallower level continues it, and the block's base level
---- keeps its first item's start offset. This is the behavior wanted after an
---- indent/outdent — each nesting level forms its own clean sequence.
+--- Walks the block once with a counter per indent width: the block's base
+--- level always keeps its first item's start offset. A nested level's
+--- behavior depends on `preserve_start`: by default it resets to `1` on its
+--- first occurrence — the right call right after an indent/outdent, where a
+--- freshly demoted single item should start a clean new run rather than keep
+--- a stale number from its old level. With `preserve_start = true` (used for
+--- renumbering already-existing text, e.g. `M.all` on save), a nested level
+--- instead seeds from its own first marker's value, so a deliberately
+--- authored non-1 start survives. Either way, returning to a shallower level
+--- invalidates deeper counters, so the next time a level is reached it
+--- reseeds from scratch.
 ---@param bufnr integer
 ---@param srow integer
 ---@param erow integer
 ---@param opts CascadeListOpts
+---@param preserve_start boolean|nil # Seed nested levels from their own first marker instead of resetting to 1. Default false.
 ---@return boolean changed
-function M.tree(bufnr, srow, erow, opts)
+function M.tree(bufnr, srow, erow, opts, preserve_start)
   local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
   if #lines == 0 then
     return false
@@ -180,7 +191,10 @@ function M.tree(bufnr, srow, erow, opts)
         end
       end
       if m.kind ~= "unordered" then
-        local seed = (w == base_w) and (base_start - 1) or 0
+        -- First time this width is seen (or seen again after a shallower
+        -- return invalidated it): reset to 1, unless preserve_start asks to
+        -- seed from this item's own marker value instead.
+        local seed = (w == base_w) and (base_start - 1) or (preserve_start and ((value_of(m.kind, m.marker) or 1) - 1)) or 0
         local cur = (counters[w] or seed) + 1
         counters[w] = cur
         local want = ordinal(m.kind, cur, m.marker)

@@ -65,10 +65,16 @@
 | **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
+| **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
+| **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
+| **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
 | **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable. |
 | **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char. |
+| **lists**  | Treesitter precision   | Opt-in (`lists.precision = "treesitter"`): skip list actions inside a fenced code block, falling back safely if no parser is installed. |
 
-Safety & performance design decisions: no Treesitter (pure line scan), no
+Safety & performance design decisions: pure line scan by default, no
+Treesitter dependency (opt-in `lists.precision = "treesitter"` for the one
+case line-scanning is genuinely blind to — see below), no
 `CursorMoved`/`TextChanged` autocmds (only explicit keys), `pcall` around every
 buffer mutation, a single context object per action, memoized patterns,
 `:checkhealth cascade`.
@@ -264,6 +270,19 @@ indent mapping.
 2. bot              2. bot
 ```
 
+Indenting/dedenting a single line also carries its **subtree** along: any
+deeper-indented lines directly following it (nested children, or its own
+wrapped continuation text) shift by the same amount, instead of being left
+behind.
+
+```
+1. top              1. top
+  1. item    →         1. item
+    1. x                 1. x
+    2. y      (>>)       2. y
+  2. sibling          1. sibling   ← gap closed (2→1)
+```
+
 ### Form rotation
 
 A single action rotates the **whole block** (or the Visual selection) through
@@ -327,6 +346,7 @@ require("cascade").setup({
     features = { char = true },              -- char/selection swap on/off
   },
   keymaps = { preset = false },
+  debug = false,                             -- log detect/advance/fallback decisions; see :h cascade-config
 })
 ```
 
