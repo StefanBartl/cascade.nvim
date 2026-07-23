@@ -13,6 +13,7 @@
 
 ---@class CascadeContinueOpts
 ---@field delete_empty boolean # `<CR>` on an empty bullet removes the bullet instead of continuing.
+---@field hanging_indent boolean # Set buffer-local 'formatlistpat'/'formatoptions' so `gq`/auto-wrap hang-indents a wrapped item.
 
 ---@alias CascadeRenumberTrigger "edit"|"save"
 
@@ -37,6 +38,7 @@
 
 ---@class CascadeCycleFeatures
 ---@field word boolean # Cycle the word/boolean under the cursor.
+---@field date boolean # Step the year/month/day segment of an ISO date (YYYY-MM-DD) under the cursor.
 
 ---@class CascadeListOpts
 ---@field enable boolean # Master switch for the list domain.
@@ -44,11 +46,14 @@
 ---@field filetypes string[] # Filetypes the list features attach to.
 ---@field types CascadeMarkerKind[] # Enabled ordered/unordered marker kinds, in detection order.
 ---@field unordered_markers string[] # Accepted unordered bullet characters.
+---@field per_filetype_patterns table<string, string[]> # Custom marker patterns per filetype, tried before `types` (see DEFAULTS)
 ---@field cycle string[] # Marker shapes cycled by `cycle_type` (e.g. { "-", "*", "1.", "a)" }).
 ---@field forms string[] # Block/visual form rotation: shape + optional checkbox (e.g. { "1.", "1. [ ]", "- [ ]", "-" }).
 ---@field checkbox CascadeCheckboxOpts
 ---@field continue CascadeContinueOpts
 ---@field renumber CascadeRenumberOpts # When ordered lists are auto-renumbered.
+---@field precision "off"|"treesitter" # "treesitter" skips list actions inside a configured skip node (see core.treesitter).
+---@field precision_nodes table<string, string[]> # Per-filetype skip-node overrides (precision "treesitter"; see core.treesitter)
 
 ---@class CascadeCycleOpts
 ---@field enable boolean # Master switch for the word/number cycle domain.
@@ -73,6 +78,7 @@
 ---@field cycle CascadeCycleOpts
 ---@field transpose CascadeTransposeOpts
 ---@field keymaps CascadeKeymapOpts
+---@field debug boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).
 
 -- #####################################################################
 -- core/context.lua

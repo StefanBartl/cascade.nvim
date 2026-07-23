@@ -85,6 +85,7 @@ function M.bind_preset_globals(cfg)
     -- when the cursor isn't on a cyclable word or a number.
     lib.map("n", "+", api.increment, { silent = true, desc = "cascade: increment / cycle word" })
     lib.map("n", "-", api.decrement, { silent = true, desc = "cascade: decrement / cycle word" })
+    lib.map("n", "<leader>cp", api.cycle_pick, { silent = true, desc = "cascade: pick a cycle-group value" })
   end
 
   -- Global indent/outdent (all filetypes): list-aware renumber on list lines,

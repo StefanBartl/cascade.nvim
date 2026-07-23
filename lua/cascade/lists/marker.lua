@@ -47,7 +47,37 @@ local function split_checkbox(body, opts)
   return nil, body
 end
 
+--- Try the current buffer's filetype-specific custom patterns (see
+--- `opts.per_filetype_patterns`) before the built-in kinds. Reads the
+--- *current* buffer's filetype directly rather than taking one as a
+--- parameter: cascade is synchronous-only (no `vim.defer_fn`/async anywhere),
+--- so every `parse` call already happens against whatever buffer is current
+--- at that moment — there's no cross-buffer ambiguity to guard against, and
+--- threading a filetype through every one of `parse`'s many call sites would
+--- buy nothing.
+---@param rest string # Line content with the indent already stripped.
+---@param indent string
+---@param opts CascadeListOpts
+---@return CascadeMarker|nil
+local function parse_custom(rest, indent, opts)
+  local per_ft = opts.per_filetype_patterns
+  local extra = type(per_ft) == "table" and per_ft[vim.bo.filetype]
+  if not extra then
+    return nil
+  end
+  for i = 1, #extra do
+    local mk, after = rest:match(extra[i])
+    if mk then
+      local cb, text = split_checkbox(after, opts)
+      return { indent = indent, kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
+    end
+  end
+  return nil
+end
+
 --- Parse a line into a marker description, or nil if it is not a list item.
+--- Filetype-specific custom patterns (`opts.per_filetype_patterns`) are tried
+--- first, then the built-in kinds in `opts.types`.
 ---@param line string
 ---@param opts CascadeListOpts
 ---@return CascadeMarker|nil
@@ -56,6 +86,11 @@ function M.parse(line, opts)
   local rest = line:sub(#indent + 1)
   if rest == "" then
     return nil
+  end
+
+  local custom = parse_custom(rest, indent, opts)
+  if custom then
+    return custom
   end
 
   local types = opts.types

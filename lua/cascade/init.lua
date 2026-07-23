@@ -23,6 +23,8 @@ local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
 local token = require("cascade.cycle.token")
+local date = require("cascade.cycle.date")
+local treesitter = require("cascade.core.treesitter")
 local transpose_char = require("cascade.transpose.char")
 
 local M = {}
@@ -52,12 +54,37 @@ local function feed(lhs)
   vim.api.nvim_feedkeys(vim.keycode(lhs), "n", false)
 end
 
---- Whether the list domain is active for the current buffer.
+--- Whether the list domain is active for the current buffer/cursor position.
+--- With `lists.precision = "treesitter"`, also false inside a configured
+--- "skip" node (e.g. a markdown fenced code block) -- see
+--- `cascade.core.treesitter`. Only gates single-cursor-position actions
+--- (continuation, toggles, single-line indent, ...); range/whole-buffer
+--- operations (visual shifts, `:Cascade` commands, save-time renumber-all)
+--- don't check per-line, since "inside a skip node" isn't well-defined for
+--- an arbitrary range.
 ---@param ctx CascadeContext
 ---@return boolean
 local function lists_active(ctx)
   local opts = config.get("lists")
-  return opts.enable and Context.writable(ctx.bufnr) and ft_in(opts.filetypes, ctx.ft)
+  local debug = config.get("debug") == true
+
+  if not opts.enable then
+    lib.debug_log(debug, "lists_active: lists.enable is false")
+    return false
+  end
+  if not Context.writable(ctx.bufnr) then
+    lib.debug_log(debug, "lists_active: buffer not writable", { bufnr = ctx.bufnr })
+    return false
+  end
+  if not ft_in(opts.filetypes, ctx.ft) then
+    lib.debug_log(debug, "lists_active: filetype not in lists.filetypes", { ft = ctx.ft })
+    return false
+  end
+  if treesitter.in_skip_node(ctx.bufnr, ctx.row0, ctx.col0, ctx.ft, opts) then
+    lib.debug_log(debug, "lists_active: cursor inside a treesitter skip node", { ft = ctx.ft, row = ctx.row0 })
+    return false
+  end
+  return true
 end
 
 --- Whether a named list feature is enabled (missing entry = enabled).
@@ -166,7 +193,7 @@ function M.renumber()
   end
   local s, e = transform.block_range(ctx.bufnr, ctx.row0, opts)
   if s and e then
-    pcall(renumber.tree, ctx.bufnr, s, e, opts)
+    pcall(renumber.tree, ctx.bufnr, s, e, opts, true)
   end
 end
 
@@ -245,11 +272,13 @@ local function cycle_type_work(dir)
   end
 end
 
---- Cycle the word under the cursor. On a numeric token, fall back to the
---- real native increment/decrement (`<C-a>`/`<C-x>`) regardless of which key
---- triggered this; on anything else (no match at all), fall back to the
---- triggering key's own native meaning, so e.g. `+`/`-` still move a line
---- when the cursor isn't on a cyclable word or a number.
+--- Cycle the word under the cursor. On an ISO date (`YYYY-MM-DD`), step the
+--- year/month/day segment under the cursor with calendar-aware rollover. On
+--- a plain numeric token, fall back to the real native increment/decrement
+--- (`<C-a>`/`<C-x>`) regardless of which key triggered this; on anything else
+--- (no match at all), fall back to the triggering key's own native meaning,
+--- so e.g. `+`/`-` still move a line when the cursor isn't on a cyclable
+--- word, a date, or a number.
 ---@param dir integer
 ---@param number_key string # native key that increments/decrements numbers.
 ---@param own_key string # the key this action is bound to.
@@ -257,7 +286,7 @@ end
 local function cycle_word_work(dir, number_key, own_key)
   return function()
     local opts = config.get("cycle")
-    if not opts.enable or not cf("word") then
+    if not opts.enable then
       feed(own_key)
       return
     end
@@ -266,7 +295,16 @@ local function cycle_word_work(dir, number_key, own_key)
       feed(own_key)
       return
     end
-    if word_cycle.cycle(ctx, opts, dir) then
+
+    if cf("date") then
+      local s0, e0, repl = date.step(ctx.line, ctx.col0, dir)
+      if s0 then
+        vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s0, ctx.row0, e0, { repl })
+        return
+      end
+    end
+
+    if cf("word") and word_cycle.cycle(ctx, opts, dir) then
       return
     end
     local _, _, text = token.span(ctx.line, ctx.col0)
@@ -276,6 +314,23 @@ local function cycle_word_work(dir, number_key, own_key)
       feed(own_key)
     end
   end
+end
+
+--- Show an interactive picker over every entry in the cursor's cycle group
+--- (word or operator), replacing it with whichever the user picks. Silent
+--- no-op when the cursor isn't on a cyclable token -- there's no "own key"
+--- native meaning to fall back to for an otherwise-unbound leader mapping.
+---@return nil
+function M.cycle_pick()
+  local opts = config.get("cycle")
+  if not opts.enable or not cf("word") then
+    return
+  end
+  local ctx = Context.new()
+  if not Context.writable(ctx.bufnr) or not ft_in(opts.filetypes, ctx.ft) then
+    return
+  end
+  word_cycle.pick(ctx, opts)
 end
 
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
@@ -413,7 +468,7 @@ function M.run_renumber_command(cmd, scope)
     s, e = transform.block_range(bufnr, vim.api.nvim_win_get_cursor(0)[1] - 1, opts)
   end
   if s and e then
-    pcall(renumber.tree, bufnr, s, e, opts)
+    pcall(renumber.tree, bufnr, s, e, opts, true)
   end
 end
 

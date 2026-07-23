@@ -7,7 +7,9 @@
 --- the trick. Actions register under a string key; the last key is replayed on
 --- repeat. The actual operatorfunc/g@l mechanics delegate to the soft lib.nvim
 --- bridge (util/lib.lua): lib.nvim.dotrepeat when available, else an
---- equivalent standalone fallback.
+--- equivalent standalone fallback. Either way, that same bridge also calls
+--- the classic vim-repeat plugin's `repeat#set`, if installed -- optional
+--- interop alongside the operatorfunc trick, never a dependency on it.
 
 local M = {}
 

@@ -46,6 +46,17 @@ function M.check()
     info("which-key not found — mappings still carry their own descriptions")
   end
 
+  -- Debug logging (detect/advance/fallback at dispatch.try + lists_active()).
+  if config.get("debug") == true then
+    if pcall(require, "lib.nvim.logger") then
+      ok("debug: enabled, lib.nvim.logger available (structured logs + :LibLogger)")
+    else
+      info("debug: enabled, lib.nvim.logger not found — falling back to vim.notify at DEBUG level")
+    end
+  else
+    info("debug: disabled (cascade.debug = true to enable)")
+  end
+
   -- List domain.
   local lists = config.get("lists")
   if lists.enable then

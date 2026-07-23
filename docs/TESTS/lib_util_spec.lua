@@ -128,4 +128,176 @@ return function(H)
     eq(captured_name, "cascade_test_augroup_bridged", "lib.nvim.autocmd.augroup path passes name through")
     eq(id, -12345, "lib.nvim.autocmd.augroup path's return value is used, not a fresh nvim_create_augroup id")
   end
+
+  -- dotrepeat_run: without vim-repeat installed, the wrapped fn still runs
+  -- via the plain operatorfunc/g@l trick (repeat#set is simply absent; the
+  -- pcall around it swallows the "unknown function" error).
+  do
+    local dotrepeat = require("cascade.util.dotrepeat")
+    local fired = false
+    local run = dotrepeat.repeatable("test_no_vim_repeat", function()
+      fired = true
+    end)
+    run()
+    vim.api.nvim_feedkeys("", "x", false) -- flush the queued g@l
+    ok(fired, "dotrepeat_run: wrapped fn still runs with no vim-repeat installed")
+  end
+
+  -- dotrepeat_run: with vim-repeat installed, also calls repeat#set("g@l").
+  -- repeat#set is a real Vimscript *autoload* function -- Vim/Neovim only
+  -- allows `function! repeat#set(...)` inside a properly named
+  -- autoload/repeat.vim, so a minimal fake is written to a temp dir and
+  -- added to 'runtimepath' just for this test (mirrors what installing
+  -- tpope/vim-repeat provides).
+  do
+    local tmp = vim.fn.tempname()
+    vim.fn.mkdir(tmp .. "/autoload", "p")
+    local f = assert(io.open(tmp .. "/autoload/repeat.vim", "w"))
+    f:write("function! repeat#set(seq, ...) abort\n")
+    f:write("  let g:cascade_test_repeat_seq = a:seq\n")
+    f:write("  let g:cascade_test_repeat_calls = get(g:, 'cascade_test_repeat_calls', 0) + 1\n")
+    f:write("endfunction\n")
+    f:close()
+    vim.o.runtimepath = vim.o.runtimepath .. "," .. tmp
+    vim.g.cascade_test_repeat_calls = 0
+
+    local dotrepeat = require("cascade.util.dotrepeat")
+    local fired = false
+    local run = dotrepeat.repeatable("test_vim_repeat", function()
+      fired = true
+    end)
+    run()
+    vim.api.nvim_feedkeys("", "x", false)
+
+    ok(fired, "dotrepeat_run: wrapped fn still runs with vim-repeat installed")
+    eq(vim.g.cascade_test_repeat_calls, 1, "dotrepeat_run: repeat#set was called once")
+    eq(vim.g.cascade_test_repeat_seq, "g@l", "dotrepeat_run: repeat#set was told to replay g@l")
+  end
+
+  -- debug_log: disabled is a true no-op (no notify, no logger call at all).
+  do
+    package.loaded["cascade.util.lib"] = nil
+    local lib2 = require("cascade.util.lib")
+    local notified = false
+    local orig = vim.notify
+    vim.notify = function()
+      notified = true
+    end
+    lib2.debug_log(false, "should not appear")
+    vim.notify = orig
+    ok(not notified, "debug_log: disabled never notifies")
+  end
+
+  -- debug_log: enabled, no lib.nvim.logger installed -> falls back to
+  -- vim.notify at DEBUG level (the same tier lib.nvim.logger.debug() maps
+  -- to). This test's rtp genuinely has lib.nvim (and its logger submodule)
+  -- checked out as a sibling, so "absent" is simulated via package.preload:
+  -- a require() with package.loaded[name] cleared runs the searchers, and
+  -- preload (checked before the path searcher) errors instead of finding
+  -- the real module -- try_require's pcall then correctly reports it absent.
+  do
+    package.loaded["cascade.util.lib"] = nil
+    package.loaded["lib.nvim.logger"] = nil
+    package.preload["lib.nvim.logger"] = function()
+      error("simulated absent for this test")
+    end
+    local lib2 = require("cascade.util.lib")
+    local captured
+    local orig = vim.notify
+    vim.notify = function(msg, level)
+      captured = { msg = msg, level = level }
+    end
+    lib2.debug_log(true, "hello", { x = 1 })
+    vim.notify = orig
+    package.preload["lib.nvim.logger"] = nil
+    ok(captured, "debug_log: fallback vim.notify invoked when enabled and no logger")
+    eq(captured.level, vim.log.levels.DEBUG, "debug_log: fallback uses DEBUG level")
+    ok(captured.msg:find("hello", 1, true) ~= nil, "debug_log: fallback message includes the text")
+  end
+
+  -- debug_log: enabled, lib.nvim.logger present (stubbed) -> calls through to
+  -- its .new({name=...}).debug(msg, ctx) shape, not vim.notify.
+  do
+    package.loaded["cascade.util.lib"] = nil
+    local captured
+    package.loaded["lib.nvim.logger"] = {
+      new = function(opts)
+        return {
+          debug = function(msg, ctx)
+            captured = { name = opts.name, msg = msg, ctx = ctx }
+          end,
+        }
+      end,
+    }
+    local lib2 = require("cascade.util.lib")
+    local notify_called = false
+    local orig = vim.notify
+    vim.notify = function()
+      notify_called = true
+    end
+    lib2.debug_log(true, "world", { y = 2 })
+    vim.notify = orig
+    package.loaded["lib.nvim.logger"] = nil
+
+    ok(captured, "debug_log: lib.nvim.logger path invoked when present")
+    eq(captured.name, "cascade", "debug_log: logger created with name=cascade")
+    eq(captured.msg, "world", "debug_log: message passed through")
+    eq(captured.ctx.y, 2, "debug_log: ctx table passed through")
+    ok(not notify_called, "debug_log: vim.notify fallback NOT used when lib.nvim.logger succeeds")
+  end
+
+  -- cascade.dispatch is instrumented with debug_log at its detect/advance/
+  -- fallback points (cascade.debug config flag). Force a fresh cascade.util.lib
+  -- (dispatch.lua's own require) with lib.nvim.logger stubbed absent, so
+  -- debug output surfaces via the vim.notify fallback and not a logger
+  -- instance left cached by an earlier test block in this same file.
+  do
+    package.loaded["cascade.util.lib"] = nil
+    package.loaded["lib.nvim.logger"] = nil
+    package.preload["lib.nvim.logger"] = function()
+      error("simulated absent for this test")
+    end
+    package.loaded["cascade.dispatch"] = nil
+    local dispatch = require("cascade.dispatch")
+    local cfg = require("cascade.config")
+    local Context = require("cascade.core.context")
+
+    cfg.setup({ debug = true })
+    local notifications = {}
+    local orig = vim.notify
+    vim.notify = function(msg)
+      notifications[#notifications + 1] = msg
+    end
+
+    local ctx = Context.new()
+    local handled = dispatch.try({
+      function()
+        return false
+      end,
+    }, ctx)
+    vim.notify = orig
+
+    eq(handled, false, "dispatch.try: still returns false when no handler matches")
+    ok(#notifications > 0, "dispatch.try: debug = true produces debug output")
+    local joined = table.concat(notifications, " | ")
+    ok(joined:find("handler tried", 1, true) ~= nil, "dispatch.try: logs each handler attempt")
+    ok(joined:find("no handler matched", 1, true) ~= nil, "dispatch.try: logs the final no-match result")
+
+    -- debug = false (default): the exact same call produces no debug output.
+    cfg.setup({})
+    local notified_again = false
+    vim.notify = function()
+      notified_again = true
+    end
+    dispatch.try({
+      function()
+        return false
+      end,
+    }, ctx)
+    vim.notify = orig
+    ok(not notified_again, "dispatch.try: debug = false produces no debug output")
+
+    package.preload["lib.nvim.logger"] = nil
+    cfg.setup({})
+  end
 end
