@@ -123,12 +123,13 @@ function M.cycle(ctx, opts, dir)
   return true
 end
 
---- Show an interactive picker (`vim.ui.select` -- Telescope-backed if the
---- user has `telescope-ui-select.nvim` registered, else Neovim's builtin
---- list) over every entry in the cursor's cycle group, and replace the span
---- with whichever the user picks. Returns `true` once a group was found and
---- the picker was shown (the actual buffer edit happens in `vim.ui.select`'s
---- callback, which may be asynchronous depending on the UI backend).
+--- Show an interactive picker (`kit.select` with `respect_override` --
+--- Telescope-backed if the user has `telescope-ui-select.nvim` registered,
+--- else kit's own themed chooser) over every entry in the cursor's cycle
+--- group, and replace the span with whichever the user picks. Returns
+--- `true` once a group was found and the picker was shown (the actual
+--- buffer edit happens in the picker's callback, which may be asynchronous
+--- depending on the UI backend).
 ---@param ctx CascadeContext
 ---@param opts CascadeCycleOpts
 ---@return boolean handled
@@ -139,13 +140,18 @@ function M.pick(ctx, opts)
   end
   ---@cast e integer
 
-  vim.ui.select(found, { prompt = "Cascade: pick a value" }, function(choice)
-    if not choice then
-      return
-    end
-    local repl = shape and token.apply_shape(choice:lower(), shape) or choice
-    vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
-  end)
+  require("lib.nvim.ui.kit").select({
+    items = found,
+    title = "Cascade: pick a value",
+    respect_override = true,
+    on_select = function(choice)
+      if not choice then
+        return
+      end
+      local repl = shape and token.apply_shape(choice:lower(), shape) or choice
+      vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
+    end,
+  })
   return true
 end
 
