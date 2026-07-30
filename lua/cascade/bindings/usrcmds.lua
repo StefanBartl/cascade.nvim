@@ -23,43 +23,76 @@ function M.setup()
   composer.verb("Cascade", {
     desc = "Cascade: list transforms (range-aware; normal + visual)",
     routes = {
-      { path = { "rotate" }, bang = true, range = true,
+      {
+        path = { "rotate" },
+        bang = true,
+        range = true,
         args = { { name = "dir", type = "STRING", enum = { "next", "prev" }, optional = true } },
         desc = "Rotate list form (range-aware; ! or 'prev' = backward)",
         run = function(ctx)
           local dir = (ctx.args.dir == "prev" or ctx.bang) and -1 or 1
           api.run_command(api._transform.rotate, ctx.raw, dir)
-        end },
+        end,
+      },
 
-      { path = { "sort" }, bang = true, range = true,
+      {
+        path = { "sort" },
+        bang = true,
+        range = true,
         desc = "Sort list A-Z (range-aware; ! = Z-A)",
         run = function(ctx)
           local dir = ctx.bang and -1 or 1 -- ! = descending (Z-A)
           api.run_command(api._transform.sort, ctx.raw, dir)
-        end },
+        end,
+      },
 
-      { path = { "reverse" }, range = true,
+      {
+        path = { "reverse" },
+        range = true,
         desc = "Reverse list order (range-aware)",
-        run = function(ctx) api.run_command(api._transform.reverse, ctx.raw, 1) end },
+        run = function(ctx)
+          api.run_command(api._transform.reverse, ctx.raw, 1)
+        end,
+      },
 
-      { path = { "strip" }, range = true,
+      {
+        path = { "strip" },
+        range = true,
         desc = "Strip checkboxes (range-aware)",
-        run = function(ctx) api.run_command(api._transform.strip, ctx.raw, 1) end },
+        run = function(ctx)
+          api.run_command(api._transform.strip, ctx.raw, 1)
+        end,
+      },
 
-      { path = { "indent" }, range = true,
+      {
+        path = { "indent" },
+        range = true,
         args = { { name = "levels", type = "INT", optional = true } },
         desc = "Indent line/range (+renumber; arg = levels)",
-        run = function(ctx) api.run_indent_command(ctx.raw, 1) end },
+        run = function(ctx)
+          api.run_indent_command(ctx.raw, 1)
+        end,
+      },
 
-      { path = { "dedent" }, range = true,
+      {
+        path = { "dedent" },
+        range = true,
         args = { { name = "levels", type = "INT", optional = true } },
         desc = "Dedent line/range (+renumber; arg = levels)",
-        run = function(ctx) api.run_indent_command(ctx.raw, -1) end },
+        run = function(ctx)
+          api.run_indent_command(ctx.raw, -1)
+        end,
+      },
 
-      { path = { "renumber" }, range = true,
+      {
+        path = { "renumber" },
+        range = true,
         args = { { name = "scope", type = "STRING", enum = { "all" }, optional = true } },
         desc = "Renumber list block (range-aware; 'all' = every list in the buffer)",
-        run = function(ctx) api.run_renumber_command(ctx.raw, ctx.args.scope) end },
+        run = function(ctx)
+          api.run_renumber_command(ctx.raw, ctx.args.scope)
+        end,
+      },
     },
   })
 end

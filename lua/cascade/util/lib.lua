@@ -240,9 +240,19 @@ function M.apply_shape(repl, shape)
 end
 
 local ROMAN_STEPS = {
-  { 1000, "M" }, { 900, "CM" }, { 500, "D" }, { 400, "CD" },
-  { 100, "C" }, { 90, "XC" }, { 50, "L" }, { 40, "XL" },
-  { 10, "X" }, { 9, "IX" }, { 5, "V" }, { 4, "IV" }, { 1, "I" },
+  { 1000, "M" },
+  { 900, "CM" },
+  { 500, "D" },
+  { 400, "CD" },
+  { 100, "C" },
+  { 90, "XC" },
+  { 50, "L" },
+  { 40, "XL" },
+  { 10, "X" },
+  { 9, "IX" },
+  { 5, "V" },
+  { 4, "IV" },
+  { 1, "I" },
 }
 local ROMAN_VALUE = { I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1000 }
 
@@ -388,7 +398,9 @@ local _pending_dotrepeat_fn = nil
 --- Reached from Vimscript via v:lua; must keep this exact name/path.
 function M.dotrepeat_invoke()
   local fn = _pending_dotrepeat_fn
-  if fn then pcall(fn) end
+  if fn then
+    pcall(fn)
+  end
 end
 
 --- Also register with the classic vim-repeat plugin (tpope/vim-repeat), if

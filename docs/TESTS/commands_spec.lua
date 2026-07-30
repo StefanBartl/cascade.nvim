@@ -13,8 +13,7 @@ return function(H)
   eq(vim.fn.exists(":Cascade"), 2, ":Cascade defined")
   local subs = vim.fn.getcompletion("Cascade ", "cmdline")
   table.sort(subs)
-  eq(table.concat(subs, ","), "dedent,indent,renumber,reverse,rotate,sort,strip",
-    ":Cascade completes every subcommand")
+  eq(table.concat(subs, ","), "dedent,indent,renumber,reverse,rotate,sort,strip", ":Cascade completes every subcommand")
 
   -- lists.format's hanging-indent options apply via their own FileType
   -- autocmd, independent of the keymaps.preset switch (regression: they used

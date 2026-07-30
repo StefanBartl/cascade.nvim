@@ -36,7 +36,7 @@ function M.check()
   if pcall(require, "lib.nvim.usercmd.composer") then
     ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
   else
-    warn("lib.nvim not found — :Cascade will fail to load; install \"StefanBartl/lib.nvim\"")
+    warn('lib.nvim not found — :Cascade will fail to load; install "StefanBartl/lib.nvim"')
   end
 
   -- Optional which-key integration.
