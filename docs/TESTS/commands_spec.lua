@@ -76,6 +76,56 @@ return function(H)
 
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
+  -- Normal-mode <A-Right>/<A-Left> count means "how many LINES" (starting at
+  -- the cursor, one level each) instead of "how many levels" on one line —
+  -- the old count meaning moved to <leader><A-Right>/<leader><A-Left>.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "2. b", "3. c" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<A-Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "  1. a", "  2. b", "3. c" },
+    "2<A-Right>: 2 lines from cursor, one level each"
+  )
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "2. b", "3. c" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<leader><A-Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "    1. a", "2. b", "3. c" },
+    "2<leader><A-Right>: one line, 2 levels (old count meaning)"
+  )
+
+  -- no count (default): unchanged single-line + subtree behavior.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. a", "2. b", "3. c" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("<A-Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. a", "  1. b", "2. c" },
+    "<A-Right> with no count: unchanged single-line behavior"
+  )
+
+  -- mirror for dedent.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. top", "  1. a", "  2. b", "  3. c" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<A-Left>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. top", "2. a", "3. b", "  1. c" },
+    "2<A-Left>: 2 lines from cursor, one level each"
+  )
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "1. top", "    1. a", "    2. b", "    3. c" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<leader><A-Left>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "1. top", "2. a", "    1. b", "    2. c" },
+    "2<leader><A-Left>: one line, 2 levels (old count meaning)"
+  )
+
   -- quick-toggle keys (<A-->, <A-*>, <A-0>, <A-c>) work on a real Visual
   -- (charwise) and Visual-line selection, not just Normal mode, and keep
   -- the selection active afterwards (regression: it used to be dropped via

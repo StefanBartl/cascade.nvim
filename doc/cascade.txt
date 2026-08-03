@@ -72,8 +72,14 @@ keys you like with a normal |vim.keymap.set()|:
     decrement                normal  cycle word / native decrement / native
                                       line-up (`-`'s own meaning) otherwise
     cycle_pick                normal  pick a cycle-group value via vim.ui.select
-    indent / indent_visual       n / x   indent + level-aware renumber
-    dedent / dedent_visual       n / x   dedent + level-aware renumber
+    indent / indent_visual       n / x   indent + level-aware renumber (normal-
+                                          mode count = N lines from cursor)
+    dedent / dedent_visual       n / x   dedent + level-aware renumber (normal-
+                                          mode count = N lines from cursor)
+    indent_levels                normal  indent the current line by N levels
+                                          (old count meaning of `indent`)
+    dedent_levels                normal  dedent the current line by N levels
+                                          (old count meaning of `dedent`)
     move_up / move_up_visual     n / x   move line/selection up + renumber
     move_down / move_down_visual n / x   move line/selection down + renumber
     renumber                 normal  renumber the ordered block
@@ -175,6 +181,8 @@ With `keymaps.preset = true`:
     x   <A-Right>   ->  indent_visual
     n   <A-Left>    ->  dedent
     x   <A-Left>    ->  dedent_visual
+    n   <leader><A-Right>  ->  indent_levels
+    n   <leader><A-Left>   ->  dedent_levels
     i   <A-Right>   ->  <C-t>     (native insert indent)
     i   <A-Left>    ->  <C-d>     (native insert dedent)
     n   <A-Up>      ->  move_up
@@ -426,6 +434,18 @@ the item's own wrapped continuation text) shift by the same amount. >
         2. y                    2. y
       2. sibling            1. sibling  (gap closed: 2 -> 1)
 <
+On `indent`/`dedent`, `v:count` means "how many LINES" (starting at the
+cursor), not "how many levels" — with no count (or 1) it shifts the current
+line (+ its subtree, above) by one level; `N>1` shifts that many consecutive
+lines by one level each: >
+    1. one              1. one
+    2. two     2>>        1. two    (2 lines, one level each)
+    3. three            2. three
+<
+To shift a single line by N *levels* instead (the old count meaning of
+`indent`/`dedent`), use `indent_levels`/`dedent_levels`
+(`<leader><A-Right>`/`<leader><A-Left>` in the preset).
+
 A blank line between items ends the block; the next list starts a fresh
 sequence with its own start offset. Raise `lists.renumber.blank_break` to
 tolerate blanks inside one block.

@@ -28,12 +28,14 @@ Bound for every filetype.
 | `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
 | `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise) |
 | `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
-| `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber) |
+| `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
-| `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber) |
+| `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
 | `<A-Left>` | x | `dedent_visual` | lists.indent | Dedent (+renumber) |
 | `<A-Right>` | i | `<C-t>` (native) | lists.indent | Indent line (insert) |
 | `<A-Left>` | i | `<C-d>` (native) | lists.indent | Dedent line (insert) |
+| `<leader><A-Right>` | n | `indent_levels` | lists.indent | Indent current line by `N` levels (old count meaning of `<A-Right>`) |
+| `<leader><A-Left>` | n | `dedent_levels` | lists.indent | Dedent current line by `N` levels (old count meaning of `<A-Left>`) |
 | `<A-Up>` | n | `move_up` | lists.move | Move line up |
 | `<A-Up>` | x | `move_up_visual` | lists.move | Move selection up |
 | `<A-Down>` | n | `move_down` | lists.move | Move line down |

@@ -180,6 +180,8 @@ vim.keymap.set("n", "<Tab>",   cascade.indent)
 vim.keymap.set("x", "<Tab>",   cascade.indent_visual)
 vim.keymap.set("n", "<S-Tab>", cascade.dedent)
 vim.keymap.set("x", "<S-Tab>", cascade.dedent_visual)
+vim.keymap.set("n", "<leader><Tab>",   cascade.indent_levels)
+vim.keymap.set("n", "<leader><S-Tab>", cascade.dedent_levels)
 ```
 
 ---
@@ -205,8 +207,9 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `cycle_word_prev`             | n     | Word/number backward                      |
 | `increment`                   | n     | Word/number forward (`+`; native line-down otherwise) |
 | `decrement`                   | n     | Word/number backward (`-`; native line-up otherwise) |
-| `indent` / `indent_visual`    | n / x | Indent + level-aware renumber             |
-| `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber             |
+| `indent` / `indent_visual`    | n / x | Indent + level-aware renumber. Normal-mode count = N *lines* from cursor |
+| `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber. Normal-mode count = N *lines* from cursor |
+| `indent_levels` / `dedent_levels` | n | Indent/dedent the current line by N *levels* (old count meaning of `indent`/`dedent`) |
 | `move_up` / `move_up_visual`     | n / x | Move line/selection up + renumber         |
 | `move_down` / `move_down_visual` | n / x | Move line/selection down + renumber       |
 | `renumber`                    | n     | Renumber block                            |
@@ -245,6 +248,7 @@ In the preset, additionally buffer-local (each in Normal **and** Visual):
 
 **Globally** (all filetypes) the preset also binds:
 - Indent/dedent: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
+- Indent/dedent one line by N levels: `<leader><A-Right>` / `<leader><A-Left>` (Normal).
 - Move lines: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
 - Char/selection swap: `<leader><Right>` / `<leader><Left>` (Normal, Visual).
 
@@ -256,9 +260,8 @@ moves, numbers stay sequential). Outside of lists it is a plain `:move` with an
 
 When indenting/dedenting a numbered list, **every indent level** is renumbered:
 a deeper level starts at `1.`, returning to a shallower level continues, and the
-level you left closes its gap. `vim.v.count` sets the number of levels. Outside
-the list filetypes it is a plain `>>`/`<<` — so it fully replaces a generic
-indent mapping.
+level you left closes its gap. Outside the list filetypes it is a plain
+`>>`/`<<` — so it fully replaces a generic indent mapping.
 
 ```
 1. top              1. top
@@ -274,6 +277,26 @@ Indenting/dedenting a single line also carries its **subtree** along: any
 deeper-indented lines directly following it (nested children, or its own
 wrapped continuation text) shift by the same amount, instead of being left
 behind.
+
+```
+1. top              1. top
+  1. item    →         1. item
+    1. x                 1. x
+    2. y      (>>)       2. y
+  2. sibling          1. sibling   ← gap closed (2→1)
+```
+
+**`vim.v.count` on `<A-Right>`/`<A-Left>` means "how many lines", not "how many
+levels":** `N<A-Right>` shifts `N` consecutive lines starting at the cursor by
+one level each — for a numbered outline where you want to promote/demote a
+whole run of sibling lines at once. To shift a *single* line by `N` levels
+instead (the old count meaning), use `N<leader><A-Right>`/`N<leader><A-Left>`.
+
+```
+1. one              1. one
+2. two     2<A-Right>  1. two    ← 2 lines, one level each
+3. three            2. three
+```
 
 ```
 1. top              1. top

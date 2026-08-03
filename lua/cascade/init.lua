@@ -146,29 +146,59 @@ function M.O()
   feed("O")
 end
 
---- Indent the current list line (no-op off a list).
----@return nil
-function M.indent()
-  local count = vim.v.count1
-  local ctx = Context.new()
-  local opts = config.get("lists")
-  if lists_active(ctx) and lf("indent") and indent_mod.shift_line(ctx, opts, count, 1) then
-    return
+--- Indent/dedent list lines starting at the cursor. With no count (or
+--- count=1), shifts the current line (plus its subtree — nested children or
+--- wrapped continuation text) by one level, preserving the cursor — same as
+--- before. With count > 1, the count means "how many consecutive lines"
+--- instead: shifts that many lines, starting at the cursor, by one level
+--- each. Shifting one line by N *levels* moved to `<leader><A-Right>` /
+--- `<leader><A-Left>` (see `indent_levels_work`).
+---@param dir integer # 1 indent, -1 dedent.
+---@param native string # native fallback key, repeated `count` times.
+---@return fun()
+local function indent_lines_work(dir, native)
+  return function()
+    local count = vim.v.count1
+    local ctx = Context.new()
+    local opts = config.get("lists")
+    if lists_active(ctx) and lf("indent") then
+      if count > 1 then
+        local total = vim.api.nvim_buf_line_count(ctx.bufnr)
+        local erow = math.min(ctx.row0 + count - 1, total - 1)
+        indent_mod.shift_range(ctx.bufnr, ctx.row0, erow, dir, 1, opts, true)
+        return
+      end
+      if indent_mod.shift_line(ctx, opts, 1, dir) then
+        return
+      end
+    end
+    feed(string.rep(native, count))
   end
-  feed(string.rep(">>", count))
 end
 
---- Dedent the current line; list-aware renumber, else native `<<`.
----@return nil
-function M.dedent()
-  local count = vim.v.count1
-  local ctx = Context.new()
-  local opts = config.get("lists")
-  if lists_active(ctx) and lf("indent") and indent_mod.shift_line(ctx, opts, count, -1) then
-    return
+--- Indent/dedent the current line by `count` LEVELS instead of `count`
+--- lines — the `<leader>`-prefixed variant preserving the old count meaning,
+--- since `M.indent`/`M.dedent`'s own count now means "how many lines" (see
+--- `indent_lines_work`). Invoke as `2<leader><A-Right>`.
+---@param dir integer
+---@param native string
+---@return fun()
+local function indent_levels_work(dir, native)
+  return function()
+    local count = vim.v.count1
+    local ctx = Context.new()
+    local opts = config.get("lists")
+    if lists_active(ctx) and lf("indent") and indent_mod.shift_line(ctx, opts, count, dir) then
+      return
+    end
+    feed(string.rep(native, count))
   end
-  feed(string.rep("<<", count))
 end
+
+M.indent = indent_lines_work(1, ">>")
+M.dedent = indent_lines_work(-1, "<<")
+M.indent_levels = indent_levels_work(1, ">>")
+M.dedent_levels = indent_levels_work(-1, "<<")
 
 --- Indent the visual selection; renumber list blocks; reselect.
 ---@return nil

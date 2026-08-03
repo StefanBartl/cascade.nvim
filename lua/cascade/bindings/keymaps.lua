@@ -92,12 +92,26 @@ function M.bind_preset_globals(cfg)
   -- native shift everywhere else. Insert mode uses the native <C-t>/<C-d>.
   local list_feat = cfg.lists.features or {}
   if cfg.lists.enable and list_feat.indent ~= false then
-    lib.map("n", "<A-Right>", api.indent, { silent = true, desc = "cascade: indent (+renumber)" })
+    lib.map("n", "<A-Right>", api.indent, { silent = true, desc = "cascade: indent (Ncount = N lines, +renumber)" })
     lib.map("x", "<A-Right>", api.indent_visual, { silent = true, desc = "cascade: indent (+renumber)" })
-    lib.map("n", "<A-Left>", api.dedent, { silent = true, desc = "cascade: dedent (+renumber)" })
+    lib.map("n", "<A-Left>", api.dedent, { silent = true, desc = "cascade: dedent (Ncount = N lines, +renumber)" })
     lib.map("x", "<A-Left>", api.dedent_visual, { silent = true, desc = "cascade: dedent (+renumber)" })
     lib.map("i", "<A-Right>", "<C-t>", { silent = true, desc = "cascade: indent line (insert)" })
     lib.map("i", "<A-Left>", "<C-d>", { silent = true, desc = "cascade: dedent line (insert)" })
+    -- Old count semantics of <A-Right>/<A-Left> (Ncount = N levels on one
+    -- line), now behind <leader> since the bare keys' count means "N lines".
+    lib.map(
+      "n",
+      "<leader><A-Right>",
+      api.indent_levels,
+      { silent = true, desc = "cascade: indent (Ncount = N levels, +renumber)" }
+    )
+    lib.map(
+      "n",
+      "<leader><A-Left>",
+      api.dedent_levels,
+      { silent = true, desc = "cascade: dedent (Ncount = N levels, +renumber)" }
+    )
   end
 
   -- Global move-lines (all filetypes): reindent + renumber list blocks.
