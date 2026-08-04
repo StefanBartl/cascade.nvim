@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.renumber'
----@brief Renumber a contiguous ordered list block at the cursor's indent level.
----@description
+--- Renumber a contiguous ordered list block at the cursor's indent level.
+---
 --- Operates only on ordered markers (digit/ascii/roman). Finds the run of lines
 --- sharing the cursor item's indent and kind, then rewrites their markers as a
 --- sequence starting from the first marker's value (so non-1 start offsets and
@@ -16,6 +16,7 @@ local alpha = require("cascade.lists.alpha")
 
 local M = {}
 
+---@internal
 --- Format the n-th ordinal for an ordered kind, preserving case of `ref`.
 ---@param kind CascadeMarkerKind
 ---@param value integer
@@ -38,6 +39,7 @@ local function ordinal(kind, value, ref)
   return s:lower()
 end
 
+---@internal
 --- Convert an ordered marker token to its integer value.
 ---@param kind CascadeMarkerKind
 ---@param token string

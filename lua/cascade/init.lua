@@ -1,6 +1,6 @@
 ---@module 'cascade'
----@brief Public facade for cascade.nvim: setup + the action surface.
----@description
+--- Public facade for cascade.nvim: setup + the action surface.
+---
 --- One entry point that wires configuration, exposes every user-facing action
 --- (bound directly onto keys by `cascade.bindings`), and routes the
 --- dot-repeatable actions through the shared operatorfunc helper. Actions build a
@@ -31,6 +31,7 @@ local M = {}
 
 -- ---------- gating helpers ----------
 
+---@internal
 --- Whether `ft` is in `fts` (nil `fts` means "every filetype").
 ---@param fts string[]|nil
 ---@param ft string
@@ -47,6 +48,7 @@ local function ft_in(fts, ft)
   return false
 end
 
+---@internal
 --- Feed a native key without remapping.
 ---@param lhs string
 ---@return nil
@@ -54,6 +56,7 @@ local function feed(lhs)
   vim.api.nvim_feedkeys(vim.keycode(lhs), "n", false)
 end
 
+---@internal
 --- Whether the list domain is active for the current buffer/cursor position.
 --- With `lists.precision = "treesitter"`, also false inside a configured
 --- "skip" node (e.g. a markdown fenced code block) -- see
@@ -87,6 +90,7 @@ local function lists_active(ctx)
   return true
 end
 
+---@internal
 --- Whether a named list feature is enabled (missing entry = enabled).
 ---@param name string
 ---@return boolean
@@ -95,6 +99,7 @@ local function lf(name)
   return type(f) ~= "table" or f[name] ~= false
 end
 
+---@internal
 --- Whether a named cycle feature is enabled (missing entry = enabled).
 ---@param name string
 ---@return boolean
@@ -103,6 +108,7 @@ local function cf(name)
   return type(f) ~= "table" or f[name] ~= false
 end
 
+---@internal
 --- Whether a named transpose feature is enabled (missing entry = enabled).
 ---@param name string
 ---@return boolean
@@ -146,6 +152,7 @@ function M.O()
   feed("O")
 end
 
+---@internal
 --- Indent/dedent list lines starting at the cursor. With no count (or
 --- count=1), shifts the current line (plus its subtree — nested children or
 --- wrapped continuation text) by one level, preserving the cursor — same as
@@ -176,6 +183,7 @@ local function indent_lines_work(dir, native)
   end
 end
 
+---@internal
 --- Indent/dedent the current line by `count` LEVELS instead of `count`
 --- lines — the `<leader>`-prefixed variant preserving the old count meaning,
 --- since `M.indent`/`M.dedent`'s own count now means "how many lines" (see
@@ -229,6 +237,7 @@ end
 
 -- ---------- dot-repeatable actions ----------
 
+---@internal
 --- Toggle/cycle the checkbox under the cursor.
 local checkbox_work = function()
   local ctx = Context.new()
@@ -242,6 +251,7 @@ local checkbox_work = function()
   end
 end
 
+---@internal
 --- Toggle a plain unordered bullet on the cursor line; works without an
 --- existing marker (unlike `checkbox`/`cycle_type`, which only ever advance
 --- one). Shared by the `-` and `*` variants.
@@ -261,6 +271,7 @@ local function bullet_toggle_work(single)
   end
 end
 
+---@internal
 --- Toggle a "1." numbered marker on the cursor line; works without an
 --- existing marker, and renumbers against its siblings once inserted.
 local number_toggle_work = function()
@@ -275,6 +286,7 @@ local number_toggle_work = function()
   end
 end
 
+---@internal
 --- Cycle a "- [ ]" checkbox on the cursor line; creates it from scratch if
 --- needed and removes it again after the last configured state.
 local checkbox_toggle_work = function()
@@ -289,6 +301,7 @@ local checkbox_toggle_work = function()
   end
 end
 
+---@internal
 --- Cycle the list marker type at the cursor.
 ---@param dir integer
 ---@return fun()
@@ -302,6 +315,7 @@ local function cycle_type_work(dir)
   end
 end
 
+---@internal
 --- Cycle the word under the cursor. On an ISO date (`YYYY-MM-DD`), step the
 --- year/month/day segment under the cursor with calendar-aware rollover. On
 --- a plain numeric token, fall back to the real native increment/decrement
@@ -377,6 +391,7 @@ M.decrement = dotrepeat.repeatable("decrement", cycle_word_work(-1, "<C-x>", "-"
 
 -- ---------- block / visual transforms ----------
 
+---@internal
 --- 0-based inclusive line range of the current visual selection.
 ---@return integer srow, integer erow
 local function visual_range()
@@ -388,6 +403,7 @@ local function visual_range()
   return a, b
 end
 
+---@internal
 --- Resolve the block range at the cursor for a transform.
 ---@param ctx CascadeContext
 ---@return integer|nil srow, integer|nil erow
@@ -396,6 +412,7 @@ local function block_range(ctx)
   return transform.block_range(ctx.bufnr, ctx.row0, opts)
 end
 
+---@internal
 --- Normal-mode block transform worker.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
 ---@param dir integer
@@ -414,6 +431,7 @@ local function block_work(fn, dir, feature)
   end
 end
 
+---@internal
 --- Visual-mode range transform. Keeps the same rows selected afterwards
 --- (see `cascade.util.lib.keep_lines`) instead of dropping the selection.
 ---@param fn fun(bufnr: integer, s: integer, e: integer, dir: integer, opts: CascadeListOpts): boolean
@@ -502,6 +520,7 @@ function M.run_renumber_command(cmd, scope)
   end
 end
 
+---@internal
 --- Shift the visual selection by one direction, renumbering list blocks, and
 --- reselect the shifted lines (see `cascade.util.lib.keep_lines`; shifting
 --- never changes the line count, so the same rows still address them).
@@ -559,6 +578,7 @@ function M.move_down()
   M._move(1)
 end
 
+---@internal
 --- Internal: normal-mode move.
 ---@param dir integer # -1 up, 1 down.
 ---@return nil
@@ -582,6 +602,7 @@ function M.move_down_visual()
   M._move_visual(1)
 end
 
+---@internal
 --- Internal: visual-mode move.
 ---@param dir integer # -1 up, 1 down.
 ---@return nil
@@ -599,6 +620,7 @@ end
 
 -- ---------- transpose (swap char / selection with a neighbor) ----------
 
+---@internal
 --- Swap the char under the cursor with its right (`dir = 1`) or left
 --- (`dir = -1`) neighbor; no-op at the line boundary or when disabled.
 ---@param dir integer
@@ -617,6 +639,7 @@ end
 M.swap_right = dotrepeat.repeatable("swap_right", swap_work(1))
 M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
 
+---@internal
 --- Swap the visual selection with its right (`dir = 1`) or left (`dir = -1`)
 --- neighbor char, keeping the swapped text itself selected afterwards. The
 --- neighbor moves into the selection's old slot, so the selected text

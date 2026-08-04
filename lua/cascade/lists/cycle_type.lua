@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.cycle_type'
----@brief Cycle one item's marker shape through `lists.cycle`.
----@description
+--- Cycle one item's marker shape through `lists.cycle`.
+---
 --- Rotates a single list item between configured marker templates, e.g.
 --- `-` -> `*` -> `+` -> `1.` -> `a)` -> `I.`. Ordered targets carry the item's
 --- current sequence value when possible (else start at 1); checkbox and text are

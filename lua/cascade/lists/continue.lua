@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.continue'
----@brief List continuation for <CR>, o and O, with empty-bullet deletion.
----@description
+--- List continuation for <CR>, o and O, with empty-bullet deletion.
+---
 --- Each entry point returns true when it handled the key (so the dispatcher
 --- skips the native fallback). On a non-empty ordered item the new marker is the
 --- incremented sibling and the block is renumbered; on an empty item `<CR>`
@@ -11,6 +11,7 @@ local renumber = require("cascade.lists.renumber")
 
 local M = {}
 
+---@internal
 --- Renumber the block at `row0` if ordered renumbering is enabled.
 ---@param bufnr integer
 ---@param row0 integer

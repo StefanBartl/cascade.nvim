@@ -1,7 +1,7 @@
 ---@module 'cascade.transpose.char'
----@brief Swap a character, or a same-line selection, with its immediate
----left/right neighbor.
----@description
+--- Swap a character, or a same-line selection, with its immediate
+--- left/right neighbor.
+---
 --- UTF-8 safe: works in character space (`strcharpart`/`charidx`/`byteidx`),
 --- not byte space, so a multibyte character (e.g. "ä") moves as one unit
 --- instead of being torn apart. A pure line-rewrite, unlike the classic

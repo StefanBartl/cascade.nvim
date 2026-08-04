@@ -1,7 +1,7 @@
 ---@module 'cascade.cycle.date'
----@brief Increment/decrement the year/month/day segment of an ISO date
+--- Increment/decrement the year/month/day segment of an ISO date
 --- (`YYYY-MM-DD`) under the cursor.
----@description
+---
 --- Vim's native `<C-a>`/`<C-x>` only sees the numeric island touching the
 --- cursor -- e.g. just `"31"` in `"2024-01-31"` -- so incrementing the last
 --- day of a month produces an invalid date (`"32"`) instead of rolling over
@@ -36,6 +36,7 @@ function M.span(line, col0)
   end
 end
 
+---@internal
 --- Which segment the cursor is in, given the date starts at `s0`.
 ---@param col0 integer
 ---@param s0 integer

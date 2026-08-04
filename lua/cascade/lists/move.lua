@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.move'
----@brief Move a line / selection up or down, reindent, and renumber lists.
----@description
+--- Move a line / selection up or down, reindent, and renumber lists.
+---
 --- Wraps Vim's `:move` so that moving an ordered list item re-sequences the
 --- block afterwards (the renumber the plain `:m`+`==` mapping can't do). Works on
 --- a single line (normal mode) and a line range (visual mode); reindenting with
@@ -12,6 +12,7 @@ local transform = require("cascade.lists.transform")
 
 local M = {}
 
+---@internal
 --- Tree-renumber the list block containing `row0` (0-based), if it is a list.
 ---@param bufnr integer
 ---@param row0 integer

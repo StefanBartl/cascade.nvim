@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.marker'
----@brief Pure list-marker parser, renderer and incrementer.
----@description
+--- Pure list-marker parser, renderer and incrementer.
+---
 --- The heart of the list domain. `parse` turns a raw line into a `CascadeMarker`
 --- (or nil), `render` rebuilds the marker prefix, and `advance` produces the next
 --- marker for continuation (incrementing ordered markers, resetting checkboxes).
@@ -13,6 +13,7 @@ local alpha = require("cascade.lists.alpha")
 
 local M = {}
 
+---@internal
 --- Split an optional `[x]` checkbox off the front of a body string.
 ---
 --- The payload may be any single character (the classic `[x]`/`[-]`/`[?]`
@@ -47,6 +48,7 @@ local function split_checkbox(body, opts)
   return nil, body
 end
 
+---@internal
 --- Try the current buffer's filetype-specific custom patterns (see
 --- `opts.per_filetype_patterns`) before the built-in kinds. Reads the
 --- *current* buffer's filetype directly rather than taking one as a
@@ -187,6 +189,7 @@ function M.render(m)
   return table.concat(out)
 end
 
+---@internal
 --- Apply the case shape of `ref` to `value` (lower/upper only — markers are
 --- single-script alphabetic tokens).
 ---@param ref string

@@ -1,6 +1,6 @@
 ---@module 'cascade.dispatch'
----@brief Try registered handlers in order; fall back to a native key.
----@description
+--- Try registered handlers in order; fall back to a native key.
+---
 --- The shared abstraction behind both domains: given an ordered list of handler
 --- functions, run each with the context until one reports it handled the action
 --- (returns true). If none do, feed the native key so the editor's default
@@ -17,6 +17,7 @@ local M = {}
 
 ---@alias CascadeHandler fun(ctx: CascadeContext): boolean
 
+---@internal
 --- Feed a native normal-mode key without remapping.
 ---@param lhs string
 ---@return nil

@@ -1,6 +1,6 @@
 ---@module 'cascade.cycle.word_cycle'
----@brief Cycle the word (or operator) under the cursor through configured groups.
----@description
+--- Cycle the word (or operator) under the cursor through configured groups.
+---
 --- Detects the keyword token under the cursor, finds the cycle group it belongs
 --- to (case-insensitively), and replaces it with the next/previous entry while
 --- preserving the original capitalization. Numeric tokens are left for the
@@ -14,6 +14,7 @@ local token = require("cascade.cycle.token")
 
 local M = {}
 
+---@internal
 --- Wrap an index inside `[1, n]` by `dir` (+1 next, -1 prev).
 ---@param n integer
 ---@param idx integer
@@ -26,6 +27,7 @@ local function wrap(n, idx, dir)
   return ((idx - 1 + dir) % n) + 1
 end
 
+---@internal
 --- Build the effective group list for a filetype (global + per-filetype).
 ---@param opts CascadeCycleOpts
 ---@param ft string
@@ -48,6 +50,7 @@ local function groups_for(opts, ft)
   return out
 end
 
+---@internal
 --- Find `text` (case-insensitively) among `groups`.
 ---@param groups string[][]
 ---@param text string
@@ -65,6 +68,7 @@ local function find_group(groups, text)
   return nil, nil
 end
 
+---@internal
 --- Resolve the cursor's operator or word token to its span and cycle group,
 --- shared by `cycle` and `pick`. Operator groups are tried first (they
 --- aren't `'iskeyword'` characters, so there's no risk of shadowing a word

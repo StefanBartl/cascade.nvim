@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.indent'
----@brief Indent / dedent list lines by N shift units, with indent-aware renumber.
----@description
+--- Indent / dedent list lines by N shift units, with indent-aware renumber.
+---
 --- Shifts a line (or a range) by `count` shift units, respecting 'expandtab' and
 --- 'shiftwidth', then renumbers the enclosing list block with the per-level tree
 --- renumber so every nesting level forms a clean sequence. Works on single lines
@@ -13,6 +13,7 @@ local transform = require("cascade.lists.transform")
 
 local M = {}
 
+---@internal
 --- Read a buffer line (0-based), or nil.
 ---@param bufnr integer
 ---@param r integer
@@ -21,6 +22,7 @@ local function line_at(bufnr, r)
   return vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
 end
 
+---@internal
 --- The buffer's effective shiftwidth.
 ---@param bufnr integer
 ---@return integer
@@ -33,6 +35,7 @@ local function shift_width(bufnr)
   return sw
 end
 
+---@internal
 --- Shift a line's leading indent by `count` units in direction `dir`.
 ---@param line string
 ---@param dir integer # 1 = indent, -1 = dedent.
@@ -66,6 +69,7 @@ local function apply_shift(line, dir, count, bufnr)
   return line, -removed
 end
 
+---@internal
 --- Extent of the child block that follows an item at indent width `orig_w`:
 --- every line right after `row0` that is either deeper-indented (a nested
 --- sub-item, or the item's own wrapped continuation text) or a blank line
@@ -103,6 +107,7 @@ local function subtree_end(bufnr, row0, orig_w, opts)
   return e
 end
 
+---@internal
 --- Tree-renumber the list block that contains the first list line in the range.
 ---@param bufnr integer
 ---@param srow integer

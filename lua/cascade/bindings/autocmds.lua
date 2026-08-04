@@ -1,7 +1,7 @@
 ---@module 'cascade.bindings.autocmds'
----@brief Autocommands: per-filetype list keymaps, hanging-indent options, and
+--- Autocommands: per-filetype list keymaps, hanging-indent options, and
 --- the save-time renumber.
----@description
+---
 --- Three autocmds, all idempotent (their augroups are cleared on every setup):
 ---   - a FileType autocmd that binds the buffer-local list keys on the
 ---     configured `lists.filetypes` (only when the preset is enabled);
@@ -20,6 +20,7 @@ local lib = require("cascade.util.lib")
 
 local M = {}
 
+---@internal
 --- Whether `ft` is in `fts` (nil `fts` means "every filetype").
 ---@param fts string[]|nil
 ---@param ft string
@@ -36,6 +37,7 @@ local function ft_in(fts, ft)
   return false
 end
 
+---@internal
 --- Bind the buffer-local list keys per filetype (preset only).
 ---@param cfg CascadeConfig
 ---@return nil
@@ -63,6 +65,7 @@ end
 --- Apply the hanging-indent `formatlistpat`/`formatoptions` per filetype.
 --- Independent of the keymap preset: it's a `lists` behavior (gated by
 --- `lists.continue.hanging_indent`), not a keymap one.
+---@internal
 ---@param cfg CascadeConfig
 ---@return nil
 local function setup_hanging_indent(cfg)
@@ -87,6 +90,7 @@ local function setup_hanging_indent(cfg)
   end
 end
 
+---@internal
 --- Register the BufWritePre renumber autocmd when "save" is a configured
 --- trigger. Idempotent: the augroup is cleared on every setup() call.
 ---@return nil

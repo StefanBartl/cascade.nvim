@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.transform'
----@brief Block / range list transforms: form rotation and A-Z sort.
----@description
+--- Block / range list transforms: form rotation and A-Z sort.
+---
 --- Operates on a line range — either the contiguous list block at the cursor
 --- (`block_range`) or an explicit visual selection. `rotate` advances every item
 --- at the block's base indent through `lists.forms` (a form combines a marker
@@ -17,6 +17,7 @@ local M = {}
 ---@field spec CascadeTypeSpec
 ---@field checkbox boolean # whether this form carries a `[ ]` checkbox
 
+---@internal
 --- Decode a form template, e.g. "1.", "1. [ ]", "- [ ]", "-".
 ---@param s string
 ---@return CascadeForm
@@ -30,6 +31,7 @@ local function parse_form(s)
   return { spec = shape.spec_of(body), checkbox = checkbox }
 end
 
+---@internal
 --- Decode every configured form once.
 ---@param forms string[]
 ---@return CascadeForm[]
@@ -41,6 +43,7 @@ local function parse_forms(forms)
   return out
 end
 
+---@internal
 --- Find the form index a marker currently has (shape + checkbox presence).
 ---@param m CascadeMarker
 ---@param parsed CascadeForm[]
@@ -55,6 +58,7 @@ local function form_index(m, parsed)
   return nil
 end
 
+---@internal
 --- Read a buffer line (0-based), or nil.
 ---@param bufnr integer
 ---@param r integer
@@ -112,6 +116,7 @@ function M.block_range(bufnr, row0, opts)
   return s, e
 end
 
+---@internal
 --- The first parsed item (and its row) within `[srow, erow]`.
 ---@param bufnr integer
 ---@param srow integer
@@ -186,6 +191,7 @@ function M.rotate(bufnr, srow, erow, dir, opts)
   return changed
 end
 
+---@internal
 --- Collect the base-indent items in `[srow, erow]` together with their rows.
 ---@param bufnr integer
 ---@param srow integer
@@ -212,6 +218,7 @@ local function collect(bufnr, srow, erow, opts)
   return base, rows, items, k
 end
 
+---@internal
 --- Type spec describing the block's ordered marker (kind/delim/case).
 ---@param base CascadeMarker
 ---@return CascadeTypeSpec
@@ -224,6 +231,7 @@ local function base_spec(base)
   }
 end
 
+---@internal
 --- Re-emit items into their rows following `order`, renumbering ordered markers
 --- (position-based) and carrying each item's checkbox/text along.
 ---@param bufnr integer

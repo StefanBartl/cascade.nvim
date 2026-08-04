@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.quick_toggle'
----@brief Toggle a marker onto/off an arbitrary line, no existing marker required.
----@description
+--- Toggle a marker onto/off an arbitrary line, no existing marker required.
+---
 --- Complements `checkbox`/`cycle_type` (which only ever *advance* an existing
 --- marker and no-op without one) with the opposite primitive: turn any line —
 --- marked or not — into a specific marker shape, or strip it back to plain
@@ -16,6 +16,7 @@ local transform = require("cascade.lists.transform")
 
 local M = {}
 
+---@internal
 --- Index of `state` in `states`, or nil.
 ---@param states string[]
 ---@param state string
@@ -29,6 +30,7 @@ local function index_of(states, state)
   return nil
 end
 
+---@internal
 --- Resolve indent + text for the cursor line: from a parsed marker if one
 --- exists, else by splitting the raw line's leading whitespace off.
 ---@param m CascadeMarker|nil
@@ -42,6 +44,7 @@ local function indent_text(m, line)
   return indent, line:sub(#indent + 1)
 end
 
+---@internal
 --- Replace the cursor line, or no-op (return false) if unchanged.
 ---@param ctx CascadeContext
 ---@param new_line string
@@ -54,6 +57,7 @@ local function apply(ctx, new_line)
   return true
 end
 
+---@internal
 --- Toggle a plain unordered bullet on the cursor line: strip it if already an
 --- unordered item using this exact `char` (checkbox included), otherwise
 --- set/convert the line to one, preserving text and any existing checkbox.
@@ -155,6 +159,7 @@ function M.checkbox(ctx, opts)
   return apply(ctx, marker.render(new_m) .. text)
 end
 
+---@internal
 --- Apply a per-line toggle (`M.bullet`/`M.star`/`M.number`/`M.checkbox`) to
 --- every non-blank line in `[srow, erow]`, independently — each line decides
 --- its own fate from its own current state, same as pressing the key on it
@@ -201,6 +206,7 @@ function M.star_range(bufnr, srow, erow, _dir, opts)
   return apply_range(bufnr, srow, erow, opts, M.star)
 end
 
+---@internal
 --- Renumber every digit-marker block touched by `[srow, erow]`, each
 --- expanded to its full contiguous run via `transform.block_range` (so a
 --- selection covering only part of an existing list still resequences the

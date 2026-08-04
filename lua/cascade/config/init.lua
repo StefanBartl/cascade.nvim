@@ -1,6 +1,6 @@
 ---@module 'cascade.config'
----@brief Runtime configuration store for cascade.nvim.
----@description
+--- Runtime configuration store for cascade.nvim.
+---
 --- Deep-merges user options over `cascade.config.DEFAULTS` and exposes a single
 --- `get(path)` accessor (dot-separated path) so other modules never read a raw
 --- options table directly. This preserves fallback semantics and keeps the
@@ -14,6 +14,7 @@ local M = {}
 
 M.options = DEFAULTS
 
+---@internal
 --- Recursively merge `override` into a copy of `base`.
 --- Arrays (list-like tables) are replaced wholesale, not concatenated, so a user
 --- can fully redefine e.g. `cycle.groups` without inheriting defaults.
@@ -35,6 +36,7 @@ local function deep_merge(base, override)
   return out
 end
 
+---@internal
 --- Normalize `lists.renumber`: accept a boolean (back-compat) or a partial table
 --- and always end up with `{ enable = boolean, on = string[], blank_break = int }`.
 ---@param o CascadeConfig

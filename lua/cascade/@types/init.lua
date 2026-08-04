@@ -1,6 +1,7 @@
----@module 'cascade.types'
----@brief Central type declarations for cascade.nvim.
----@description
+---@meta
+---@module 'cascade.@types'
+--- Central type declarations for cascade.nvim.
+---
 --- Keeps the source files free of large annotation blocks. Every type that is
 --- shared across more than one module lives here. This file intentionally
 --- returns an empty table; it exists purely for the Lua language server.

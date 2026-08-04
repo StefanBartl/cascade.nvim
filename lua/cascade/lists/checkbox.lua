@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.checkbox'
----@brief Toggle / cycle a checkbox through configurable states.
----@description
+--- Toggle / cycle a checkbox through configurable states.
+---
 --- Generalizes the usual binary `[ ]` <-> `[x]` toggle into an N-state cycle
 --- (e.g. `[ ]` -> `[x]` -> `[-]`). On a plain list item without a checkbox, the
 --- first state is added, turning it into a checkbox item.
@@ -9,6 +9,7 @@ local marker = require("cascade.lists.marker")
 
 local M = {}
 
+---@internal
 --- Index of `state` in `states`, or nil.
 ---@param states string[]
 ---@param state string

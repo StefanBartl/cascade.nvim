@@ -1,6 +1,6 @@
 ---@module 'cascade.bindings.keymaps'
----@brief The buffer-local list keys and the preset globals.
----@description
+--- The buffer-local list keys and the preset globals.
+---
 --- Maps keys straight onto the facade actions in `cascade` — no `<Plug>`
 --- indirection. which-key (if installed) labels the `<leader>c` prefix via
 --- `cascade.bindings.which_key`; individual key descriptions come from each

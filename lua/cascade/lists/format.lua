@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.format'
----@brief Buffer-local `'formatlistpat'`/`'formatoptions'` for hanging-indent wrap.
----@description
+--- Buffer-local `'formatlistpat'`/`'formatoptions'` for hanging-indent wrap.
+---
 --- Native `gq`/auto-wrap already knows how to hang-indent a wrapped list item
 --- once `'formatoptions'` includes `n` and `'formatlistpat'` matches the
 --- marker prefix — cascade doesn't need to reimplement wrapping itself, only
@@ -10,6 +10,7 @@
 
 local M = {}
 
+---@internal
 --- Escape a literal character for a Vim (non-`\v`) regex.
 ---@param c string
 ---@return string
@@ -17,6 +18,7 @@ local function esc(c)
   return (c:gsub("([%^%$%.%*%[%]~/\\])", "\\%1"))
 end
 
+---@internal
 --- Vim-regex char-class matching any configured unordered bullet.
 ---@param markers string[]
 ---@return string

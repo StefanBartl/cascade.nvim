@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.alpha'
----@brief Pure bijective base-26 alphabetic ordinal <-> integer conversion.
----@description
+--- Pure bijective base-26 alphabetic ordinal <-> integer conversion.
+---
 --- Maps a -> 1, z -> 26, aa -> 27, ... (spreadsheet-style). No side effects, no
 --- Neovim API. Case is the caller's concern; conversion always works lowercase.
 --- Delegates to the soft lib.nvim bridge (util/lib.lua): lib.lua.numeral.alpha

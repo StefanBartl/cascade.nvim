@@ -1,6 +1,6 @@
 ---@module 'cascade.util.lib'
----@brief Soft, guarded bridge to a handful of `lib.nvim` helpers.
----@description
+--- Soft, guarded bridge to a handful of `lib.nvim` helpers.
+---
 --- `lib.nvim` itself is now a required dependency (the :Cascade command is
 --- built on lib.nvim.usercmd.composer, see bindings/usrcmds.lua) — but these
 --- specific accessors (`lib.map`, `lib.notify`, ...) stay soft-guarded for
@@ -10,6 +10,7 @@
 
 local M = {}
 
+---@internal
 --- Resolve a sub-module of `lib` once, swallowing load errors. Accepts both
 --- table modules (`lib.nvim.notify`, `lib.nvim.autocmd.augroup`) and bare
 --- function modules (`lib.nvim.map` returns a function, not a table).
@@ -47,6 +48,7 @@ end
 ---@type table|false|nil
 local _debug_logger = nil
 
+---@internal
 --- Resolve (and cache) the `lib.nvim.logger` instance for cascade, or
 --- `false` if unavailable.
 ---@return table|false
@@ -120,6 +122,7 @@ function M.augroup(name)
   return vim.api.nvim_create_augroup(name, { clear = true })
 end
 
+---@internal
 --- Feed a native key sequence without remapping, queued to run once the
 --- current mapping function returns.
 ---@param keys string
@@ -128,6 +131,7 @@ local function feed(keys)
   vim.api.nvim_feedkeys(vim.keycode(keys), "n", false)
 end
 
+---@internal
 --- Standalone fallback for `lib.nvim.selection.lines`.
 ---@return integer srow, integer erow
 local function lines_fallback()
@@ -138,6 +142,7 @@ local function lines_fallback()
   return a, b
 end
 
+---@internal
 --- Standalone fallback for `lib.nvim.selection.reselect_lines` (see there
 --- for the full rationale: `gv` is unreliable mid-selection since its marks
 --- are only set once Visual mode ends).
@@ -148,6 +153,7 @@ local function reselect_lines_fallback(srow, erow)
   feed(string.format("<Esc>%dGV%dG", srow + 1, erow + 1))
 end
 
+---@internal
 --- Standalone fallback for `lib.nvim.selection.chars`.
 ---@return integer|nil row, integer|nil scol, integer|nil ecol
 local function chars_fallback()
@@ -166,6 +172,7 @@ local function chars_fallback()
   return row_d - 1, scol, ecol
 end
 
+---@internal
 --- Standalone fallback for `lib.nvim.selection.reselect_chars`.
 ---@param row integer
 ---@param scol integer
@@ -256,6 +263,10 @@ local ROMAN_STEPS = {
 }
 local ROMAN_VALUE = { I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1000 }
 
+---@internal
+--- Standalone fallback for `M.roman_to_roman` (no `lib.lua.numeral.roman`).
+---@param n integer
+---@return string|nil
 local function roman_to_roman_fallback(n)
   if type(n) ~= "number" or n < 1 or n > 3999 then
     return nil
@@ -273,6 +284,10 @@ local function roman_to_roman_fallback(n)
   return table.concat(out)
 end
 
+---@internal
+--- Standalone fallback for `M.roman_to_int` (no `lib.lua.numeral.roman`).
+---@param s string
+---@return integer|nil
 local function roman_to_int_fallback(s)
   if type(s) ~= "string" or s == "" then
     return nil
@@ -329,6 +344,10 @@ function M.roman_to_int(s)
   return roman_to_int_fallback(s)
 end
 
+---@internal
+--- Standalone fallback for `M.alpha_to_int` (no `lib.lua.numeral.alpha`).
+---@param s string
+---@return integer|nil
 local function alpha_to_int_fallback(s)
   if type(s) ~= "string" or not s:match("^%a+$") then
     return nil
@@ -341,6 +360,10 @@ local function alpha_to_int_fallback(s)
   return n
 end
 
+---@internal
+--- Standalone fallback for `M.alpha_to_alpha` (no `lib.lua.numeral.alpha`).
+---@param n integer
+---@return string|nil
 local function alpha_to_alpha_fallback(n)
   if type(n) ~= "number" or n < 1 then
     return nil
@@ -396,6 +419,7 @@ local _pending_dotrepeat_fn = nil
 
 --- Stable operatorfunc dispatcher for the local dotrepeat_run fallback.
 --- Reached from Vimscript via v:lua; must keep this exact name/path.
+---@return nil
 function M.dotrepeat_invoke()
   local fn = _pending_dotrepeat_fn
   if fn then
@@ -403,6 +427,7 @@ function M.dotrepeat_invoke()
   end
 end
 
+---@internal
 --- Also register with the classic vim-repeat plugin (tpope/vim-repeat), if
 --- installed, alongside the operatorfunc/g@l trick below. Purely optional
 --- interop, never a dependency: vim-repeat's own `.` falls back to Neovim's

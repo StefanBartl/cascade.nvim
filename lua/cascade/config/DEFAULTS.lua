@@ -1,6 +1,6 @@
 ---@module 'cascade.config.DEFAULTS'
----@brief Immutable default configuration for cascade.nvim.
----@description
+--- Immutable default configuration for cascade.nvim.
+---
 --- Single source of truth for every configurable value. `cascade.config`
 --- deep-merges user options on top of this table. Never mutate it at runtime.
 

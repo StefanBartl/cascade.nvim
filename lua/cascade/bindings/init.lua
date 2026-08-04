@@ -1,6 +1,6 @@
 ---@module 'cascade.bindings'
----@brief Orchestrates cascade's bindings: keymaps, user commands, autocmds.
----@description
+--- Orchestrates cascade's bindings: keymaps, user commands, autocmds.
+---
 --- Always defines the `:Cascade*` user commands. When `keymaps.preset` is
 --- enabled it also binds the global preset maps (directly onto the facade
 --- actions, no `<Plug>` indirection) and the per-filetype list keys. The

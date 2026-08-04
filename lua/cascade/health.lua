@@ -1,6 +1,6 @@
 ---@module 'cascade.health'
----@brief `:checkhealth cascade` diagnostics.
----@description
+--- `:checkhealth cascade` diagnostics.
+---
 --- Reports Neovim version, whether each domain is enabled, `lib.nvim`
 --- availability (required — the :Cascade command layer is built on
 --- lib.nvim.usercmd.composer), and basic config sanity (non-empty cycle

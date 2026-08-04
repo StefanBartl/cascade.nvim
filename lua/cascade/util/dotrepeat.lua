@@ -1,6 +1,6 @@
 ---@module 'cascade.util.dotrepeat'
----@brief Central dot-repeat (`.`) support via `operatorfunc` + `g@`.
----@description
+--- Central dot-repeat (`.`) support via `operatorfunc` + `g@`.
+---
 --- Neovim records `g@<motion>` together with the active `operatorfunc` in the
 --- dot register. By routing every repeatable action through a single, stable
 --- entry point we get `.`-repeat for free, without each feature re-implementing

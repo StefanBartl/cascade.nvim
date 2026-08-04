@@ -1,6 +1,6 @@
 ---@module 'cascade.core.patterns'
----@brief Memoized Lua-pattern fragments for marker detection.
----@description
+--- Memoized Lua-pattern fragments for marker detection.
+---
 --- Marker parsing only needs plain line scans (no Treesitter). The few derived
 --- pattern fragments (e.g. the unordered char-class) depend solely on config and
 --- are stable for a session, so we memoize them by a cheap string key to avoid
@@ -11,6 +11,7 @@ local M = {}
 ---@type table<string, string>
 local cache = {}
 
+---@internal
 --- Escape a single character for safe use inside a Lua pattern char-class.
 ---@param c string
 ---@return string

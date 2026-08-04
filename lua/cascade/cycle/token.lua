@@ -1,6 +1,6 @@
 ---@module 'cascade.cycle.token'
----@brief Cursor-token extraction, numeric detection and case-shape helpers.
----@description
+--- Cursor-token extraction, numeric detection and case-shape helpers.
+---
 --- Pure-ish helpers for the word-cycle feature, ported from the original
 --- `ctrl_cycle` mapping. `span` respects 'iskeyword' to find the token under the
 --- cursor; `case_shape`/`apply_shape` preserve the user's capitalization when a

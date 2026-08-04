@@ -1,6 +1,6 @@
 ---@module 'cascade.core.context'
----@brief One-shot cursor/buffer context object.
----@description
+--- One-shot cursor/buffer context object.
+---
 --- Both feature domains repeatedly need the same primitives: the buffer handle,
 --- the cursor position, the current line and the filetype. Building them once
 --- per action (instead of scattering `nvim_*`/`vim.fn.*` calls) keeps the hot

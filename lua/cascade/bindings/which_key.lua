@@ -1,6 +1,6 @@
 ---@module 'cascade.bindings.which_key'
----@brief Optional, guarded which-key group label for the `<leader>c` prefix.
----@description
+--- Optional, guarded which-key group label for the `<leader>c` prefix.
+---
 --- which-key is a **soft** dependency: if it is not installed this is a no-op.
 --- When present, we register a single group label so the preset's `<leader>c*`
 --- list keys (checkbox, cycle type, renumber, rotate, sort, reverse, strip)

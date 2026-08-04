@@ -1,6 +1,6 @@
 ---@module 'cascade.core.treesitter'
----@brief Optional Treesitter-based precision check for the list domain.
----@description
+--- Optional Treesitter-based precision check for the list domain.
+---
 --- cascade is a pure line-scan plugin by design (see `core/patterns.lua`) --
 --- no Treesitter, no syntax awareness, just fast and predictable. That's
 --- blind to one real edge case: a fenced code block inside prose can contain

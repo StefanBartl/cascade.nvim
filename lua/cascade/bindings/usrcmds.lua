@@ -1,8 +1,8 @@
 ---@module 'cascade.bindings.usrcmds'
----@brief The `:Cascade <subcommand>` verb (range-aware; normal + visual),
----@brief built via lib.nvim's composer (:Verb sub … + <Tab> completion +
----@brief Markdown docgen).
----@description
+--- The `:Cascade <subcommand>` verb (range-aware; normal + visual),
+--- built via lib.nvim's composer (:Verb sub … + <Tab> completion +
+--- Markdown docgen).
+---
 --- Thin command wrappers over the facade actions. Every transform command is
 --- range-aware: without a range it acts on the list block at the cursor, with a
 --- range on the selected lines. `run_command`/`run_indent_command` only read

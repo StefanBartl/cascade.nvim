@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.roman'
----@brief Pure Roman-numeral <-> integer conversion (1..3999).
----@description
+--- Pure Roman-numeral <-> integer conversion (1..3999).
+---
 --- No side effects, no Neovim API: trivially unit-testable. `to_int` validates
 --- by round-trip so malformed input like "IIII" or "VX" is rejected, which lets
 --- marker detection rely on it to disambiguate real Roman markers from words.

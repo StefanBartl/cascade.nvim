@@ -1,6 +1,6 @@
 ---@module 'cascade.lists.shape'
----@brief Marker-shape specs: parse a template, match a marker, build a token.
----@description
+--- Marker-shape specs: parse a template, match a marker, build a token.
+---
 --- Shared, pure helpers for everything that reasons about marker *shape* rather
 --- than a concrete marker: `cycle_type` (per-line type cycle) and `transform`
 --- (block/visual form rotation). A "template" is a short string like `1.`,
