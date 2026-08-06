@@ -203,20 +203,31 @@ you want them.
 ==============================================================================
 4. CONFIGURATION                                               *cascade-config*
 
-Defaults: >lua
+Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lua
     {
       lists = {
         enable = true,
-        filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg" },
+        features = {                     -- toggle each feature individually
+          continue = true, checkbox = true, cycle_type = true,
+          rotate = true, sort = true, reverse = true, strip = true,
+          indent = true, move = true,
+          bullet_toggle = true, number_toggle = true, checkbox_toggle = true,
+        },
+        filetypes = { "markdown", "markdown.mdx", "text", "tex", "norg", ... },
         types = { "unordered", "digit" },
         unordered_markers = { "-", "*", "+" },
+        per_filetype_patterns = {},
         cycle = { "-", "*", "+", "1.", "a)", "I." },
+        forms = { "1.", "1. [ ]", "- [ ]", "-" },
         checkbox = { states = { " ", "x" } },
-        continue = { delete_empty = true },
-        renumber = true,
+        continue = { delete_empty = true, hanging_indent = true },
+        renumber = { enable = true, on = { "edit", "save" }, blank_break = 0 },
+        precision = "off",
+        precision_nodes = {},
       },
       cycle = {
         enable = true,
+        features = { word = true, date = true },
         filetypes = nil,
         number_fallback = true,
         groups = { { "true", "false" }, ... },

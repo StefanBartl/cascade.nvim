@@ -164,11 +164,17 @@ function M.rotate(bufnr, srow, erow, dir, opts)
   local target = parsed[target_idx]
   local states = opts.checkbox.states
 
+  -- Rewrite the whole range in memory and commit once (same rationale as
+  -- `cascade.lists.renumber.tree`/`cascade.lists.indent.shift_range`): a
+  -- rotated block can span many items, and one `nvim_buf_set_lines` call is
+  -- both cheaper and leaves the highlighter a single clean edit.
+  local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
+  local out = {} ---@type string[]
   local changed = false
   local counter = 1
-  for r = srow, erow do
-    local l = line_at(bufnr, r)
-    local m = l and marker.parse(l, opts)
+  for i = 1, #lines do
+    local l = lines[i]
+    local m = marker.parse(l, opts)
     if m and #m.indent == base_indent then
       local new_m = {
         indent = m.indent,
@@ -181,12 +187,17 @@ function M.rotate(bufnr, srow, erow, dir, opts)
         new_m.checkbox = m.checkbox or states[1]
       end
       local new = marker.render(new_m) .. (m.text or "")
+      out[i] = new
       if new ~= l then
-        vim.api.nvim_buf_set_lines(bufnr, r, r + 1, false, { new })
         changed = true
       end
       counter = counter + 1
+    else
+      out[i] = l
     end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, srow, erow + 1, false, out)
   end
   return changed
 end
@@ -242,6 +253,13 @@ end
 ---@return boolean changed
 local function apply_order(bufnr, base, rows, items, order)
   local spec = base_spec(base)
+  -- Base-indent rows may not be contiguous (deeper-indented child lines can
+  -- sit between them); rewrite the whole span from the first to the last
+  -- touched row in memory and commit with a single `nvim_buf_set_lines` call
+  -- (see `cascade.lists.renumber.tree` for the same rationale), instead of
+  -- one API call per changed item.
+  local first_row, last_row = rows[1], rows[#rows]
+  local out = vim.api.nvim_buf_get_lines(bufnr, first_row, last_row + 1, false)
   local changed = false
   for pos = 1, #rows do
     local src = items[order[pos]]
@@ -254,11 +272,14 @@ local function apply_order(bufnr, base, rows, items, order)
       text = src.text,
     }
     local new = marker.render(new_m) .. (src.text or "")
-    local cur = line_at(bufnr, rows[pos])
-    if new ~= cur then
-      vim.api.nvim_buf_set_lines(bufnr, rows[pos], rows[pos] + 1, false, { new })
+    local idx = rows[pos] - first_row + 1
+    if new ~= out[idx] then
+      out[idx] = new
       changed = true
     end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, first_row, last_row + 1, false, out)
   end
   return changed
 end
@@ -323,18 +344,25 @@ function M.strip(bufnr, srow, erow, _dir, opts)
   if not base or k < 1 then
     return false
   end
+  -- Same batching rationale as `apply_order`: one `nvim_buf_set_lines` call
+  -- spanning the first to the last touched row instead of one per item.
+  local first_row, last_row = rows[1], rows[k]
+  local out = vim.api.nvim_buf_get_lines(bufnr, first_row, last_row + 1, false)
   local changed = false
   for i = 1, k do
     local m = items[i]
     if m.checkbox ~= nil then
       m.checkbox = nil
       local new = marker.render(m) .. (m.text or "")
-      local cur = line_at(bufnr, rows[i])
-      if new ~= cur then
-        vim.api.nvim_buf_set_lines(bufnr, rows[i], rows[i] + 1, false, { new })
+      local idx = rows[i] - first_row + 1
+      if new ~= out[idx] then
+        out[idx] = new
         changed = true
       end
     end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, first_row, last_row + 1, false, out)
   end
   return changed
 end

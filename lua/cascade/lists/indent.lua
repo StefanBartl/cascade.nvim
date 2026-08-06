@@ -132,7 +132,10 @@ end
 
 --- Shift a single list line (and its subtree: nested children / wrapped
 --- continuation text — see `subtree_end`) and keep the cursor on the same
---- character.
+--- character. The line plus its subtree are rewritten in memory and
+--- committed with a single `nvim_buf_set_lines` call (same rationale as
+--- `cascade.lists.renumber.tree`: one contiguous edit instead of scattering
+--- one API call per line, cheaper and treesitter-friendly).
 ---@param ctx CascadeContext
 ---@param opts CascadeListOpts
 ---@param count integer
@@ -148,16 +151,16 @@ function M.shift_line(ctx, opts, count, dir)
     return false
   end
   local child_end = subtree_end(ctx.bufnr, ctx.row0, #m.indent, opts)
-  vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, ctx.row0 + 1, false, { new })
+  local out = { new } ---@type string[]
   for r = ctx.row0 + 1, child_end do
     local l = line_at(ctx.bufnr, r)
     if l and l ~= "" then
-      local shifted = apply_shift(l, dir, count, ctx.bufnr)
-      if shifted ~= l then
-        vim.api.nvim_buf_set_lines(ctx.bufnr, r, r + 1, false, { shifted })
-      end
+      out[#out + 1] = apply_shift(l, dir, count, ctx.bufnr)
+    else
+      out[#out + 1] = l or ""
     end
   end
+  vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, child_end + 1, false, out)
   vim.api.nvim_win_set_cursor(0, { ctx.row0 + 1, math.max(0, ctx.col0 + delta) })
   renumber_block(ctx.bufnr, ctx.row0, ctx.row0, opts)
   return true
@@ -166,6 +169,9 @@ end
 --- Shift every (non-empty) line in `[srow, erow]`, then renumber the block.
 --- Used for visual selections and range commands; works on non-list lines too,
 --- but only renumbers when `renumber_ok` (the caller's filetype gate) is true.
+--- The whole range is rewritten in memory and committed with a single
+--- `nvim_buf_set_lines` call (see `M.shift_line`) instead of one API call per
+--- changed line — a visual selection can span many lines.
 ---@param bufnr integer
 ---@param srow integer
 ---@param erow integer
@@ -175,14 +181,23 @@ end
 ---@param renumber_ok boolean
 ---@return nil
 function M.shift_range(bufnr, srow, erow, dir, count, opts, renumber_ok)
-  for r = srow, erow do
-    local l = line_at(bufnr, r)
-    if l and l ~= "" then
+  local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
+  local out = {} ---@type string[]
+  local changed = false
+  for i = 1, #lines do
+    local l = lines[i]
+    if l ~= "" then
       local new = apply_shift(l, dir, count, bufnr)
       if new ~= l then
-        vim.api.nvim_buf_set_lines(bufnr, r, r + 1, false, { new })
+        changed = true
       end
+      out[i] = new
+    else
+      out[i] = l
     end
+  end
+  if changed then
+    vim.api.nvim_buf_set_lines(bufnr, srow, erow + 1, false, out)
   end
   if renumber_ok then
     renumber_block(bufnr, srow, erow, opts)
