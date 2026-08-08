@@ -26,8 +26,8 @@
 - **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …)
   via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers and,
   off `+`/`-`, for the plain line motion (global).
-- **transpose** — swap a character or a same-line selection with its
-  left/right neighbor, UTF-8 safe (global).
+- **transpose** — swap a character or a word (or a same-line selection) with
+  its left/right neighbor, UTF-8 safe (global).
 
 ---
 
@@ -68,8 +68,9 @@
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
-| **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable. |
-| **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char. |
+| **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable, count = swap N times. |
+| **transpose** | Word swap           | Swap the word under the cursor with its left/right neighbor word, dot-repeatable, count = swap N times. |
+| **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char or word, count = swap N times. |
 | **lists**  | Treesitter precision   | Opt-in (`lists.precision = "treesitter"`): skip list actions inside a fenced code block, falling back safely if no parser is installed. |
 
 Safety & performance design decisions: pure line scan by default, no
@@ -157,8 +158,9 @@ require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
-`<leader><Right>`/`<leader><Left>` globally (char/selection swap) and, in the
-list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
+`<leader><Right>`/`<leader><Left>` (char/selection swap) and
+`<leader><C-Right>`/`<leader><C-Left>` (word/selection swap) globally, and, in
+the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
 `<A-->`/`<A-*>`/`<A-0>`/`<A-c>` (quick bullet/star/number/checkbox toggle —
 also work on a Visual/Visual-line selection, each line toggled independently),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
@@ -218,8 +220,10 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `sort` / `sort_visual`        | n / x | Sort block/selection A–Z                  |
 | `reverse` / `reverse_visual`  | n / x | Reverse block/selection order             |
 | `strip_checkbox` / `_visual`  | n / x | Strip checkboxes in block/selection       |
-| `swap_right` / `swap_left`    | n     | Swap char with right/left neighbor        |
-| `swap_right_visual` / `swap_left_visual` | x | Swap selection with right/left neighbor char |
+| `swap_right` / `swap_left`    | n     | Swap char with right/left neighbor (count = N times) |
+| `swap_right_visual` / `swap_left_visual` | x | Swap selection with right/left neighbor char (count = N times) |
+| `swap_word_right` / `swap_word_left` | n | Swap word with right/left neighbor word (count = N times) |
+| `swap_word_right_visual` / `swap_word_left_visual` | x | Swap selection with right/left neighbor word (count = N times) |
 
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
@@ -250,7 +254,10 @@ In the preset, additionally buffer-local (each in Normal **and** Visual):
 - Indent/dedent: `<A-Right>` / `<A-Left>` (Normal, Visual, Insert → `<C-t>`/`<C-d>`).
 - Indent/dedent one line by N levels: `<leader><A-Right>` / `<leader><A-Left>` (Normal).
 - Move lines: `<A-Up>` / `<A-Down>` (Normal, Visual, Insert).
-- Char/selection swap: `<leader><Right>` / `<leader><Left>` (Normal, Visual).
+- Char/selection swap: `<leader><Right>` / `<leader><Left>` (Normal, Visual;
+  count = swap N times).
+- Word/selection swap: `<leader><C-Right>` / `<leader><C-Left>` (Normal,
+  Visual; count = swap N times).
 
 When moving a numbered list, it is reindented and the block is renumbered (text
 moves, numbers stay sequential). Outside of lists it is a plain `:move` with an
@@ -366,7 +373,7 @@ require("cascade").setup({
   },
   transpose = {
     enable = true,
-    features = { char = true },              -- char/selection swap on/off
+    features = { char = true, word = true }, -- char/word/selection swap on/off
   },
   keymaps = { preset = false },
   debug = false,                             -- log detect/advance/fallback decisions; see :h cascade-config
@@ -384,8 +391,8 @@ different scope:
   renumber) is scoped to `lists.filetypes` — sensible, since list markers are
   prose/markup specific. List actions **no-op** on lines without a marker, so a
   broad filetype list is harmless.
-- **`transpose`** (char/selection swap) is **global**, no filetype option at
-  all — swapping characters is filetype-agnostic by nature.
+- **`transpose`** (char/word/selection swap) is **global**, no filetype
+  option at all — swapping characters/words is filetype-agnostic by nature.
 - **Indent/dedent** and **move** are effectively **global**: list-aware in the
   list filetypes (with renumber), plain `>>`/`<<` or `:move` elsewhere.
 
@@ -396,7 +403,7 @@ different scope:
 | Continue, cycle_type, rotate, sort, reverse | `lists.filetypes` |
 | Checkbox, strip | `lists.filetypes` (most useful in Markdown/org/norg) |
 | Quick bullet/number/checkbox toggle | `lists.filetypes` (work without an existing marker) |
-| Char/selection swap | global (every filetype, no filetype option) |
+| Char/word/selection swap | global (every filetype, no filetype option) |
 
 **Renumber timing:** `lists.renumber.on` controls *when* renumbering happens —
 `{ "edit" }` (immediately after indent/move/continue/…), `{ "save" }` (on `:w`
@@ -460,7 +467,7 @@ cascade.nvim/
     lists/                    -- marker, continue, renumber, checkbox,
                                  quick_toggle, cycle_type, indent, roman, alpha
     cycle/                    -- token, word_cycle
-    transpose/                -- char (swap with left/right neighbor)
+    transpose/                -- char, word (swap with left/right neighbor)
     bindings/                 -- keymaps, user commands, autocmds, which-key
     util/{lib,dotrepeat}      -- guarded lib bridge, operatorfunc repeat
     health.lua

@@ -27,8 +27,9 @@ cascade.nvim applies a single pattern to three feature domains:
   - The *cycle* domain rotates the word under the cursor (true/false, on/off,
     ...) and defers to native |CTRL-A|/|CTRL-X| on numeric tokens. It is global
     by default.
-  - The *transpose* domain swaps a character (or a same-line selection) with
-    its left/right neighbor. It is global and filetype-agnostic.
+  - The *transpose* domain swaps a character or a word (or a same-line
+    selection) with its left/right neighbor. It is global and
+    filetype-agnostic.
 
 Requires Neovim 0.9+. No Treesitter, no autocommand-per-keystroke; all work is
 triggered by explicit keys, guarded with pcall, and uses one context object per
@@ -89,13 +90,20 @@ keys you like with a normal |vim.keymap.set()|:
     reverse / reverse_visual     n / x   reverse block/selection order
     strip_checkbox / _visual     n / x   remove checkboxes
     swap_right / swap_left       normal  swap char with right/left neighbor
-    swap_right_visual / swap_left_visual  x   swap selection with neighbor char
+                                          (count = swap N times)
+    swap_right_visual / swap_left_visual  x   swap selection with neighbor
+                                          char (count = swap N times)
+    swap_word_right / swap_word_left  normal  swap word with right/left
+                                          neighbor word (count = swap N times)
+    swap_word_right_visual / swap_word_left_visual  x   swap selection with
+                                          neighbor word (count = swap N times)
 
 The checkbox, bullet-toggle, number-toggle, checkbox-toggle, cycle-type,
-cycle-word, swap-right/left (normal), rotate-form (normal) and sort (normal)
-actions are dot-repeatable (|.|). rotate-form and sort have separate normal
-and visual functions: normal mode operates on the contiguous list block at the
-cursor, visual mode on the selected lines.
+cycle-word, swap-right/left (normal), swap-word-right/left (normal),
+rotate-form (normal) and sort (normal) actions are dot-repeatable (|.|).
+rotate-form and sort have separate normal and visual functions: normal mode
+operates on the contiguous list block at the cursor, visual mode on the
+selected lines.
 
 Dot-repeat is native (`operatorfunc` + `g@l`), not a `tpope/vim-repeat`
 dependency. If vim-repeat happens to be installed, cascade also calls its
@@ -191,10 +199,14 @@ With `keymaps.preset = true`:
     x   <A-Down>    ->  move_down_visual
     i   <A-Up>      ->  :m .-2 + ==   (native insert move)
     i   <A-Down>    ->  :m .+1 + ==   (native insert move)
-    n   <leader><Right>  ->  swap_right
-    n   <leader><Left>   ->  swap_left
-    x   <leader><Right>  ->  swap_right_visual
-    x   <leader><Left>   ->  swap_left_visual
+    n   <leader><Right>    ->  swap_right
+    n   <leader><Left>     ->  swap_left
+    x   <leader><Right>    ->  swap_right_visual
+    x   <leader><Left>     ->  swap_left_visual
+    n   <leader><C-Right>  ->  swap_word_right
+    n   <leader><C-Left>   ->  swap_word_left
+    x   <leader><C-Right>  ->  swap_word_right_visual
+    x   <leader><C-Left>   ->  swap_word_left_visual
 
 <Tab>/<S-Tab> are intentionally left out of the preset to avoid clashing with
 completion plugins; bind them yourself to `cascade.indent`/`cascade.dedent` if
@@ -235,7 +247,7 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
       },
       transpose = {
         enable = true,
-        features = { char = true },
+        features = { char = true, word = true },
       },
       keymaps = { preset = false },
       debug = false,
@@ -384,8 +396,8 @@ Set `cycle.features.date = false` to turn this off and fall back to the
 native (date-unaware) behavior.
 
 transpose.enable      (boolean)   Master switch for the transpose domain.
-transpose.features    (table)     Per-feature switches. Key: char. Missing key
-                                  = enabled.
+transpose.features    (table)     Per-feature switches. Keys: char, word.
+                                  Missing key = enabled.
 
 keymaps.preset        (boolean)   Bind the default key set on setup.
 
@@ -493,6 +505,25 @@ Examples: >
 No-op at a line boundary (nothing to swap with) or, for the visual variant,
 across multiple lines — there is no single well-defined neighbor there. On a
 no-op the visual selection is restored (`gv`); on success it is dropped.
+
+`swap_word_right`/`swap_word_left` (and their `_visual` counterparts) work
+the same way one level up: the word under the cursor (or a same-line
+selection) swaps with the neighboring `'iskeyword'` word instead of a single
+character. The separator between the two (whitespace, punctuation, ...)
+moves as an untouched block — only the two words trade places.
+
+Examples: >
+    foo bar       ->  swap_word_right  ->  bar foo   (cursor follows to "bar")
+    foo,bar       ->  swap_word_right  ->  bar,foo   (comma gap kept as-is)
+<
+Same no-op rules as the char variant: nothing to the right/left on the line,
+across multiple lines, or when the cursor/selection isn't touching a word.
+
+Both the char and word swaps, normal and visual, honor `v:count`: a bare
+call swaps once, `N<leader><Right>`/`N<leader><C-Right>` (etc.) repeats the
+swap `N` times, dragging the char/word/selection `N` positions over. It stops
+early (rather than erroring) if it hits a line boundary or runs out of
+neighbors before `N` swaps are done.
 
 ==============================================================================
 8. HEALTH                                                      *cascade-health*

@@ -151,6 +151,7 @@ local DEFAULTS = {
     enable = true,
     features = {
       char = true, -- swap the char (or same-line selection) with its left/right neighbor
+      word = true, -- swap the word (or same-line selection) with its left/right neighbor word
     },
   },
 

@@ -26,6 +26,7 @@ local token = require("cascade.cycle.token")
 local date = require("cascade.cycle.date")
 local treesitter = require("cascade.core.treesitter")
 local transpose_char = require("cascade.transpose.char")
+local transpose_word = require("cascade.transpose.word")
 
 local M = {}
 
@@ -621,8 +622,25 @@ end
 -- ---------- transpose (swap char / selection with a neighbor) ----------
 
 ---@internal
+--- `swap_work`/`swap_word_work` run dot-repeated, deferred through
+--- `dotrepeat_run`'s `operatorfunc`/`g@l` trampoline (native Vim, or
+--- `lib.nvim.dotrepeat`'s `vim.cmd("normal! g@l")`) -- by the time that
+--- fires, the count typed on the *triggering* keypress (e.g. `3` in
+--- `3<leader><Right>`) is long gone from `vim.v.count1`, because neither
+--- trampoline re-embeds it into the replayed `g@l`. So the count has to be
+--- captured here, at the one point where `vim.v.count1` is still the
+--- keypress's own -- immediately, before the trampoline -- and stashed for
+--- the deferred swap loop to read instead of `vim.v.count1`. `.` afterwards
+--- replays with this same stashed count (not a fresh one, since native
+--- dot-repeat re-enters `operatorfunc` directly, bypassing this capture).
+---@type integer
+local pending_swap_count = 1
+
 --- Swap the char under the cursor with its right (`dir = 1`) or left
---- (`dir = -1`) neighbor; no-op at the line boundary or when disabled.
+--- (`dir = -1`) neighbor, `pending_swap_count` times (default 1) — a plain
+--- call moves it one position, `3<leader><Right>` drags it three positions
+--- right. Stops early (rather than erroring) if it hits the line boundary
+--- before that many swaps are done. No-op when disabled.
 ---@param dir integer
 ---@return fun()
 local function swap_work(dir)
@@ -632,29 +650,91 @@ local function swap_work(dir)
     if not (opts.enable and xf("char") and Context.writable(bufnr)) then
       return
     end
-    transpose_char.char(Context.new(bufnr), dir)
+    for _ = 1, pending_swap_count do
+      if not transpose_char.char(Context.new(bufnr), dir) then
+        break
+      end
+    end
   end
 end
 
-M.swap_right = dotrepeat.repeatable("swap_right", swap_work(1))
-M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
+local swap_right_repeatable = dotrepeat.repeatable("swap_right", swap_work(1))
+local swap_left_repeatable = dotrepeat.repeatable("swap_left", swap_work(-1))
+
+--- Swap the char under the cursor with its right neighbor. `Ncount` swaps N times.
+---@return nil
+function M.swap_right()
+  pending_swap_count = vim.v.count1
+  swap_right_repeatable()
+end
+
+--- Swap the char under the cursor with its left neighbor. `Ncount` swaps N times.
+---@return nil
+function M.swap_left()
+  pending_swap_count = vim.v.count1
+  swap_left_repeatable()
+end
+
+---@internal
+--- Swap the word under the cursor with its right (`dir = 1`) or left
+--- (`dir = -1`) neighbor word, `pending_swap_count` times (default 1) — same
+--- count convention and capture-timing reasoning as `swap_work`. No-op when
+--- disabled, the cursor isn't on a word, or there's no neighbor word left on
+--- the line.
+---@param dir integer
+---@return fun()
+local function swap_word_work(dir)
+  return function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local opts = config.get("transpose")
+    if not (opts.enable and xf("word") and Context.writable(bufnr)) then
+      return
+    end
+    for _ = 1, pending_swap_count do
+      if not transpose_word.word(Context.new(bufnr), dir) then
+        break
+      end
+    end
+  end
+end
+
+local swap_word_right_repeatable = dotrepeat.repeatable("swap_word_right", swap_word_work(1))
+local swap_word_left_repeatable = dotrepeat.repeatable("swap_word_left", swap_word_work(-1))
+
+--- Swap the word under the cursor with its right neighbor word. `Ncount` swaps N times.
+---@return nil
+function M.swap_word_right()
+  pending_swap_count = vim.v.count1
+  swap_word_right_repeatable()
+end
+
+--- Swap the word under the cursor with its left neighbor word. `Ncount` swaps N times.
+---@return nil
+function M.swap_word_left()
+  pending_swap_count = vim.v.count1
+  swap_word_left_repeatable()
+end
 
 ---@internal
 --- Swap the visual selection with its right (`dir = 1`) or left (`dir = -1`)
---- neighbor char, keeping the swapped text itself selected afterwards. The
---- neighbor moves into the selection's old slot, so the selected text
---- shifts by the neighbor's byte width — reselect the *new* bounds
---- `transpose_char.selection` returns, not the original ones (unlike
---- `keep_chars`, which assumes the selected span never moves). No-op across
---- multiple lines, at the line boundary, or when disabled — the selection
---- is restored via `gv` (matching `_move_visual`'s convention) in those
---- cases.
+--- neighbor, `vim.v.count1` times, keeping the swapped text itself selected
+--- afterwards. `transpose` is `transpose_char.selection` or
+--- `transpose_word.word_selection` — same signature, neighbor unit differs.
+--- The neighbor moves into the selection's old slot, so the selected text
+--- shifts by the neighbor's width each swap — each iteration reselects the
+--- *new* bounds the transpose function returns, not the original ones
+--- (unlike `keep_chars`, which assumes the selected span never moves). No-op
+--- across multiple lines, at the line boundary, when there's no neighbor, or
+--- when disabled — the selection is restored via `gv` (matching
+--- `_move_visual`'s convention) in those cases.
+---@param transpose fun(bufnr: integer, row0: integer, scol0: integer, ecol0: integer, dir: integer): boolean, integer|nil, integer|nil
+---@param feature string # transpose feature key gating this swap ("char"/"word").
 ---@param dir integer
 ---@return nil
-function M._swap_visual(dir)
+local function swap_visual(transpose, feature, dir)
   local bufnr = vim.api.nvim_get_current_buf()
   local opts = config.get("transpose")
-  if not (opts.enable and xf("char") and Context.writable(bufnr)) then
+  if not (opts.enable and xf(feature) and Context.writable(bufnr)) then
     feed("gv")
     return
   end
@@ -663,9 +743,16 @@ function M._swap_visual(dir)
     feed("gv")
     return
   end
-  local changed, new_scol, new_ecol = transpose_char.selection(bufnr, row, scol, ecol, dir)
-  if changed then
-    lib.reselect_chars(row, new_scol, new_ecol)
+  local changed_any = false
+  for _ = 1, vim.v.count1 do
+    local changed, new_scol, new_ecol = transpose(bufnr, row, scol, ecol, dir)
+    if not changed then
+      break
+    end
+    scol, ecol, changed_any = new_scol, new_ecol, true
+  end
+  if changed_any then
+    lib.reselect_chars(row, scol, ecol)
   else
     feed("gv")
   end
@@ -674,13 +761,25 @@ end
 --- Swap the visual selection with its right neighbor char.
 ---@return nil
 function M.swap_right_visual()
-  M._swap_visual(1)
+  swap_visual(transpose_char.selection, "char", 1)
 end
 
 --- Swap the visual selection with its left neighbor char.
 ---@return nil
 function M.swap_left_visual()
-  M._swap_visual(-1)
+  swap_visual(transpose_char.selection, "char", -1)
+end
+
+--- Swap the visual selection with its right neighbor word.
+---@return nil
+function M.swap_word_right_visual()
+  swap_visual(transpose_word.word_selection, "word", 1)
+end
+
+--- Swap the visual selection with its left neighbor word.
+---@return nil
+function M.swap_word_left_visual()
+  swap_visual(transpose_word.word_selection, "word", -1)
 end
 
 -- Expose the transform functions so user commands can reference them by name.

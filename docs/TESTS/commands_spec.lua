@@ -205,6 +205,37 @@ return function(H)
   eq(vim.fn.mode(), "v", "selection survives chained <leader><Right> swap")
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
+  -- Normal-mode <leader><Right>/<leader><Left> (char) and
+  -- <leader><C-Right>/<leader><C-Left> (word) are dot-repeatable, deferred
+  -- through the operatorfunc/g@l trampoline -- regression test for the count
+  -- typed on the *triggering* keypress surviving that trampoline (it used to
+  -- be lost, so `3<leader><Right>` silently behaved like a bare
+  -- `<leader><Right>`; see `pending_swap_count` in init.lua).
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "abcdef" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("3<leader><Right>"), "mtx", false)
+  eq_lines(vim.api.nvim_buf_get_lines(ebuf, 0, -1, false), { "bcdaef" }, "3<leader><Right>: char dragged 3 positions right")
+
+  -- dot-repeat replays with the same count as the triggering keypress.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "abcdefgh" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<leader><Right>."), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "bcdeafgh" },
+    "2<leader><Right>. : dot-repeat replays the same count"
+  )
+
+  -- word swap: <leader><C-Right>/<leader><C-Left>, with count.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "one two three four" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2<leader><C-Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "two three one four" },
+    "2<leader><C-Right>: word dragged 2 positions right"
+  )
+
   cfg.setup({})
 
   -- :Cascade renumber — no range = current list block at the cursor.

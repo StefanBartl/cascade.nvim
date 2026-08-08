@@ -68,6 +68,7 @@
 
 ---@class CascadeTransposeFeatures
 ---@field char boolean # Swap the char (or same-line selection) with its left/right neighbor.
+---@field word boolean # Swap the word (or same-line selection) with its left/right neighbor word.
 
 ---@class CascadeTransposeOpts
 ---@field enable boolean # Master switch for the transpose domain.
