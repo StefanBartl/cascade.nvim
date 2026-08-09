@@ -125,17 +125,61 @@ function M.bind_preset_globals(cfg)
   end
 
   -- Global char transpose (all filetypes): swap with left/right neighbor.
+  -- Ncount = swap N times (drag the char/selection N positions over).
   local trans_feat = cfg.transpose.features or {}
   if cfg.transpose.enable and trans_feat.char ~= false then
-    lib.map("n", "<leader><Right>", api.swap_right, { silent = true, desc = "cascade: swap char with right neighbor" })
-    lib.map("n", "<leader><Left>", api.swap_left, { silent = true, desc = "cascade: swap char with left neighbor" })
+    lib.map(
+      "n",
+      "<leader><Right>",
+      api.swap_right,
+      { silent = true, desc = "cascade: swap char with right neighbor (Ncount = N times)" }
+    )
+    lib.map(
+      "n",
+      "<leader><Left>",
+      api.swap_left,
+      { silent = true, desc = "cascade: swap char with left neighbor (Ncount = N times)" }
+    )
     lib.map(
       "x",
       "<leader><Right>",
       api.swap_right_visual,
-      { silent = true, desc = "cascade: swap selection with right neighbor" }
+      { silent = true, desc = "cascade: swap selection with right neighbor (Ncount = N times)" }
     )
-    lib.map("x", "<leader><Left>", api.swap_left_visual, { silent = true, desc = "cascade: swap selection with left neighbor" })
+    lib.map(
+      "x",
+      "<leader><Left>",
+      api.swap_left_visual,
+      { silent = true, desc = "cascade: swap selection with left neighbor (Ncount = N times)" }
+    )
+  end
+
+  -- Global word transpose (all filetypes): swap with left/right neighbor word.
+  if cfg.transpose.enable and trans_feat.word ~= false then
+    lib.map(
+      "n",
+      "<leader><C-Right>",
+      api.swap_word_right,
+      { silent = true, desc = "cascade: swap word with right neighbor word (Ncount = N times)" }
+    )
+    lib.map(
+      "n",
+      "<leader><C-Left>",
+      api.swap_word_left,
+      { silent = true, desc = "cascade: swap word with left neighbor word (Ncount = N times)" }
+    )
+    lib.map(
+      "x",
+      "<leader><C-Right>",
+      api.swap_word_right_visual,
+      { silent = true, desc = "cascade: swap selection with right neighbor word (Ncount = N times)" }
+    )
+    lib.map(
+      "x",
+      "<leader><C-Left>",
+      api.swap_word_left_visual,
+      { silent = true, desc = "cascade: swap selection with left neighbor word (Ncount = N times)" }
+    )
   end
 end
 
