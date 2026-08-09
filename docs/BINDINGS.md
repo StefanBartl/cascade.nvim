@@ -42,10 +42,10 @@ Bound for every filetype.
 | `<A-Down>` | x | `move_down_visual` | lists.move | Move selection down |
 | `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` (native) | lists.move | Move line up (insert) |
 | `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` (native) | lists.move | Move line down (insert) |
-| `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor |
-| `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor |
-| `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char |
-| `<leader><Left>` | x | `swap_left_visual` | transpose.char | Swap selection with left neighbor char |
+| `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor (count = repeat N times) |
+| `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor (count = repeat N times) |
+| `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char (count = repeat N times) |
+| `<leader><Left>` | x | `swap_left_visual` | transpose.char | Swap selection with left neighbor char (count = repeat N times) |
 
 ### Buffer-local
 

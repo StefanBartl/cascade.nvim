@@ -68,8 +68,8 @@
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
-| **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable. |
-| **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char. |
+| **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable, count = repeat N times. |
+| **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char, count = repeat N times. |
 | **lists**  | Treesitter precision   | Opt-in (`lists.precision = "treesitter"`): skip list actions inside a fenced code block, falling back safely if no parser is installed. |
 
 Safety & performance design decisions: pure line scan by default, no
@@ -218,8 +218,8 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `sort` / `sort_visual`        | n / x | Sort block/selection A–Z                  |
 | `reverse` / `reverse_visual`  | n / x | Reverse block/selection order             |
 | `strip_checkbox` / `_visual`  | n / x | Strip checkboxes in block/selection       |
-| `swap_right` / `swap_left`    | n     | Swap char with right/left neighbor        |
-| `swap_right_visual` / `swap_left_visual` | x | Swap selection with right/left neighbor char |
+| `swap_right` / `swap_left`    | n     | Swap char with right/left neighbor (count = repeat N times) |
+| `swap_right_visual` / `swap_left_visual` | x | Swap selection with right/left neighbor char (count = repeat N times) |
 
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.

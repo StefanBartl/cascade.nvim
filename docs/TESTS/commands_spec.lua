@@ -205,6 +205,34 @@ return function(H)
   eq(vim.fn.mode(), "v", "selection survives chained <leader><Right> swap")
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
+  -- v:count1 repeats the swap that many times in one keypress: "2<leader><Right>"
+  -- on "abcde" (cursor on 'a') moves 'a' two positions right, same net effect
+  -- as pressing <leader><Right> twice.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "abcde" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("2 <Right>"), "mtx", false)
+  eq_lines(vim.api.nvim_buf_get_lines(ebuf, 0, -1, false), { "bcade" }, "2<leader><Right> moves the char two positions right")
+  eq(vim.fn.col("."), 3, "2<leader><Right> leaves the cursor on the moved char")
+
+  vim.api.nvim_feedkeys(vim.keycode("2 <Left>"), "mtx", false)
+  eq_lines(vim.api.nvim_buf_get_lines(ebuf, 0, -1, false), { "abcde" }, "2<leader><Left> undoes it back to the original")
+
+  -- Same count support in Visual mode: "2<leader><Right>" on a selection is
+  -- the same net effect as the two chained presses tested above ("cdabe"),
+  -- but in a single keypress.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "abcde" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.api.nvim_feedkeys(vim.keycode("vl2 <Right>"), "mtx", false)
+  eq_lines(
+    vim.api.nvim_buf_get_lines(ebuf, 0, -1, false),
+    { "cdabe" },
+    "v + 2<leader><Right> swaps the selection twice in one keypress"
+  )
+  eq(vim.fn.mode(), "v", "selection survives 2<leader><Right> swap")
+  eq(vim.fn.col("v"), 3, "selection follows the shifted text (start)")
+  eq(vim.fn.col("."), 4, "selection follows the shifted text (end)")
+  vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
+
   cfg.setup({})
 
   -- :Cascade renumber — no range = current list block at the cursor.

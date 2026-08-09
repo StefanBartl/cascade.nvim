@@ -89,7 +89,9 @@ keys you like with a normal |vim.keymap.set()|:
     reverse / reverse_visual     n / x   reverse block/selection order
     strip_checkbox / _visual     n / x   remove checkboxes
     swap_right / swap_left       normal  swap char with right/left neighbor
+                                          (count = repeat N times)
     swap_right_visual / swap_left_visual  x   swap selection with neighbor char
+                                          (count = repeat N times)
 
 The checkbox, bullet-toggle, number-toggle, checkbox-toggle, cycle-type,
 cycle-word, swap-right/left (normal), rotate-form (normal) and sort (normal)
@@ -490,9 +492,20 @@ Examples: >
     ab            ->  swap_right  ->  ba   (cursor follows to "a")
     xyzw          ->  select "yz", swap_right  ->  xwyz
 <
+`v:count1` repeats the swap that many times in one keypress — e.g.
+`2<leader><Right>` moves the char (or selection) two positions over, the same
+net effect as pressing the key twice: >
+    abcde    2<leader><Right>    ->  bcade   (cursor follows to "a")
+<
+Works the same way for the visual variant, re-anchoring the selection to the
+shifted text after each step. Stops early (partial application, not an
+error) if a swap fails before the count is exhausted — e.g. it reaches the
+line boundary.
+
 No-op at a line boundary (nothing to swap with) or, for the visual variant,
 across multiple lines — there is no single well-defined neighbor there. On a
-no-op the visual selection is restored (`gv`); on success it is dropped.
+no-op the visual selection is restored (`gv`); on success the *swapped* text
+stays selected (re-anchored to its new position, not the original columns).
 
 ==============================================================================
 8. HEALTH                                                      *cascade-health*

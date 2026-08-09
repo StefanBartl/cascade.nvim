@@ -623,21 +623,41 @@ end
 ---@internal
 --- Swap the char under the cursor with its right (`dir = 1`) or left
 --- (`dir = -1`) neighbor; no-op at the line boundary or when disabled.
+--- `v:count1` repeats the swap that many times in a row (`2<leader><Right>`
+--- moves the char two positions right), stopping early if a swap fails
+--- (e.g. it reaches the line boundary) instead of erroring.
+---
+--- `v:count1` has to be captured *synchronously*, in the function actually
+--- bound to the key: `dotrepeat_run`'s operatorfunc/`g@l` trigger defers the
+--- real work by feeding `g@l` and returning, and by the time that fires,
+--- Neovim has already reset `v:count1` to 1 -- reading it inside the
+--- deferred closure itself would silently drop the typed count. Captured
+--- into `pending_count` (an upvalue the deferred closure reads instead) and
+--- threaded through here.
 ---@param dir integer
 ---@return fun()
 local function swap_work(dir)
-  return function()
+  local pending_count = 1
+  local trigger = dotrepeat.repeatable(dir > 0 and "swap_right" or "swap_left", function()
     local bufnr = vim.api.nvim_get_current_buf()
     local opts = config.get("transpose")
     if not (opts.enable and xf("char") and Context.writable(bufnr)) then
       return
     end
-    transpose_char.char(Context.new(bufnr), dir)
+    for _ = 1, pending_count do
+      if not transpose_char.char(Context.new(bufnr), dir) then
+        break
+      end
+    end
+  end)
+  return function()
+    pending_count = vim.v.count1
+    trigger()
   end
 end
 
-M.swap_right = dotrepeat.repeatable("swap_right", swap_work(1))
-M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
+M.swap_right = swap_work(1)
+M.swap_left = swap_work(-1)
 
 ---@internal
 --- Swap the visual selection with its right (`dir = 1`) or left (`dir = -1`)
@@ -645,13 +665,15 @@ M.swap_left = dotrepeat.repeatable("swap_left", swap_work(-1))
 --- neighbor moves into the selection's old slot, so the selected text
 --- shifts by the neighbor's byte width — reselect the *new* bounds
 --- `transpose_char.selection` returns, not the original ones (unlike
---- `keep_chars`, which assumes the selected span never moves). No-op across
---- multiple lines, at the line boundary, or when disabled — the selection
---- is restored via `gv` (matching `_move_visual`'s convention) in those
---- cases.
+--- `keep_chars`, which assumes the selected span never moves). `v:count1`
+--- repeats the swap that many times, re-anchoring to the shifted bounds each
+--- time. No-op across multiple lines, at the line boundary, or when disabled
+--- — the selection is restored via `gv` (matching `_move_visual`'s
+--- convention) in those cases.
 ---@param dir integer
 ---@return nil
 function M._swap_visual(dir)
+  local count = vim.v.count1
   local bufnr = vim.api.nvim_get_current_buf()
   local opts = config.get("transpose")
   if not (opts.enable and xf("char") and Context.writable(bufnr)) then
@@ -663,9 +685,21 @@ function M._swap_visual(dir)
     feed("gv")
     return
   end
-  local changed, new_scol, new_ecol = transpose_char.selection(bufnr, row, scol, ecol, dir)
-  if changed then
-    lib.reselect_chars(row, new_scol, new_ecol)
+  ---@cast scol integer
+  ---@cast ecol integer
+  local any_changed = false
+  for _ = 1, count do
+    local changed, new_scol, new_ecol = transpose_char.selection(bufnr, row, scol, ecol, dir)
+    if not changed then
+      break
+    end
+    any_changed = true
+    ---@cast new_scol integer
+    ---@cast new_ecol integer
+    scol, ecol = new_scol, new_ecol
+  end
+  if any_changed then
+    lib.reselect_chars(row, scol, ecol)
   else
     feed("gv")
   end
