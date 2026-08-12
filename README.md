@@ -484,5 +484,4 @@ used when present, native fallback otherwise.
 
 ## Roadmap
 
-See [docs/ROADMAP.md](docs/ROADMAP.md): subtree-aware indent, loose-list support,
-date cycle, operator flips, optional Treesitter precision mode.
+See [docs/ROADMAP/ROADMAP.md](docs/ROADMAP/ROADMAP.md) — no open items.
