@@ -158,6 +158,7 @@ require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
+`<leader>cp` (interactive `vim.ui.select` picker for the cursor's cycle-group),
 `<leader><Right>`/`<leader><Left>` (char/selection swap) and
 `<leader><C-Right>`/`<leader><C-Left>` (word/selection swap) globally, and, in
 the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
@@ -209,6 +210,7 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `cycle_word_prev`             | n     | Word/number backward                      |
 | `increment`                   | n     | Word/number forward (`+`; native line-down otherwise) |
 | `decrement`                   | n     | Word/number backward (`-`; native line-up otherwise) |
+| `cycle_pick`                  | n     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) |
 | `indent` / `indent_visual`    | n / x | Indent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `indent_levels` / `dedent_levels` | n | Indent/dedent the current line by N *levels* (old count meaning of `indent`/`dedent`) |
