@@ -98,11 +98,7 @@ return function(H)
   -- start = "one" over the same block.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "### 7. a", "### 2. b", "### 9. c" })
   seq.range(buf, 0, 2, ONE)
-  eq_lines(
-    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
-    { "### 1. a", "### 2. b", "### 3. c" },
-    "range: start = one"
-  )
+  eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), { "### 1. a", "### 2. b", "### 3. c" }, "range: start = one")
 
   -- no ordinals in range: no write, reported as unchanged.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "plain", "lines" })
