@@ -241,4 +241,60 @@ function M.span(bufnr, row, scol, ecol, opts)
   return true, scol + #new - 1
 end
 
+--- Renumber a charwise (`v`) selection spanning *more than one* line: byte
+--- column `scol` on `srow` through byte column `ecol` on `erow` (0-based;
+--- `erow` must be > `srow`). Complements `M.span`, the same-line case.
+---
+--- Mirrors exactly what a multi-line charwise Visual selection covers: the
+--- first line's selected part runs from `scol` to its end, every line
+--- strictly between `srow` and `erow` is entirely selected, and the last
+--- line's selected part runs from its start through `ecol`. Text before
+--- `scol` on the first line and after `ecol` on the last line is untouched
+--- and passes through as-is; the running counter (and the kind it locked
+--- onto) carries across the whole span, same as `M.range`.
+---@param bufnr integer
+---@param srow integer
+---@param scol integer
+---@param erow integer
+---@param ecol integer
+---@param opts CascadeSequenceOpts
+---@return boolean changed, integer new_ecol # unchanged `ecol` when nothing was rewritten.
+function M.span_multi(bufnr, srow, scol, erow, ecol, opts)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
+  if #lines < 2 then
+    return false, ecol
+  end
+
+  local state, changed = {}, false
+
+  local first = lines[1]
+  local prefix = first:sub(1, scol)
+  local first_seg = first:sub(scol + 1)
+  local first_new = M.rewrite(first_seg, opts, state)
+  changed = changed or first_new ~= first_seg
+  lines[1] = prefix .. first_new
+
+  for i = 2, #lines - 1 do
+    local new_line = M.rewrite(lines[i], opts, state)
+    changed = changed or new_line ~= lines[i]
+    lines[i] = new_line
+  end
+
+  local last_idx = #lines
+  local last = lines[last_idx]
+  local suffix = last:sub(ecol + 2)
+  local last_seg = last:sub(1, ecol + 1)
+  local last_new = M.rewrite(last_seg, opts, state)
+  changed = changed or last_new ~= last_seg
+  lines[last_idx] = last_new .. suffix
+
+  if not changed then
+    return false, ecol
+  end
+  if not pcall(vim.api.nvim_buf_set_lines, bufnr, srow, erow + 1, false, lines) then
+    return false, ecol
+  end
+  return true, #last_new - 1
+end
+
 return M

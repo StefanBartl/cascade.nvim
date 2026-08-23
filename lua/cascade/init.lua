@@ -244,15 +244,18 @@ end
 --- filetype. Covers what `M.renumber` structurally cannot: numbered Markdown
 --- headlines and inline numbers in prose.
 ---
---- Visual mode only, and deliberately not an Ex command for the charwise case:
---- `:'<,'>` ranges are always linewise, so the column bounds a mid-line
---- selection depends on would be thrown away before the command ever ran.
+--- Visual mode only, and deliberately not an Ex command for either charwise
+--- case: `:'<,'>` ranges are always linewise, so the column bounds a
+--- mid-line or multi-line charwise selection depends on would be thrown
+--- away before the command ever ran.
 ---
---- A same-line charwise (`v`) selection is rewritten in place with
---- `nvim_buf_set_text` and reselected on its new bounds (the text can get
---- wider, `9.` -> `10.`). Anything else — linewise (`V`), or a charwise
---- selection spanning several lines, which has no column bounds cascade can
---- act on — is treated as a whole-line range and reselected linewise.
+--- A charwise (`v`) selection — same-line or spanning several lines — is
+--- rewritten in place (`nvim_buf_set_text`/`nvim_buf_set_lines`, keeping
+--- whatever precedes the selection's start and follows its end untouched)
+--- and reselected on its new bounds (the text can get wider, `9.` -> `10.`).
+--- Anything else — linewise (`V`), or a selection cascade can't read column
+--- bounds for at all (blockwise) — is treated as a whole-line range and
+--- reselected linewise.
 ---@return nil
 function M.renumber_selection()
   local bufnr = vim.api.nvim_get_current_buf()
@@ -261,6 +264,7 @@ function M.renumber_selection()
     feed("gv")
     return
   end
+
   local row, scol, ecol = lib.chars()
   if row then
     ---@cast scol integer
@@ -269,6 +273,17 @@ function M.renumber_selection()
     lib.reselect_chars(row, scol, changed and new_ecol or ecol)
     return
   end
+
+  local srow, mscol, erow, mecol = lib.chars_multiline()
+  if srow then
+    ---@cast mscol integer
+    ---@cast erow integer
+    ---@cast mecol integer
+    local changed, new_ecol = sequence.span_multi(bufnr, srow, mscol, erow, mecol, opts)
+    lib.reselect_chars_multiline(srow, mscol, erow, changed and new_ecol or mecol)
+    return
+  end
+
   lib.keep_lines(function(s, e)
     sequence.range(bufnr, s, e, opts)
   end)

@@ -550,10 +550,15 @@ mixed `.`/`)` selection keeps its shapes -- only the number is replaced. >
 <
 `renumber_selection` is Visual mode only, on purpose: an Ex-command range
 (`:'<,'>`) is always linewise in Vim and would discard the columns a mid-line
-charwise selection needs. A same-line charwise (`v`) selection is rewritten in
-place and reselected on its new bounds (the text can widen, `9.` -> `10.`);
-linewise (`V`), or a charwise selection spanning several lines, is treated as
-a whole-line range and reselected linewise.
+or multi-line charwise selection needs. A charwise (`v`) selection --
+same-line or spanning several lines -- is rewritten in place and reselected
+on its new bounds (the text can widen, `9.` -> `10.`); text before the
+selection's start and after its end is always left untouched, on either
+boundary line. Linewise (`V`), or a selection with no column bounds at all
+(blockwise), is treated as a whole-line range and reselected linewise.
+
+Multi-line charwise bridges directly to `lib.nvim.selection.chars_multiline`/
+`reselect_chars_multiline` -- see |lib.nvim-selection-chars_multiline|.
 
 |:Cascade-renumber| `selection` is the Ex-command pendant for the linewise
 case; it complements the list-marker branch rather than replacing it.

@@ -126,6 +126,78 @@ return function(H)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "x 9. a 10. b", "span: sequence widens the line")
   eq(wide_ecol, 11, "span: end column follows the widened text")
 
+  -- ---------- buffer: multi-line charwise span ----------
+
+  -- the motivating headline case, selected mid-line on both ends: only the
+  -- part of each boundary line inside the selection is touched. Row 0's
+  -- "7." sits *before* the selection start and must survive untouched even
+  -- though it looks exactly like an ordinal; row 3's "9." sits inside the
+  -- selection (its " tail" suffix does not) and is the one real rewrite.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "before ### 7. keep me",
+    "### 2. iwas",
+    "prose in between",
+    "### 9. sad tail",
+  })
+  do
+    local first = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+    local scol = first:find("keep", 1, true) - 1 -- selection starts at "keep", after "7. "
+    local last = vim.api.nvim_buf_get_lines(buf, 3, 4, false)[1]
+    local ecol = last:find("sad", 1, true) + #"sad" - 2 -- selection ends inside "sad", before " tail"
+    local changed, new_ecol = seq.span_multi(buf, 0, scol, 3, ecol, KEEP)
+    eq(changed, true, "span_multi: reports a change")
+    eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), {
+      "before ### 7. keep me",
+      "### 2. iwas",
+      "prose in between",
+      "### 3. sad tail",
+    }, "span_multi: the out-of-selection '7.' survives, the in-selection '9.' becomes '3.'")
+    eq(new_ecol, ecol, "span_multi: end column unchanged when the width doesn't change")
+  end
+
+  -- start = "one" forces a real rewrite, and only the selected slice of the
+  -- boundary lines is affected -- the untouched prefix/suffix survive as-is.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "before ### 7. keep me",
+    "### 2. iwas",
+    "prose in between",
+    "### 9. sad tail",
+  })
+  do
+    local first = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+    local scol = first:find("keep", 1, true) - 1
+    local last = vim.api.nvim_buf_get_lines(buf, 3, 4, false)[1]
+    local ecol = last:find("sad", 1, true) + #"sad" - 2
+    local changed = seq.span_multi(buf, 0, scol, 3, ecol, ONE)
+    eq(changed, true, "span_multi one: reports a change")
+    eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), {
+      "before ### 7. keep me",
+      "### 1. iwas",
+      "prose in between",
+      "### 2. sad tail",
+    }, "span_multi one: only the selected part of each boundary line is renumbered")
+  end
+
+  -- widening on the last line's selected part is reported back.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "x 1. a", "y 9. b tail" })
+  do
+    local last = vim.api.nvim_buf_get_lines(buf, 1, 2, false)[1]
+    local ecol = last:find("9%.") -- byte index of "9" itself (1-based == 0-based end of "9")
+    local _, new_ecol = seq.span_multi(buf, 0, 2, 1, ecol, KEEP)
+    eq(vim.api.nvim_buf_get_lines(buf, 0, -1, false)[2], "y 2. b tail", "span_multi: last-line width change applied")
+    eq(new_ecol, ecol, "span_multi: digit->digit keeps the same width here")
+  end
+
+  -- no hits anywhere in the span: reported unchanged, buffer untouched.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "plain one", "plain two", "plain three" })
+  local no_changed = seq.span_multi(buf, 0, 2, 2, 3, KEEP)
+  eq(no_changed, false, "span_multi: no hits, no change")
+
+  -- too few lines to be a real multi-line span: refuses rather than
+  -- misreading a single line as both "first" and "last".
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. only line" })
+  eq(seq.span_multi(buf, 0, 0, 0, 5, KEEP), false, "span_multi: single-row range is a no-op, not a partial rewrite")
+
   -- ---------- config + facade wiring ----------
 
   cfg.setup({})
@@ -165,4 +237,50 @@ return function(H)
   )
 
   cascade.setup({})
+
+  -- renumber_selection() through a genuine multi-line charwise (`v`)
+  -- Visual selection -- the keymap path `<leader>cR` actually drives, not
+  -- just the linewise Ex-command shortcut tested above. A Visual selection
+  -- only exists while Vim is actually IN Visual mode (`mode() == "v"`), so
+  -- this enters it with `:normal! v` and no trailing <Esc> rather than the
+  -- usual "set marks, then Esc" trick.
+  do
+    local function flush()
+      vim.api.nvim_feedkeys("", "x", false)
+    end
+    local function esc()
+      vim.cmd("normal! \27")
+    end
+
+    vim.api.nvim_buf_set_lines(cbuf, 0, -1, false, {
+      "before ### 7. keep me",
+      "### 2. iwas",
+      "prose in between",
+      "### 9. sad tail",
+    })
+    local first = vim.api.nvim_buf_get_lines(cbuf, 0, 1, false)[1]
+    local scol = first:find("keep", 1, true) - 1 -- 0-based
+    local last = vim.api.nvim_buf_get_lines(cbuf, 3, 4, false)[1]
+    local ecol = last:find("sad", 1, true) + #"sad" - 2 -- 0-based inclusive
+
+    vim.api.nvim_win_set_cursor(0, { 1, scol })
+    vim.cmd("normal! v")
+    vim.api.nvim_win_set_cursor(0, { 4, ecol })
+    cascade.renumber_selection()
+    flush()
+
+    eq_lines(vim.api.nvim_buf_get_lines(cbuf, 0, -1, false), {
+      "before ### 7. keep me",
+      "### 2. iwas",
+      "prose in between",
+      "### 3. sad tail",
+    }, "renumber_selection: real multi-line charwise Visual selection, boundary text untouched")
+    eq(vim.fn.mode(), "v", "renumber_selection: leaves charwise Visual active")
+    local rsrow, rscol, rerow, recol = require("lib.nvim.selection").chars_multiline()
+    eq(rsrow, 0, "renumber_selection: reselected srow")
+    eq(rscol, scol, "renumber_selection: reselected scol")
+    eq(rerow, 3, "renumber_selection: reselected erow")
+    eq(recol, ecol, "renumber_selection: reselected ecol (no width change here)")
+    esc()
+  end
 end

@@ -61,15 +61,32 @@ mid-line charwise selection needs.
 - **charwise (`v`), same line** — rewritten in place with
   `nvim_buf_set_text`, so the rest of the line is untouched, and reselected
   on its new bounds (the text can widen, `9.` → `10.`).
-- **linewise (`V`), or charwise across several lines** — treated as a
-  whole-line range and reselected linewise. (A multi-line charwise selection
-  has no column bounds cascade can act on today; `lib.nvim.selection` would
-  need a `chars_multiline()` first.)
+- **charwise (`v`), across several lines** — the first line's selected part
+  runs from the selection start to its end, every line strictly in between
+  is entirely selected, and the last line's selected part runs from its
+  start through the selection end — exactly what Vim itself considers
+  "selected" for a multi-line charwise span. Untouched text before the
+  start (first line) and after the end (last line) passes through as-is;
+  the running counter carries across the whole span. Rewritten with
+  `nvim_buf_set_lines` and reselected on its new bounds via
+  `lib.nvim.selection.chars_multiline`/`reselect_chars_multiline`.
+- **linewise (`V`), or a selection with no column bounds at all
+  (blockwise)** — treated as a whole-line range and reselected linewise.
 
-- **Module:** `sequence/renumber.lua` (`M.rewrite`, `M.range`, `M.span`)
+```md
+before ### 7. keep me      (before the selection start — untouched)
+### 2. iwas          ─┐
+prose in between      │  selected mid-line on both ends, then <leader>cR:
+### 9. sad tail      ─┘  2. / 9.  ->  2. / 3.  ("sad" in, " tail" stays out)
+```
+
+- **Module:** `sequence/renumber.lua` (`M.rewrite`, `M.range`, `M.span`, `M.span_multi`)
 - **Config:** `sequence.enable`, `sequence.start`, `sequence.types`
 - **Keymaps:** `<leader>cR` (global, Visual, preset)
 - **Command:** `:Cascade renumber selection` (linewise pendant, range-aware)
+- **lib.nvim:** `lib.nvim.selection.chars_multiline`/`reselect_chars_multiline`
+  (the multi-line charwise capture/reselect primitives cascade's `util/lib.lua`
+  bridges to directly)
 
 ## Options
 

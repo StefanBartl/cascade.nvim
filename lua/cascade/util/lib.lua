@@ -470,16 +470,19 @@ function M.dotrepeat_run(fn)
   set_vim_repeat()
 end
 
---- No bridge to `lib.nvim` here, by design: the closest module is
---- `lib.nvim.buf_win_tab.selection`, but its shape doesn't match what
---- `keep_lines`/`keep_chars` need. `get_visual_selection()` returns
---- 1-based rows/cols plus the selected text, not the 0-based row-only or
---- row+col bounds these functions traffic in; and `reselect_visual()`
---- takes no bounds and re-enters Visual via `normal! gv`, which is exactly
---- the unreliable-mid-selection behavior `reselect_lines_fallback`/
---- `reselect_chars_fallback` exist to avoid (see their doc comments). An
---- explicit-bounds reselect would need to be added to `lib.nvim` first;
---- until then these stay standalone-only.
+--- No bridge to `lib.nvim` for `lines`/`chars` below, by design: the closest
+--- module used to be `lib.nvim.buf_win_tab.selection`, whose shape doesn't
+--- match what `keep_lines`/`keep_chars` need (`get_visual_selection()`
+--- returns 1-based rows/cols plus the selected text, not the 0-based bounds
+--- these traffic in; `reselect_visual()` re-enters Visual via `normal! gv`,
+--- exactly the unreliable-mid-selection behavior `reselect_lines_fallback`/
+--- `reselect_chars_fallback` exist to avoid — see their doc comments).
+--- `lib.nvim.selection` has since grown its own 0-based, explicit-bounds
+--- `lines`/`chars`/`keep_lines`/`keep_chars` that match this shape exactly
+--- -- but retrofitting these four onto it now would be a same-behavior
+--- refactor of already-exercised code for no functional gain, so they stay
+--- standalone. `chars_multiline`/`reselect_chars_multiline` below are new,
+--- have no standalone history to preserve, and bridge directly.
 
 --- 0-based inclusive row range of the current Visual selection.
 ---@return integer srow, integer erow
@@ -545,6 +548,30 @@ function M.keep_chars(fn)
   local ret = fn(row, scol, ecol)
   M.reselect_chars(row, scol, ecol)
   return ret, true
+end
+
+--- 0-based row and inclusive byte-column bounds of the current Visual
+--- selection, if (and only if) it is charwise and spans *more than one*
+--- line — the complement of `M.chars()`. Bridges directly to
+--- `lib.nvim.selection.chars_multiline` (see the note above `M.lines`):
+--- `lib.nvim` is cascade's one required dependency, and this is a fresh
+--- surface with no standalone-fallback history to keep.
+---@return integer|nil srow, integer|nil scol, integer|nil erow, integer|nil ecol
+function M.chars_multiline()
+  return require("lib.nvim.selection").chars_multiline()
+end
+
+--- Restore a charwise (`v`) selection from byte column `scol` on `srow`
+--- through byte column `ecol` on `erow` (0-based inclusive). Bridges
+--- directly to `lib.nvim.selection.reselect_chars_multiline` — see
+--- `M.chars_multiline`.
+---@param srow integer
+---@param scol integer
+---@param erow integer
+---@param ecol integer
+---@return nil
+function M.reselect_chars_multiline(srow, scol, erow, ecol)
+  require("lib.nvim.selection").reselect_chars_multiline(srow, scol, erow, ecol)
 end
 
 return M
