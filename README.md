@@ -19,13 +19,16 @@
 > step → otherwise fall back to native behavior.** That holds for Markdown lists
 > just as much as for `true`/`false` toggles in code.
 
-`cascade.nvim` unites three feature worlds under one roof:
+`cascade.nvim` unites four feature worlds under one roof:
 
 - **lists** — continue lists, renumber them, tick checkboxes, cycle marker
   types, indent/dedent (filetype-scoped).
 - **cycle** — advance the word under the cursor (`true`→`false`, `on`→`off`, …)
   via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers and,
   off `+`/`-`, for the plain line motion (global).
+- **sequence** — renumber the ordinals (`1.`, `a)`, `II.`) *inside* a Visual
+  selection, whatever precedes them: numbered headlines, inline numbers in
+  prose (global).
 - **transpose** — swap a character or a word (or a same-line selection) with
   its left/right neighbor, UTF-8 safe (global).
 
@@ -68,6 +71,7 @@
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
+| **sequence** | Selection renumber  | Renumber the ordinals (`1.`, `a)`, `II.`) inside a Visual selection — numbered headlines, inline numbers mid-prose, any filetype. |
 | **transpose** | Char swap           | Swap the char under the cursor with its left/right neighbor, UTF-8 safe, dot-repeatable, count = swap N times. |
 | **transpose** | Word swap           | Swap the word under the cursor with its left/right neighbor word, dot-repeatable, count = swap N times. |
 | **transpose** | Selection swap      | Swap a same-line visual selection with its left/right neighbor char or word, count = swap N times. |
@@ -164,7 +168,9 @@ Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
 the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
 `<A-->`/`<A-*>`/`<A-0>`/`<A-c>` (quick bullet/star/number/checkbox toggle —
 also work on a Visual/Visual-line selection, each line toggled independently),
-`<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber).
+`<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber). In Visual
+mode, `<leader>cR` renumbers the ordinals inside the selection (global, any
+filetype).
 
 ### Variant B — manual keymaps (full control)
 
@@ -217,6 +223,7 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `move_up` / `move_up_visual`     | n / x | Move line/selection up + renumber         |
 | `move_down` / `move_down_visual` | n / x | Move line/selection down + renumber       |
 | `renumber`                    | n     | Renumber block                            |
+| `renumber_selection`          | x     | Renumber the ordinals inside the selection (any filetype) |
 | `rotate_form_next` / `_visual` | n / x | Rotate block/selection through forms      |
 | `rotate_form_prev` / `_visual` | n / x | … backward                                |
 | `sort` / `sort_visual`        | n / x | Sort block/selection A–Z                  |
@@ -246,7 +253,7 @@ to the verb: `:Cascade! rotate` (not `:Cascade rotate!`).
 | `:Cascade strip`               | Strip checkboxes.                                 |
 | `:Cascade indent [n]`          | Indent (n levels) + renumber.                     |
 | `:Cascade dedent [n]`          | Dedent (n levels) + renumber.                     |
-| `:Cascade renumber [all]`      | Renumber block at cursor/range (`all` = whole buffer). |
+| `:Cascade renumber [all\|selection]` | Renumber block at cursor/range (`all` = whole buffer, `selection` = the ordinals inside the lines). |
 
 In the preset, additionally buffer-local (each in Normal **and** Visual):
 `<leader>cf` / `<leader>cF` (form forward/backward), `<leader>cs` (sort),
@@ -373,6 +380,11 @@ require("cascade").setup({
       -- lua = { { "pairs", "ipairs" } },
     },
   },
+  sequence = {                             -- renumber INSIDE a selection (global)
+    enable = true,
+    start = "keep",                        -- "keep" = start at the first hit; "one" = restart at 1/a/i
+    types = { "digit", "ascii", "roman" }, -- order the FIRST hit is classified in; it locks the kind
+  },
   transpose = {
     enable = true,
     features = { char = true, word = true }, -- char/word/selection swap on/off
@@ -393,6 +405,9 @@ different scope:
   renumber) is scoped to `lists.filetypes` — sensible, since list markers are
   prose/markup specific. List actions **no-op** on lines without a marker, so a
   broad filetype list is harmless.
+- **`sequence`** (renumber inside a selection) is **global**, no filetype
+  option at all — it never looks at list markers, only at ordinal tokens in
+  the selected text.
 - **`transpose`** (char/word/selection swap) is **global**, no filetype
   option at all — swapping characters/words is filetype-agnostic by nature.
 - **Indent/dedent** and **move** are effectively **global**: list-aware in the

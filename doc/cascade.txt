@@ -9,14 +9,15 @@ CONTENTS                                                     *cascade-contents*
   4. Configuration ............................ |cascade-config|
   5. Lists domain ............................. |cascade-lists|
   6. Cycle domain ............................. |cascade-cycle|
-  7. Transpose domain ......................... |cascade-transpose|
-  8. Health ................................... |cascade-health|
-  9. lib.nvim integration ..................... |cascade-lib|
+  7. Sequence domain .......................... |cascade-sequence|
+  8. Transpose domain ......................... |cascade-transpose|
+  9. Health ................................... |cascade-health|
+ 10. lib.nvim integration ..................... |cascade-lib|
 
 ==============================================================================
 1. INTRODUCTION                                          *cascade-introduction*
 
-cascade.nvim applies a single pattern to three feature domains:
+cascade.nvim applies a single pattern to four feature domains:
 
     detect the context under the cursor -> advance it one step -> fall back to
     the native key when nothing matches.
@@ -27,6 +28,9 @@ cascade.nvim applies a single pattern to three feature domains:
   - The *cycle* domain rotates the word under the cursor (true/false, on/off,
     ...) and defers to native |CTRL-A|/|CTRL-X| on numeric tokens. It is global
     by default.
+  - The *sequence* domain renumbers the ordinal tokens (1., a), II.) inside
+    a Visual selection, whatever precedes them -- numbered headlines, inline
+    numbers in prose. It is global and filetype-agnostic.
   - The *transpose* domain swaps a character or a word (or a same-line
     selection) with its left/right neighbor. It is global and
     filetype-agnostic.
@@ -84,6 +88,8 @@ keys you like with a normal |vim.keymap.set()|:
     move_up / move_up_visual     n / x   move line/selection up + renumber
     move_down / move_down_visual n / x   move line/selection down + renumber
     renumber                 normal  renumber the ordered block
+    renumber_selection       visual  renumber the ordinal tokens inside the
+                                          selection
     rotate_form_next / _visual   n / x   rotate block/selection forms
     rotate_form_prev / _visual   n / x   rotate forms backward
     sort / sort_visual           n / x   sort block/selection A-Z
@@ -141,10 +147,13 @@ subcommand: :Cascade! rotate (not :Cascade rotate!).
                     e.g. :'<,'>Cascade indent 2.
     :Cascade dedent [n]                                     *:Cascade-dedent*
                     dedent line/range by n levels and renumber.
-    :Cascade renumber [all]                               *:Cascade-renumber*
+    :Cascade renumber [all|selection]                     *:Cascade-renumber*
                     renumber the ordered list block at the cursor (or the
                     given range); :Cascade renumber all sweeps every list
-                    block in the buffer instead, each numbered independently.
+                    block in the buffer instead, each numbered independently;
+                    :Cascade renumber selection renumbers the ordinal tokens
+                    *inside* the range's lines rather than the list markers
+                    (see |cascade-sequence|).
 
 PRESET                                                         *cascade-preset*
 
@@ -156,6 +165,7 @@ With `keymaps.preset = true`:
     +           ->  increment
     -           ->  decrement
     <leader>cp  ->  cycle_pick
+    <leader>cR  ->  renumber_selection   (Visual mode only)
 
   Buffer-local in `lists.filetypes`:
     i <CR>          ->  cr
@@ -244,6 +254,11 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
         number_fallback = true,
         groups = { { "true", "false" }, ... },
         per_filetype = {},
+      },
+      sequence = {
+        enable = true,
+        start = "keep",
+        types = { "digit", "ascii", "roman" },
       },
       transpose = {
         enable = true,
@@ -395,6 +410,22 @@ this: it only sees the numeric island touching the cursor and misreads the
 Set `cycle.features.date = false` to turn this off and fall back to the
 native (date-unaware) behavior.
 
+sequence.enable       (boolean)   Master switch for the sequence domain
+                                  (renumbering inside a selection).
+sequence.start        ("keep"|"one") "keep" (default) takes the sequence's
+                                  start value from the first hit, like the
+                                  list renumberer does; "one" always restarts
+                                  at 1/a/i. Any other value degrades to
+                                  "keep".
+sequence.types        (string[])  Kinds tried, in order, to classify the
+                                  FIRST hit -- which then locks the kind for
+                                  the rest of the run: "digit", "ascii",
+                                  "roman". The default reads a single letter
+                                  as ascii before roman (a)b)c) being the
+                                  commoner case); put "roman" first for
+                                  i./ii./iii. sequences. An empty or
+                                  malformed value degrades to the default.
+
 transpose.enable      (boolean)   Master switch for the transpose domain.
 transpose.features    (table)     Per-feature switches. Keys: char, word.
                                   Missing key = enabled.
@@ -490,7 +521,45 @@ original capitalization (lower / UPPER / Capital). Numeric tokens are skipped so
 that native |CTRL-A|/|CTRL-X| can handle them when `number_fallback` is on.
 
 ==============================================================================
-7. TRANSPOSE DOMAIN                                         *cascade-transpose*
+7. SEQUENCE DOMAIN                                           *cascade-sequence*
+
+Renumbers the ordinal tokens inside a *selection*, whatever precedes them --
+the cases the list domain structurally cannot see, because its marker parser
+requires the number to be the line's very first token:
+
+  - a numbered Markdown headline (`### 2. iwas`), and
+  - plain inline numbers in prose, possibly selected mid-line
+    (`te 4. text der nur als 5. beispiel ...`).
+
+Both are the same operation: scan the selected text for ordinal tokens in
+order of appearance and rewrite them sequentially, independent of filetype.
+So this is its own domain, not an extension of the list renumberer.
+
+A candidate is an alphanumeric run followed by "." or ")". Two boundary rules
+keep it out of ordinary prose: the run is matched greedily (the "1" in `v1.2`
+is never seen on its own), and the delimiter must be followed by whitespace or
+end-of-text, so decimals (`3.14`) and abbreviations (`e.g.`) don't qualify.
+
+The FIRST hit decides the kind (digit / ascii / roman, tried in the order of
+`sequence.types`) and locks it: tokens of the other kinds are then skipped
+rather than folded into the same sequence. The delimiter is kept per hit, so a
+mixed `.`/`)` selection keeps its shapes -- only the number is replaced. >
+    ### 7. a       (selected)    ### 7. a
+    ### 2. b       <leader>cR    ### 8. b     ("keep": first hit sets 7)
+    ### 9. c                     ### 9. c     (outside the selection)
+<
+`renumber_selection` is Visual mode only, on purpose: an Ex-command range
+(`:'<,'>`) is always linewise in Vim and would discard the columns a mid-line
+charwise selection needs. A same-line charwise (`v`) selection is rewritten in
+place and reselected on its new bounds (the text can widen, `9.` -> `10.`);
+linewise (`V`), or a charwise selection spanning several lines, is treated as
+a whole-line range and reselected linewise.
+
+|:Cascade-renumber| `selection` is the Ex-command pendant for the linewise
+case; it complements the list-marker branch rather than replacing it.
+
+==============================================================================
+8. TRANSPOSE DOMAIN                                         *cascade-transpose*
 
 Swaps a character (`swap_right`/`swap_left`), or a same-line selection
 (`swap_right_visual`/`swap_left_visual`), with the single character
@@ -537,7 +606,7 @@ early (rather than erroring) if it hits a line boundary or runs out of
 neighbors before `N` swaps are done.
 
 ==============================================================================
-8. HEALTH                                                      *cascade-health*
+9. HEALTH                                                      *cascade-health*
 
                                                           *:checkhealth-cascade*
 >vim
@@ -547,7 +616,7 @@ Reports the Neovim version, per-domain status, lib.nvim availability (required
 — gates the :Cascade command) and basic configuration sanity.
 
 ==============================================================================
-9. LIB.NVIM INTEGRATION                                           *cascade-lib*
+10. LIB.NVIM INTEGRATION                                          *cascade-lib*
 
 cascade.nvim REQUIRES `lib.nvim`: the :Cascade command is built on
 lib.nvim.usercmd.composer and fails to load without it. `lib.map`,

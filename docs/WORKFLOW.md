@@ -1,7 +1,8 @@
 # Workflow — getting real use out of cascade.nvim day to day
 
 Every feature here is documented on its own in
-[`docs/FEATURES/`](FEATURES/) (`LISTS.md`, `CYCLE.md`, `TRANSPOSE.md`) and
+[`docs/FEATURES/`](FEATURES/) (`LISTS.md`, `CYCLE.md`, `SEQUENCE.md`,
+`TRANSPOSE.md`) and
 [`docs/BINDINGS.md`](BINDINGS.md). This is the different question: once the
 three domains exist side by side, *how do they actually combine* into
 something worth reaching for while editing, not just something bound to a

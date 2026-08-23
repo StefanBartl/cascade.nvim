@@ -6,7 +6,8 @@ source of truth in `lua/cascade/bindings/`. Any change there must be reflected
 here.
 
 The `feature` column refers to `lists.features.*` / `cycle.features.*` /
-`transpose.features.*` toggles. Disabling a feature drops its preset key and
+`transpose.features.*` toggles (the sequence domain has a single
+`sequence.enable` switch instead). Disabling a feature drops its preset key and
 turns its action into a no-op.
 
 Every mapping binds directly onto a facade action (`require("cascade").<action>`)
@@ -28,6 +29,7 @@ Bound for every filetype.
 | `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
 | `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise) |
 | `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
+| `<leader>cR` | x | `renumber_selection` | sequence.enable | Renumber the ordinal tokens inside the selection (any filetype) |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
 | `<A-Left>` | n | `dedent` | lists.indent | Dedent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
@@ -100,7 +102,7 @@ collapsing multiple commands into one verb moves it there).
 | `:Cascade strip` | — | no | yes | Strip checkboxes (range-aware) |
 | `:Cascade indent` | `[n]` | no | yes | Indent line/range (+renumber; arg = levels) |
 | `:Cascade dedent` | `[n]` | no | yes | Dedent line/range (+renumber; arg = levels) |
-| `:Cascade renumber` | `[all]` | no | yes | Renumber list block (range-aware; `all` = every list in the buffer) |
+| `:Cascade renumber` | `[all\|selection]` | no | yes | Renumber list block (range-aware; `all` = every list in the buffer, `selection` = the ordinal tokens inside the lines) |
 
 ## Autocommands
 
