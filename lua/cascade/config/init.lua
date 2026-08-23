@@ -37,11 +37,36 @@ local function deep_merge(base, override)
 end
 
 ---@internal
+--- Normalize `sequence`: guard the two values `cascade.sequence.renumber` reads
+--- without re-checking (`start` is compared against "one", `types` is iterated),
+--- so a typo degrades to the documented default instead of silently changing
+--- behaviour or erroring mid-scan.
+---@param o CascadeConfig
+---@return nil
+local function normalize_sequence(o)
+  local seq = o.sequence
+  if type(seq) ~= "table" then
+    o.sequence = { enable = true, start = "keep", types = { "digit", "ascii", "roman" } }
+    return
+  end
+  if seq.enable == nil then
+    seq.enable = true
+  end
+  if seq.start ~= "one" then
+    seq.start = "keep"
+  end
+  if type(seq.types) ~= "table" or #seq.types == 0 then
+    seq.types = { "digit", "ascii", "roman" }
+  end
+end
+
+---@internal
 --- Normalize `lists.renumber`: accept a boolean (back-compat) or a partial table
 --- and always end up with `{ enable = boolean, on = string[], blank_break = int }`.
 ---@param o CascadeConfig
 ---@return nil
 local function normalize(o)
+  normalize_sequence(o)
   local lists = o.lists
   if type(lists) ~= "table" then
     return

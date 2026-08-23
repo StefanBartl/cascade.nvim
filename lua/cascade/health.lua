@@ -94,6 +94,18 @@ function M.check()
     info("cycle: disabled")
   end
 
+  -- Sequence domain (renumber inside a selection).
+  local seq = config.get("sequence")
+  if type(seq) == "table" and seq.enable then
+    ok(("sequence: enabled (all filetypes), types { %s }"):format(table.concat(seq.types, ", ")))
+    info(
+      seq.start == "one" and "sequence start: one — every run restarts at 1/a/i"
+        or "sequence start: keep — the first hit sets the start value"
+    )
+  else
+    info("sequence: disabled")
+  end
+
   -- Transpose domain.
   local trans = config.get("transpose")
   if trans.enable then

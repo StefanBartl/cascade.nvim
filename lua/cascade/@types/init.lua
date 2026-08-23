@@ -66,6 +66,19 @@
 ---@field groups string[][] # Cycle groups; first match under the cursor wins.
 ---@field per_filetype table<string, string[][]> # Extra groups merged in per filetype.
 
+---@alias CascadeSequenceKind "digit"|"ascii"|"roman"
+
+---@class CascadeSequenceOpts
+---@field enable boolean # Master switch for the selection-renumber domain.
+---@field start "keep"|"one" # "keep" = start from the first hit's value; "one" = always restart at 1/a/i.
+---@field types CascadeSequenceKind[] # Kinds tried, in order, to classify the first hit (which locks the kind).
+
+---@class CascadeSequenceState
+--- Carry-over state for `cascade.sequence.renumber.rewrite`, so one sequence
+--- can span several lines. Start a run with a fresh `{}`.
+---@field kind CascadeSequenceKind|nil # Kind the first hit committed the run to.
+---@field next integer|nil # Value the next hit receives.
+
 ---@class CascadeTransposeFeatures
 ---@field char boolean # Swap the char (or same-line selection) with its left/right neighbor.
 ---@field word boolean # Swap the word (or same-line selection) with its left/right neighbor word.
@@ -80,6 +93,7 @@
 ---@class CascadeConfig
 ---@field lists CascadeListOpts
 ---@field cycle CascadeCycleOpts
+---@field sequence CascadeSequenceOpts
 ---@field transpose CascadeTransposeOpts
 ---@field keymaps CascadeKeymapOpts
 ---@field debug boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).

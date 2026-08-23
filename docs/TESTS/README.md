@@ -29,6 +29,7 @@ The runner prints one line per spec and exits non-zero on the first failure
 | `lists_spec.lua`      | Checkbox, quick_toggle, renumber (run/tree/all), transforms, indent, move. |
 | `cycle_spec.lua`      | Word / boolean cycle, `+`/`-` increment/decrement.                       |
 | `transpose_spec.lua`  | Char/selection swap.                                                     |
+| `sequence_spec.lua`   | Selection renumber: scanner (kind lock, start mode, prose boundaries), `range`/`span`, config + command wiring. |
 | `commands_spec.lua`   | `:Cascade*` commands exist; feature toggles gate actions; keymap wiring. |
 | `lib_util_spec.lua`   | `cascade.util.lib`'s soft bridge to `lib.nvim` (notify/map/augroup), fallback and stubbed-present paths. |
 | `run.lua`             | Runner: loads every `*_spec.lua`, reports results, sets exit code.       |

@@ -18,6 +18,7 @@ local specs = {
   "lists_spec.lua",
   "cycle_spec.lua",
   "transpose_spec.lua",
+  "sequence_spec.lua",
   "commands_spec.lua",
   "lib_util_spec.lua",
 }

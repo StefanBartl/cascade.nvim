@@ -88,6 +88,20 @@ function M.bind_preset_globals(cfg)
     lib.map("n", "<leader>cp", api.cycle_pick, { silent = true, desc = "cascade: pick a cycle-group value" })
   end
 
+  -- Selection renumber (all filetypes): Visual mode only, on purpose — an
+  -- Ex-command range (`:'<,'>`) is always linewise in Vim and would discard
+  -- the columns a mid-line charwise selection needs. Capital R sets it apart
+  -- from <leader>cr (renumber the whole list block at the cursor).
+  local seq = cfg.sequence
+  if type(seq) ~= "table" or seq.enable ~= false then
+    lib.map(
+      "x",
+      "<leader>cR",
+      api.renumber_selection,
+      { silent = true, desc = "cascade: renumber the numbers inside the selection" }
+    )
+  end
+
   -- Global indent/outdent (all filetypes): list-aware renumber on list lines,
   -- native shift everywhere else. Insert mode uses the native <C-t>/<C-d>.
   local list_feat = cfg.lists.features or {}

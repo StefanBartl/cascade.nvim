@@ -25,6 +25,7 @@ local word_cycle = require("cascade.cycle.word_cycle")
 local token = require("cascade.cycle.token")
 local date = require("cascade.cycle.date")
 local treesitter = require("cascade.core.treesitter")
+local sequence = require("cascade.sequence.renumber")
 local transpose_char = require("cascade.transpose.char")
 local transpose_word = require("cascade.transpose.word")
 
@@ -234,6 +235,43 @@ function M.renumber()
   if s and e then
     pcall(renumber.tree, ctx.bufnr, s, e, opts, true)
   end
+end
+
+-- ---------- sequence (renumber inside a selection) ----------
+
+--- Renumber the ordinal tokens (`1.`, `a)`, `II.`) inside the current Visual
+--- selection, in order of appearance — whatever precedes them, in any
+--- filetype. Covers what `M.renumber` structurally cannot: numbered Markdown
+--- headlines and inline numbers in prose.
+---
+--- Visual mode only, and deliberately not an Ex command for the charwise case:
+--- `:'<,'>` ranges are always linewise, so the column bounds a mid-line
+--- selection depends on would be thrown away before the command ever ran.
+---
+--- A same-line charwise (`v`) selection is rewritten in place with
+--- `nvim_buf_set_text` and reselected on its new bounds (the text can get
+--- wider, `9.` -> `10.`). Anything else — linewise (`V`), or a charwise
+--- selection spanning several lines, which has no column bounds cascade can
+--- act on — is treated as a whole-line range and reselected linewise.
+---@return nil
+function M.renumber_selection()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local opts = config.get("sequence")
+  if not (type(opts) == "table" and opts.enable and Context.writable(bufnr)) then
+    feed("gv")
+    return
+  end
+  local row, scol, ecol = lib.chars()
+  if row then
+    ---@cast scol integer
+    ---@cast ecol integer
+    local changed, new_ecol = sequence.span(bufnr, row, scol, ecol, opts)
+    lib.reselect_chars(row, scol, changed and new_ecol or ecol)
+    return
+  end
+  lib.keep_lines(function(s, e)
+    sequence.range(bufnr, s, e, opts)
+  end)
 end
 
 -- ---------- dot-repeatable actions ----------
@@ -495,15 +533,45 @@ function M.run_command(fn, cmd, dir)
   end
 end
 
---- Run `:Cascade renumber` from a `:command` (range-aware; `scope == "all"`
---- sweeps every list block in the buffer instead of just the current one).
+---@internal
+--- 0-based inclusive row range a `:command` addresses: its explicit range if
+--- it has one, else the cursor line.
 ---@param cmd table # The nvim user-command argument table.
----@param scope string|nil # "all", or nil/"block" for the range/cursor block.
+---@return integer srow, integer erow
+local function command_rows(cmd)
+  if cmd.range and cmd.range > 0 then
+    return cmd.line1 - 1, cmd.line2 - 1
+  end
+  local r = vim.api.nvim_win_get_cursor(0)[1] - 1
+  return r, r
+end
+
+--- Run `:Cascade renumber` from a `:command` (range-aware; `scope == "all"`
+--- sweeps every list block in the buffer instead of just the current one,
+--- `scope == "selection"` renumbers the ordinal tokens *inside* the lines
+--- rather than the list markers — see `M.renumber_selection`).
+---@param cmd table # The nvim user-command argument table.
+---@param scope string|nil # "all", "selection", or nil/"block" for the range/cursor block.
 ---@return nil
 function M.run_renumber_command(cmd, scope)
-  local opts = config.get("lists")
   local bufnr = vim.api.nvim_get_current_buf()
-  if not (opts.enable and Context.writable(bufnr)) then
+  if not Context.writable(bufnr) then
+    return
+  end
+
+  -- The sequence domain has its own switch and is filetype-independent, so it
+  -- is gated before (and separately from) the list domain's.
+  if scope == "selection" then
+    local seq = config.get("sequence")
+    if type(seq) == "table" and seq.enable then
+      local s, e = command_rows(cmd)
+      sequence.range(bufnr, s, e, seq)
+    end
+    return
+  end
+
+  local opts = config.get("lists")
+  if not opts.enable then
     return
   end
   if scope == "all" then
@@ -512,7 +580,7 @@ function M.run_renumber_command(cmd, scope)
   end
   local s, e
   if cmd.range and cmd.range > 0 then
-    s, e = cmd.line1 - 1, cmd.line2 - 1
+    s, e = command_rows(cmd)
   else
     s, e = transform.block_range(bufnr, vim.api.nvim_win_get_cursor(0)[1] - 1, opts)
   end

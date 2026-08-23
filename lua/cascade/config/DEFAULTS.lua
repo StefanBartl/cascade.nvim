@@ -147,6 +147,23 @@ local DEFAULTS = {
     per_filetype = {},
   },
 
+  -- Renumbering *inside a selection*, independent of filetype and of whatever
+  -- precedes the number -- the cases `lists.renumber` structurally can't see,
+  -- because `lists.marker.parse` requires the number to be the line's first
+  -- token: numbered Markdown headlines (`### 2. iwas`) and inline numbers in
+  -- prose, selected mid-line. See cascade.sequence.renumber.
+  --   start: "keep" (default) takes the start value from the first hit, like
+  --          lists/renumber.lua does; "one" always restarts at 1/a/i.
+  --   types: kinds tried, in order, to classify the *first* hit -- which then
+  --          locks the kind for the rest of the run. Single letters are read
+  --          as `ascii` before `roman` here (a)b)c) is the commoner case); put
+  --          "roman" first for i./ii./iii. sequences.
+  sequence = {
+    enable = true,
+    start = "keep",
+    types = { "digit", "ascii", "roman" },
+  },
+
   transpose = {
     enable = true,
     features = {

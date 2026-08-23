@@ -87,8 +87,8 @@ function M.setup()
       {
         path = { "renumber" },
         range = true,
-        args = { { name = "scope", type = "STRING", enum = { "all" }, optional = true } },
-        desc = "Renumber list block (range-aware; 'all' = every list in the buffer)",
+        args = { { name = "scope", type = "STRING", enum = { "all", "selection" }, optional = true } },
+        desc = "Renumber list block (range-aware; 'all' = every list in the buffer, 'selection' = numbers inside the lines)",
         run = function(ctx)
           api.run_renumber_command(ctx.raw, ctx.args.scope)
         end,
