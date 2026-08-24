@@ -198,3 +198,19 @@ skip node" isn't well-defined for an arbitrary range.
 
 - **Module:** `core/treesitter.lua` (`M.in_skip_node`)
 - **Config:** `lists.precision` (default `"off"`), `lists.precision_nodes`
+
+## Right-click context menu (nvzone/menu)
+
+`cascade.integrations.menu` contributes the normal-mode subset of the list
+actions above (checkbox, cycle type, renumber, rotate, sort, reverse,
+strip) as entries in the shape [nvzone/menu](https://github.com/nvzone/menu)
+expects, gated the same way the keymaps are: `lists.enable`, the buffer's
+filetype being in `lists.filetypes`, and each `lists.features.*` flag.
+Global presets (cycle/sequence/transpose) are deliberately excluded —
+cursor-position-driven, they don't compress into discrete menu items.
+cascade.nvim has no dependency on `menu` and never opens a context menu
+itself — a host (typically your own `<RightMouse>` dispatcher) composes
+the entries into its own menu.
+
+- **Module:** `cascade/integrations/menu.lua` (`M.items`, `M.submenu`)
+- **Docs:** [`../BINDINGS.md#context-menu-optional`](../BINDINGS.md#context-menu-optional)
