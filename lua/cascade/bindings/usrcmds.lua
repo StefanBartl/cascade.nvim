@@ -24,6 +24,36 @@ function M.setup()
     desc = "Cascade: list transforms (range-aware; normal + visual)",
     routes = {
       {
+        path = { "cycle", "list" },
+        desc = "List the cycle groups in effect for this buffer",
+        run = function()
+          api.cycle_groups_list()
+        end,
+      },
+      {
+        path = { "cycle", "add" },
+        args = { { name = "values", type = "STRING" } },
+        desc = "Add a cycle group at runtime: :Cascade cycle add on,off,maybe",
+        run = function(ctx)
+          -- The whole tail, not just `ctx.args.values`: a group may contain
+          -- spaces (`:Cascade cycle add TODO,IN PROGRESS,DONE`), and taking
+          -- only the first token would silently drop everything after one.
+          local tail = ctx.args.values
+          if ctx.rest and #ctx.rest > 0 then
+            tail = tail .. " " .. table.concat(ctx.rest, " ")
+          end
+          api.cycle_group_add(tail)
+        end,
+      },
+      {
+        path = { "cycle", "remove" },
+        args = { { name = "value", type = "STRING" } },
+        desc = "Remove the runtime cycle group containing a value",
+        run = function(ctx)
+          api.cycle_group_remove(ctx.args.value)
+        end,
+      },
+      {
         path = { "rotate" },
         bang = true,
         range = true,

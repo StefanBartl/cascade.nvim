@@ -24,10 +24,10 @@ Bound for every filetype.
 
 | lhs | mode | action | feature | desc |
 | --- | --- | --- | --- | --- |
-| `<C-y>` | n | `cycle_word_next` | cycle.word | Increment / cycle word |
-| `<C-x>` | n | `cycle_word_prev` | cycle.word | Decrement / cycle word |
+| `<C-y>` | n | `cycle_word_next` | cycle.word | Increment / cycle word. `N` = N steps |
+| `<C-x>` | n | `cycle_word_prev` | cycle.word | Decrement / cycle word. `N` = N steps |
 | `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
-| `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise) |
+| `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise). `N` = N steps |
 | `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
 | `<leader>cR` | x | `renumber_selection` | sequence.enable | Renumber the ordinal tokens inside the selection (any filetype) |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
@@ -38,12 +38,34 @@ Bound for every filetype.
 | `<A-Left>` | i | `<C-d>` (native) | lists.indent | Dedent line (insert) |
 | `<leader><A-Right>` | n | `indent_levels` | lists.indent | Indent current line by `N` levels (old count meaning of `<A-Right>`) |
 | `<leader><A-Left>` | n | `dedent_levels` | lists.indent | Dedent current line by `N` levels (old count meaning of `<A-Left>`) |
-| `<A-Up>` | n | `move_up` | lists.move | Move line up |
+| `<A-Up>` | n | `move_up` | lists.move | Move line up. `N` = N lines |
 | `<A-Up>` | x | `move_up_visual` | lists.move | Move selection up |
-| `<A-Down>` | n | `move_down` | lists.move | Move line down |
+| `<A-Down>` | n | `move_down` | lists.move | Move line down. `N` = N lines |
 | `<A-Down>` | x | `move_down_visual` | lists.move | Move selection down |
 | `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` (native) | lists.move | Move line up (insert) |
 | `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` (native) | lists.move | Move line down (insert) |
+
+### Count support
+
+Indent/dedent had a deliberate count design from the start; the cycle, move
+and quick-toggle keys did not, which was the inconsistency the count audit
+flagged. Since 2026-08-24 they do:
+
+- **Cycle** (`<C-y>`/`<C-x>`/`+`/`-`): `N` takes N steps. Stepping rather
+  than jumping keeps every group kind right with one rule — a 2-state
+  toggle lands where its parity says (`2<C-y>` on `true` is still `true`),
+  a 3-state cycle wraps, and an ISO date rolls over months (`3<C-y>` on
+  `2026-08-30` gives `2026-09-02`, not day 33).
+  The two native fallbacks re-emit the count instead of swallowing it, so
+  `3<C-y>` on a number is `<C-a>` three times and on nothing cyclable it is
+  a three-line scroll.
+- **Move** (`<A-Up>`/`<A-Down>`): `N` moves N lines, one step at a time so
+  reindenting and list renumbering stay correct at each one. Stops at the
+  buffer edge rather than erroring.
+- **Quick-toggle** (`<A-->`/`<A-*>`): `N` widens the *scope* to the next N
+  lines rather than repeating the toggle — repeating it would be a no-op for
+  every even count. Same reinterpretation `<leader>et` uses in emojis.nvim.
+
 | `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor. `N` = swap N times |
 | `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor. `N` = swap N times |
 | `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char. `N` = swap N times |
@@ -63,9 +85,9 @@ Buffer-local, bound per `lists.filetypes`.
 | `o` | n | `o` | continue | Open item below |
 | `O` | n | `O` | continue | Open item above |
 | `<leader>cx` | n | `toggle_checkbox` | checkbox | Toggle checkbox |
-| `<A-->` | n | `bullet_toggle` | bullet_toggle | Toggle "-" bullet (no marker required) |
+| `<A-->` | n | `bullet_toggle` | bullet_toggle | Toggle "-" bullet (no marker required). `N` = the next N lines |
 | `<A-->` | x | `bullet_toggle_visual` | bullet_toggle | Toggle "-" bullet on every line in the selection |
-| `<A-*>` | n | `star_toggle` | bullet_toggle | Toggle "*" bullet (no marker required) |
+| `<A-*>` | n | `star_toggle` | bullet_toggle | Toggle "*" bullet (no marker required). `N` = the next N lines |
 | `<A-*>` | x | `star_toggle_visual` | bullet_toggle | Toggle "*" bullet on every line in the selection |
 | `<A-0>` | n | `number_toggle` | number_toggle | Toggle "1." marker (no marker required) |
 | `<A-0>` | x | `number_toggle_visual` | number_toggle | Toggle "1." marker on every line in the selection |

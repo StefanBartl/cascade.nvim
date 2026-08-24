@@ -8,6 +8,7 @@
 --- structured context applies, per the detect -> advance -> fallback pattern.
 
 local config = require("cascade.config")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local Context = require("cascade.core.context")
 local dispatch = require("cascade.dispatch")
 local dotrepeat = require("cascade.util.dotrepeat")
@@ -309,19 +310,38 @@ end
 --- Toggle a plain unordered bullet on the cursor line; works without an
 --- existing marker (unlike `checkbox`/`cycle_type`, which only ever advance
 --- one). Shared by the `-` and `*` variants.
+--- Count for the bullet/star toggles, captured before the dot-repeat
+--- trampoline like `pending_cycle_count`.
+---
+--- A count here widens the *scope* rather than repeating the action: `3<A-->`
+--- toggles the next three lines, not the cursor line three times (which would
+--- be a no-op for an even count). Same reinterpretation `<leader>et` uses in
+--- emojis.nvim, and the only one a toggle can sensibly give a count.
+---@type integer
+local pending_toggle_count = 1
+
 ---@param single fun(ctx: CascadeContext, opts: CascadeListOpts): boolean
+---@param range fun(bufnr: integer, srow: integer, erow: integer, dir: integer, opts: CascadeListOpts)
 ---@return fun()
-local function bullet_toggle_work(single)
+local function bullet_toggle_work(single, range)
   return function()
     local ctx = Context.new()
     local opts = config.get("lists")
-    if lists_active(ctx) and lf("bullet_toggle") then
-      dispatch.try({
-        function(c)
-          return single(c, opts)
-        end,
-      }, ctx)
+    if not (lists_active(ctx) and lf("bullet_toggle")) then
+      return
     end
+
+    if pending_toggle_count > 1 then
+      local last = math.min(ctx.row0 + pending_toggle_count - 1, vim.api.nvim_buf_line_count(ctx.bufnr) - 1)
+      range(ctx.bufnr, ctx.row0, last, 1, opts)
+      return
+    end
+
+    dispatch.try({
+      function(c)
+        return single(c, opts)
+      end,
+    }, ctx)
   end
 end
 
@@ -381,35 +401,74 @@ end
 ---@param number_key string # native key that increments/decrements numbers.
 ---@param own_key string # the key this action is bound to.
 ---@return fun()
+--- Count for the cycle keys, captured the same way and for the same reason as
+--- `pending_swap_count` below: `cycle_word_next` and friends run through the
+--- dot-repeat trampoline, so by the time the deferred work fires the count
+--- typed on the triggering keypress is gone from `vim.v.count1`.
+---@type integer
+local pending_cycle_count = 1
+
+--- Cycle the token under the cursor `pending_cycle_count` times.
+---
+--- Stepping N times rather than jumping N places keeps every group kind
+--- correct with one loop: a 2-state toggle lands where its parity says, a
+--- 3-state cycle wraps, and an ISO date rolls over months properly (`3<C-y>`
+--- on `2026-08-30` is `2026-09-02`, not day 33).
+---
+--- The two fallbacks re-emit the count instead of swallowing it, since both
+--- keys mean something counted natively: `3<C-a>` increments a number by 3,
+--- and `3<C-y>` scrolls three lines. Dropping it there would have made the
+--- count silently mean "1" exactly where the user could see it should not.
 local function cycle_word_work(dir, number_key, own_key)
   return function()
+    local count = pending_cycle_count
     local opts = config.get("cycle")
     if not opts.enable then
-      feed(own_key)
+      feed(count > 1 and (count .. own_key) or own_key)
       return
     end
     local ctx = Context.new()
     if not Context.writable(ctx.bufnr) or not ft_in(opts.filetypes, ctx.ft) then
-      feed(own_key)
+      feed(count > 1 and (count .. own_key) or own_key)
       return
     end
 
     if cf("date") then
-      local s0, e0, repl = date.step(ctx.line, ctx.col0, dir)
-      if s0 then
-        vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s0, ctx.row0, e0, { repl })
+      -- Re-read the line each step: `date.step` works off the text, and the
+      -- replacement can change its length (`2026-08-09` -> `2026-08-10`).
+      local stepped = false
+      for _ = 1, count do
+        local cur = Context.new(ctx.bufnr)
+        local s0, e0, repl = date.step(cur.line, cur.col0, dir)
+        if not s0 then
+          break
+        end
+        vim.api.nvim_buf_set_text(cur.bufnr, cur.row0, s0, cur.row0, e0, { repl })
+        stepped = true
+      end
+      if stepped then
         return
       end
     end
 
-    if cf("word") and word_cycle.cycle(ctx, opts, dir) then
-      return
+    if cf("word") then
+      local cycled = false
+      for _ = 1, count do
+        if not word_cycle.cycle(Context.new(ctx.bufnr), opts, dir) then
+          break
+        end
+        cycled = true
+      end
+      if cycled then
+        return
+      end
     end
+
     local _, _, text = token.span(ctx.line, ctx.col0)
     if opts.number_fallback and token.is_numeric(text) then
-      feed(number_key)
+      feed(count > 1 and (count .. number_key) or number_key)
     else
-      feed(own_key)
+      feed(count > 1 and (count .. own_key) or own_key)
     end
   end
 end
@@ -417,6 +476,99 @@ end
 --- Show an interactive picker over every entry in the cursor's cycle group
 --- (word or operator), replacing it with whichever the user picks. Silent
 --- no-op when the cursor isn't on a cyclable token -- there's no "own key"
+--- Add a cycle group at runtime.
+---
+--- `cycle.groups` is otherwise config-only, so trying out a group meant
+--- editing the config and reloading — enough friction that you simply
+--- wouldn't, for a group you need for the next ten minutes. This appends to
+--- the live table, which `word_cycle.groups_for` reads on every keypress.
+---
+--- Deliberately **not** persisted: it lasts for the session, and the config
+--- file stays the single source of truth for groups you actually want to
+--- keep. A group added here and then forgotten should not quietly outlive
+--- the reason it was added.
+---@param raw string  # comma-separated values, e.g. "on,off,maybe"
+---@return boolean added
+function M.cycle_group_add(raw)
+  local opts = config.get("cycle")
+  if type(opts) ~= "table" then
+    return false
+  end
+
+  local values = {}
+  local seen = {}
+  for part in tostring(raw or ""):gmatch("[^,]+") do
+    local v = vim.trim(part)
+    -- Duplicates inside one group would make the cycle stall on the repeat.
+    if v ~= "" and not seen[v] then
+      seen[v] = true
+      values[#values + 1] = v
+    end
+  end
+
+  if #values < 2 then
+    notify.warn("cycle add: need at least two distinct comma-separated values")
+    return false
+  end
+
+  opts.groups = opts.groups or {}
+  opts.groups[#opts.groups + 1] = values
+  notify.info("cycle group added: " .. table.concat(values, " -> "))
+  return true
+end
+
+--- Remove the first runtime cycle group containing `value`.
+---@param value string
+---@return boolean removed
+function M.cycle_group_remove(value)
+  local opts = config.get("cycle")
+  value = vim.trim(tostring(value or ""))
+  if type(opts) ~= "table" or type(opts.groups) ~= "table" or value == "" then
+    return false
+  end
+
+  for i = #opts.groups, 1, -1 do
+    if vim.tbl_contains(opts.groups[i], value) then
+      local removed = table.remove(opts.groups, i)
+      notify.info("cycle group removed: " .. table.concat(removed, " -> "))
+      return true
+    end
+  end
+
+  notify.warn("cycle remove: no group contains " .. vim.inspect(value))
+  return false
+end
+
+--- Report the cycle groups in effect for the current buffer.
+---
+--- Global groups plus this filetype's, which is what actually applies — the
+--- two are separate config keys, so reading either one alone answers the
+--- wrong question.
+---@return nil
+function M.cycle_groups_list()
+  local opts = config.get("cycle")
+  if type(opts) ~= "table" then
+    return
+  end
+
+  local ft = vim.bo[vim.api.nvim_get_current_buf()].filetype
+  local per_ft = (type(opts.per_filetype) == "table" and opts.per_filetype[ft]) or {}
+
+  local lines = { ("cycle groups in effect for %s:"):format(ft ~= "" and ft or "<no filetype>") }
+  for _, grp in ipairs(opts.groups or {}) do
+    lines[#lines + 1] = "  " .. table.concat(grp, " -> ")
+  end
+  for _, grp in ipairs(per_ft) do
+    lines[#lines + 1] = ("  %s   (%s only)"):format(table.concat(grp, " -> "), ft)
+  end
+
+  if #lines == 1 then
+    notify.info("no cycle groups configured")
+    return
+  end
+  notify.info(table.concat(lines, "\n"))
+end
+
 --- native meaning to fall back to for an otherwise-unbound leader mapping.
 ---@return nil
 function M.cycle_pick()
@@ -432,16 +584,58 @@ function M.cycle_pick()
 end
 
 M.toggle_checkbox = dotrepeat.repeatable("checkbox", checkbox_work)
-M.bullet_toggle = dotrepeat.repeatable("bullet_toggle", bullet_toggle_work(quick_toggle.bullet))
-M.star_toggle = dotrepeat.repeatable("star_toggle", bullet_toggle_work(quick_toggle.star))
+local bullet_toggle_repeatable =
+  dotrepeat.repeatable("bullet_toggle", bullet_toggle_work(quick_toggle.bullet, quick_toggle.bullet_range))
+local star_toggle_repeatable = dotrepeat.repeatable("star_toggle", bullet_toggle_work(quick_toggle.star, quick_toggle.star_range))
+
+--- Toggle a `-` bullet on the cursor line. `N` covers the next N lines.
+---@return nil
+function M.bullet_toggle()
+  pending_toggle_count = vim.v.count1
+  bullet_toggle_repeatable()
+end
+
+--- Toggle a `*` bullet on the cursor line. `N` covers the next N lines.
+---@return nil
+function M.star_toggle()
+  pending_toggle_count = vim.v.count1
+  star_toggle_repeatable()
+end
 M.number_toggle = dotrepeat.repeatable("number_toggle", number_toggle_work)
 M.checkbox_toggle = dotrepeat.repeatable("checkbox_toggle", checkbox_toggle_work)
 M.cycle_type_next = dotrepeat.repeatable("cycle_type_next", cycle_type_work(1))
 M.cycle_type_prev = dotrepeat.repeatable("cycle_type_prev", cycle_type_work(-1))
-M.cycle_word_next = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-a>", "<C-y>"))
-M.cycle_word_prev = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>", "<C-x>"))
-M.increment = dotrepeat.repeatable("increment", cycle_word_work(1, "<C-a>", "+"))
-M.decrement = dotrepeat.repeatable("decrement", cycle_word_work(-1, "<C-x>", "-"))
+local cycle_next_repeatable = dotrepeat.repeatable("cycle_word_next", cycle_word_work(1, "<C-a>", "<C-y>"))
+local cycle_prev_repeatable = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>", "<C-x>"))
+local increment_repeatable = dotrepeat.repeatable("increment", cycle_word_work(1, "<C-a>", "+"))
+local decrement_repeatable = dotrepeat.repeatable("decrement", cycle_word_work(-1, "<C-x>", "-"))
+
+--- Capture the count before the trampoline, then run. `.` afterwards replays
+--- with this same stashed count, matching how `swap_right`/`swap_left` behave.
+---@param fn fun()
+---@return fun()
+local function counted_cycle(fn)
+  return function()
+    pending_cycle_count = vim.v.count1
+    fn()
+  end
+end
+
+--- Cycle the token under the cursor forward. `N` cycles N steps.
+---@return nil
+M.cycle_word_next = counted_cycle(cycle_next_repeatable)
+
+--- Cycle the token under the cursor backward. `N` cycles N steps.
+---@return nil
+M.cycle_word_prev = counted_cycle(cycle_prev_repeatable)
+
+--- Increment the token under the cursor. `N` steps N times.
+---@return nil
+M.increment = counted_cycle(increment_repeatable)
+
+--- Decrement the token under the cursor. `N` steps N times.
+---@return nil
+M.decrement = counted_cycle(decrement_repeatable)
 
 -- ---------- block / visual transforms ----------
 
@@ -663,7 +857,12 @@ function M.move_down()
 end
 
 ---@internal
---- Internal: normal-mode move.
+--- Internal: normal-mode move. `N` moves N lines.
+--- Not dot-repeat wrapped, so `vim.v.count1` is still the keypress's own here
+--- and needs no stashing. Moving one line at a time N times rather than
+--- jumping N lines keeps `move_mod.line`'s reindent and list renumbering
+--- correct at every step; it stops early at the buffer edge instead of
+--- erroring.
 ---@param dir integer # -1 up, 1 down.
 ---@return nil
 function M._move(dir)
@@ -671,7 +870,12 @@ function M._move(dir)
   if not Context.writable(bufnr) or not lf("move") then
     return
   end
-  move_mod.line(bufnr, dir, config.get("lists"))
+  local opts = config.get("lists")
+  for _ = 1, vim.v.count1 do
+    if move_mod.line(bufnr, dir, opts) == false then
+      break
+    end
+  end
 end
 
 --- Move the visual selection up.

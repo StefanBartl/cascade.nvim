@@ -3,6 +3,7 @@
 
 return function(H)
   local eq = H.eq
+  local ok = H.ok
   local eq_lines = H.eq_lines
   local cfg = require("cascade.config")
   local cascade = require("cascade")
@@ -13,7 +14,23 @@ return function(H)
   eq(vim.fn.exists(":Cascade"), 2, ":Cascade defined")
   local subs = vim.fn.getcompletion("Cascade ", "cmdline")
   table.sort(subs)
-  eq(table.concat(subs, ","), "dedent,indent,renumber,reverse,rotate,sort,strip", ":Cascade completes every subcommand")
+  eq(table.concat(subs, ","), "cycle,dedent,indent,renumber,reverse,rotate,sort,strip", ":Cascade completes every subcommand")
+
+  -- `cycle` is a group, not a leaf: its own subcommands manage the runtime
+  -- cycle groups.
+  local cyc = vim.fn.getcompletion("Cascade cycle ", "cmdline")
+  table.sort(cyc)
+  eq(table.concat(cyc, ","), "add,list,remove", ":Cascade cycle completes its subcommands")
+
+  -- Runtime cycle groups. Deliberately session-only: the config file stays
+  -- the source of truth for groups meant to be kept.
+  cascade.setup({})
+  ok(cascade.cycle_group_add("alpha,beta,gamma"), "a valid group is added")
+  ok(not cascade.cycle_group_add("solo"), "a single value is refused -- nothing to cycle to")
+  ok(not cascade.cycle_group_add("x,x"), "duplicates are refused -- the cycle would stall")
+  ok(cascade.cycle_group_add("TODO, IN PROGRESS ,DONE"), "values may contain spaces")
+  ok(cascade.cycle_group_remove("beta"), "removing by any member drops its group")
+  ok(not cascade.cycle_group_remove("beta"), "...and says so when nothing matches")
 
   -- lists.format's hanging-indent options apply via their own FileType
   -- autocmd, independent of the keymaps.preset switch (regression: they used

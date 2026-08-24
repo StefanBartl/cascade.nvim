@@ -17,6 +17,43 @@ replacement's case shape to the original), extensible per filetype via
 
 - **Module:** `cycle/word_cycle.lua` (`M.cycle`), `cycle/token.lua` (`M.case_shape`, `M.apply_shape`)
 - **Config:** `cycle.features.word`, `cycle.groups`, `cycle.per_filetype`
+
+## Runtime cycle groups (2026-08-24)
+
+`cycle.groups` was config-only, so trying out a group meant editing the
+config and reloading — enough friction that for a group you need for the next
+ten minutes, you simply wouldn't. Closes the flag/option audit's entry.
+
+```vim
+:Cascade cycle add alpha,beta,gamma
+:Cascade cycle add TODO, IN PROGRESS ,DONE
+:Cascade cycle list
+:Cascade cycle remove beta
+```
+
+`add` appends to the live table that `word_cycle.groups_for` reads on every
+keypress, so it takes effect immediately. Values may contain spaces — the
+whole tail is taken, not just the first token, since otherwise
+`TODO,IN PROGRESS,DONE` would silently lose everything after the space.
+
+Two refusals, both because the result would be a cycle that cannot cycle: a
+group with fewer than two distinct values, and one with duplicates (which
+would stall on the repeat).
+
+`remove` drops the first group containing the value you name, so any member
+identifies it. `list` reports the global groups *and* the current filetype's,
+since those are separate config keys and reading either alone answers the
+wrong question.
+
+**Deliberately not persisted.** It lasts for the session; the config file
+stays the single source of truth for groups worth keeping. A group added in
+passing and then forgotten should not quietly outlive the reason it was
+added.
+
+- **Module:** `init.lua` (`cycle_group_add`, `cycle_group_remove`,
+  `cycle_groups_list`)
+- **Usercmds:** `:Cascade cycle add|list|remove`
+- **Tests:** `docs/TESTS/commands_spec.lua`
 - **Keymaps:** `<C-y>`/`<C-x>` (global, preset), `+`/`-` when nothing else matches (see below)
 
 ## Number fallback
@@ -26,6 +63,12 @@ cycle group or date matches, `<C-y>`/`<C-x>`/`+`/`-` fall back to native
 `<C-a>`/`<C-x>` instead of doing nothing.
 
 - **Module:** `init.lua` (`cycle_word_work`), `cycle/token.lua` (`M.is_numeric`)
+- **Count (2026-08-24):** `N` takes N steps. The number fallback re-emits the
+  count (`3<C-y>` on a number is `<C-a>` three times), as does the native-key
+  fallback — dropping it would make the count silently mean 1 exactly where
+  the user can see it should not. The count is captured before the dot-repeat
+  trampoline, the same way `pending_swap_count` is, because the trampoline
+  does not carry `vim.v.count1` through to the deferred work.
 - **Config:** `cycle.number_fallback`
 
 ## Date increment
