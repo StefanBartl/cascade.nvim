@@ -237,6 +237,16 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
 
+### Context menu (optional)
+
+`cascade.integrations.menu` contributes the normal-mode list actions above
+(checkbox, cycle type, renumber, rotate, sort, reverse, strip) as entries in
+the shape [nvzone/menu](https://github.com/nvzone/menu) expects, gated the
+same way the keymaps are. cascade.nvim has no dependency on `menu` and never
+opens a context menu itself — see
+[docs/BINDINGS.md](docs/BINDINGS.md#context-menu-optional) for wiring it
+into a host's own `<RightMouse>` dispatcher.
+
 ### User commands
 
 Range-aware — without a range they act on the list block at the cursor, with a

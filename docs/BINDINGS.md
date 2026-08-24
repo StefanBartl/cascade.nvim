@@ -85,6 +85,24 @@ Buffer-local, bound per `lists.filetypes`.
 | `<leader>cX` | n | `strip_checkbox` | strip | Strip checkboxes |
 | `<leader>cX` | x | `strip_checkbox_visual` | strip | Strip checkboxes |
 
+## Context Menu (optional)
+
+`cascade.integrations.menu` contributes the normal-mode subset of the
+buffer-local keymaps above (Toggle checkbox, Cycle list marker type,
+Renumber, Rotate list form, Sort A-Z, Reverse order, Strip checkboxes) as
+entries in the shape [nvzone/menu](https://github.com/nvzone/menu) expects.
+Same gating as the keymaps: `lists.enable`, the buffer's filetype being in
+`lists.filetypes`, and each `lists.features.*` flag.
+
+cascade.nvim has **no** dependency on `menu` and never opens a context menu
+itself — a host (typically your own `<RightMouse>` dispatcher) has to
+compose these entries into its own menu for them to ever be shown:
+
+```lua
+local items = require("cascade.integrations.menu").items()  -- current buffer
+local sub = require("cascade.integrations.menu").submenu()  -- { name = "  Cascade", items = {…} } | nil
+```
+
 ## User Commands
 
 One command, `:Cascade <subcommand>` (built via
