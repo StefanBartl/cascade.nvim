@@ -24,7 +24,7 @@ Built as its own domain (`lua/cascade/sequence/renumber.lua`, config key
 - Options: `sequence.enable`, `sequence.start` (`"keep"`/`"one"`),
   `sequence.types` (kind order for the first hit, which locks the kind).
 - Docs: [`docs/FEATURES/SEQUENCE.md`](../FEATURES/SEQUENCE.md),
-  `:h cascade-sequence`. Specs: `docs/TESTS/sequence_spec.lua`.
+  `:h cascade-sequence`. Specs: `TESTS/sequence_spec.lua`.
 
 ### Multi-line charwise selections
 
@@ -36,7 +36,7 @@ spanning several lines fell back to the whole-line (linewise) path.
   `reselect_chars_multiline()` / `keep_chars_multiline()` — same 0-based,
   explicit-bounds contract as `lines()`/`chars()`, added there (not forked
   cascade-locally) per the standing "extend lib.nvim" policy. Specs:
-  `lib.nvim`'s `docs/TESTS/selection_spec.lua` (new file — no prior spec
+  `lib.nvim`'s `TESTS/selection_spec.lua` (new file — no prior spec
   covered this module at all).
 - `sequence/renumber.lua` gained `M.span_multi`: the first line's selected
   part runs to its end, every full line in between is entirely selected, the

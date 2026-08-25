@@ -1,4 +1,4 @@
--- docs/TESTS/units_spec.lua — pure functions: roman, alpha, marker.
+-- TESTS/units_spec.lua — pure functions: roman, alpha, marker.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 
 return function(H)

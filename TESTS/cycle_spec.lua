@@ -1,4 +1,4 @@
--- docs/TESTS/cycle_spec.lua — word/boolean cycle.
+-- TESTS/cycle_spec.lua — word/boolean cycle.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 
 return function(H)

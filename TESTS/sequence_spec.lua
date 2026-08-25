@@ -1,4 +1,4 @@
--- docs/TESTS/sequence_spec.lua — renumbering inside a selection: the pure
+-- TESTS/sequence_spec.lua — renumbering inside a selection: the pure
 -- scanner (kind lock, start mode, per-hit delimiter, prose boundaries) and the
 -- two buffer entry points (linewise range, same-line charwise span).
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch

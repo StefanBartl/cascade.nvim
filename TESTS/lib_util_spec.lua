@@ -1,4 +1,4 @@
--- docs/TESTS/lib_util_spec.lua — cascade.util.lib's soft bridge to lib.nvim.
+-- TESTS/lib_util_spec.lua — cascade.util.lib's soft bridge to lib.nvim.
 --
 -- The headless test runner (`-u NONE -c "set rtp+=."`) never puts the real
 -- lib.nvim checkout on package.path, so lib.nvim is genuinely absent here —

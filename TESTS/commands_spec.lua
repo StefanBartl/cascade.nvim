@@ -1,4 +1,4 @@
--- docs/TESTS/commands_spec.lua — user commands exist and feature toggles gate.
+-- TESTS/commands_spec.lua — user commands exist and feature toggles gate.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 
 return function(H)

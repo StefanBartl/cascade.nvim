@@ -1,4 +1,4 @@
--- docs/TESTS/transpose_spec.lua — char/word/selection swap with left/right
+-- TESTS/transpose_spec.lua — char/word/selection swap with left/right
 -- neighbor: ASCII, UTF-8 multibyte, and line-boundary no-ops.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 

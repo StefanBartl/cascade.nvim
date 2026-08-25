@@ -1,4 +1,4 @@
--- docs/TESTS/lists_spec.lua — buffer-level list operations:
+-- TESTS/lists_spec.lua — buffer-level list operations:
 -- continuation/checkbox, renumber (run/tree/all), transforms, indent, move.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch, assign-type-mismatch
 

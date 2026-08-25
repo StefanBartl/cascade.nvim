@@ -53,7 +53,7 @@ added.
 - **Module:** `init.lua` (`cycle_group_add`, `cycle_group_remove`,
   `cycle_groups_list`)
 - **Usercmds:** `:Cascade cycle add|list|remove`
-- **Tests:** `docs/TESTS/commands_spec.lua`
+- **Tests:** `TESTS/commands_spec.lua`
 - **Keymaps:** `<C-y>`/`<C-x>` (global, preset), `+`/`-` when nothing else matches (see below)
 
 ## Number fallback
