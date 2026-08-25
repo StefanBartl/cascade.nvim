@@ -30,9 +30,13 @@ local M = {}
 ---@param ft string
 ---@return boolean
 local function ft_in(fts, ft)
-  if fts == nil then return true end
+  if fts == nil then
+    return true
+  end
   for i = 1, #fts do
-    if fts[i] == ft then return true end
+    if fts[i] == ft then
+      return true
+    end
   end
   return false
 end
@@ -47,11 +51,17 @@ function M.items(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
   local cfg = require("cascade.config").get("lists")
-  if not cfg or cfg.enable == false then return {} end
-  if not ft_in(cfg.filetypes, vim.bo[bufnr].filetype) then return {} end
+  if not cfg or cfg.enable == false then
+    return {}
+  end
+  if not ft_in(cfg.filetypes, vim.bo[bufnr].filetype) then
+    return {}
+  end
 
   local feat = cfg.features or {}
-  local function on(name) return feat[name] ~= false end
+  local function on(name)
+    return feat[name] ~= false
+  end
 
   local api = require("cascade")
   local out = {}
@@ -71,10 +81,7 @@ function M.items(bufnr)
     contextmenu.entry(on("reverse"), "  Reverse list order", api.reverse, "<leader>cv")
   )
 
-  contextmenu.group(
-    out,
-    contextmenu.entry(on("strip"), "  Strip checkboxes", api.strip_checkbox, "<leader>cX")
-  )
+  contextmenu.group(out, contextmenu.entry(on("strip"), "  Strip checkboxes", api.strip_checkbox, "<leader>cX"))
 
   return out
 end
