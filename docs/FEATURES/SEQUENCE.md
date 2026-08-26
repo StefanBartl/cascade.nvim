@@ -28,6 +28,9 @@ te 4. text der nur als 5. beispiel 9. um wa
 
 ## What counts as an ordinal
 
+- **Module:** `sequence/renumber.lua` (the scanner)
+- **Config:** `sequence.types` — which kinds are recognized
+
 An alphanumeric run followed by `.` or `)`. Two boundary rules keep the
 scanner out of ordinary prose:
 
@@ -37,6 +40,9 @@ scanner out of ordinary prose:
   (`3.14`) and abbreviations (`e.g.`) don't qualify.
 
 ## Kind lock
+
+- **Module:** `sequence/renumber.lua`
+- **Config:** `sequence.types` (default order: `digit`, `ascii`, `roman`)
 
 The **first** hit decides whether the run is `digit`, `ascii` or `roman` —
 tried in the order of `sequence.types` — and locks it. Tokens of the other
@@ -89,6 +95,9 @@ prose in between      │  selected mid-line on both ends, then <leader>cR:
   bridges to directly)
 
 ## Options
+
+- **Module:** `config/init.lua` (`normalize_sequence`)
+- **Config:** `sequence.enable`, `sequence.start`, `sequence.types`
 
 | Option | Values | Meaning |
 | ------ | ------ | ------- |
