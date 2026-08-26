@@ -99,7 +99,7 @@ end
 function M.map(mode, lhs, rhs, opts)
   opts = opts or {}
   local lib = try_require("lib.nvim.bindings.keymap")
-  if type(lib) == "function" then
+  if vim.is_callable(lib) then
     local ok = pcall(lib, mode, lhs, rhs, opts)
     if ok then
       return
