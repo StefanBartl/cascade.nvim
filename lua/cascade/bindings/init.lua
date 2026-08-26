@@ -18,7 +18,6 @@ function M.setup(cfg)
   if cfg.keymaps and cfg.keymaps.preset then
     keymaps.bind_preset_globals(cfg)
     -- Label the <leader>c prefix in which-key (no-op if not installed).
-    require("cascade.bindings.which_key").setup()
   end
   require("cascade.bindings.autocmds").setup(cfg)
 end

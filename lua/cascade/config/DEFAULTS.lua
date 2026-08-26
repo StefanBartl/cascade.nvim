@@ -172,8 +172,17 @@ local DEFAULTS = {
     },
   },
 
+  -- `preset = false` binds nothing. Beyond that, each key is an individually
+  -- overridable named action, split by where it applies: `globals` for the
+  -- keys that work everywhere, `list` for the ones bound inside a buffer whose
+  -- filetype matched. `keymaps = { globals = { move_up = "<A-k>" } }` moves
+  -- one; `= false` drops one. The feature switches (`lists.features.*`,
+  -- `cycle.features.*`, …) still gate their whole group.
+  -- See bindings/keymaps.lua for the full set of names.
   keymaps = {
     preset = false,
+    globals = {},
+    list = {},
   },
 
   -- Debug logging at cascade's central decision points (detect -> advance ->
