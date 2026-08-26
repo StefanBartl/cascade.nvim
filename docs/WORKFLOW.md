@@ -21,7 +21,7 @@ you want the preset's global word/number cycle in `.lua`/`.ts` files too
 yet outside those filetypes.
 
 `lib.nvim` is a **required** dependency, not a soft one: without it,
-`:Cascade` fails to load outright (`lib.nvim.usercmd.composer` builds the
+`:Cascade` fails to load outright (`lib.nvim.bindings.usercmd.composer` builds the
 command). `lib.map`/`lib.notify` stay soft — used when present, native
 fallback otherwise. `:checkhealth cascade` is the fast way to confirm
 which of the two situations you're in before assuming a missing command is

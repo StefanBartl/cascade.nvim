@@ -127,7 +127,7 @@ line in the selection is left untouched.
 
 USER COMMANDS                                               *cascade-commands*
 
-One command, :Cascade <subcommand> (built via lib.nvim.usercmd.composer, with
+One command, :Cascade <subcommand> (built via lib.nvim.bindings.usercmd.composer, with
 <Tab> completion). All subcommands are |:command-range| aware: without a
 range they act on the list block at the cursor; with a range (e.g. visual
 `:'<,'>`) on the selected lines. Bang attaches to the VERB, not the
@@ -624,7 +624,7 @@ Reports the Neovim version, per-domain status, lib.nvim availability (required
 10. LIB.NVIM INTEGRATION                                          *cascade-lib*
 
 cascade.nvim REQUIRES `lib.nvim`: the :Cascade command is built on
-lib.nvim.usercmd.composer and fails to load without it. `lib.map`,
+lib.nvim.bindings.usercmd.composer and fails to load without it. `lib.map`,
 `lib.notify`, `lib.augroup` remain soft-guarded — used when present, native
 API fallback otherwise (see lua/cascade/util/lib.lua).
 

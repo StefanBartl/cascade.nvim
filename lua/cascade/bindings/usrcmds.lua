@@ -11,7 +11,7 @@
 --- computed from the composer-typed `ctx.bang`/`ctx.args` instead of raw
 --- string comparison.
 
-local composer = require("lib.nvim.usercmd.composer")
+local composer = require("lib.nvim.bindings.usercmd.composer")
 
 local M = {}
 

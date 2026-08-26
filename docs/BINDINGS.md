@@ -128,7 +128,7 @@ local sub = require("cascade.integrations.menu").submenu()  -- { name = "  Casca
 ## User Commands
 
 One command, `:Cascade <subcommand>` (built via
-[`lib.nvim.usercmd.composer`](https://github.com/StefanBartl/lib.nvim), with
+[`lib.nvim.bindings.usercmd.composer`](https://github.com/StefanBartl/lib.nvim), with
 `<Tab>` completion), always defined regardless of the preset configuration.
 **Bang now attaches to the verb, not the subcommand**: `:CascadeRotate!` is
 now `:Cascade! rotate` (Vim's `!` always binds to the command name itself, so

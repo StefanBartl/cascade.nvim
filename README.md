@@ -97,7 +97,7 @@ buffer mutation, a single context object per action, memoized patterns,
 | `lazy = false` | Loads immediately | Small config, want it available instantly |
 
 `lib.nvim` is a **required** dependency: the `:Cascade` command (built on
-`lib.nvim.usercmd.composer`) fails to load without it. `lib.map`/`lib.notify`
+`lib.nvim.bindings.usercmd.composer`) fails to load without it. `lib.map`/`lib.notify`
 remain soft — used when present, native fallback otherwise.
 
 ### lazy.nvim
@@ -504,7 +504,7 @@ cascade.nvim/
 ```
 
 `lib.nvim` is a **required** dependency: the `:Cascade` command layer is built
-on `lib.nvim.usercmd.composer`. `lib.map`/`lib.notify`/… stay soft-guarded —
+on `lib.nvim.bindings.usercmd.composer`. `lib.map`/`lib.notify`/… stay soft-guarded —
 used when present, native fallback otherwise.
 
 ---

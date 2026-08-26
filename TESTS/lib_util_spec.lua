@@ -5,7 +5,7 @@
 -- that covers the fallback path for free. The "lib.nvim present" path is
 -- covered by stubbing `package.loaded` with fakes that mirror lib.nvim's
 -- real exported shapes (`lib.nvim.notify` -> `.create(prefix)` returning a
--- notifier, `lib.nvim.map` -> a bare function, `lib.nvim.autocmd.augroup`
+-- notifier, `lib.nvim.bindings.keymap` -> a bare function, `lib.nvim.bindings.autocmd.augroup`
 -- -> `{ create = { clear = fn } }`), so a portable spec can prove
 -- cascade.util.lib actually calls through to lib.nvim rather than only
 -- ever exercising the fallback.
@@ -85,11 +85,11 @@ return function(H)
     ok(not vim_notify_called, "vim.notify fallback NOT used when lib.nvim.notify succeeds")
   end
 
-  -- lib.nvim present (stubbed): M.map calls through to lib.nvim.map's bare
+  -- lib.nvim present (stubbed): M.map calls through to lib.nvim.bindings.keymap's bare
   -- function shape, not vim.keymap.set.
   do
     local captured
-    package.loaded["lib.nvim.map"] = function(modes, lhs, rhs, opts)
+    package.loaded["lib.nvim.bindings.keymap"] = function(modes, lhs, rhs, opts)
       captured = { modes = modes, lhs = lhs, rhs = rhs, opts = opts }
     end
 
@@ -101,19 +101,19 @@ return function(H)
     local rhs = function() end
     lib.map("v", "<Plug>(cascade-test-2)", rhs, {})
     vim.keymap.set = orig
-    package.loaded["lib.nvim.map"] = nil
+    package.loaded["lib.nvim.bindings.keymap"] = nil
 
-    ok(captured, "lib.nvim.map path invoked when present")
-    eq(captured.modes, "v", "lib.nvim.map path passes mode through")
-    eq(captured.lhs, "<Plug>(cascade-test-2)", "lib.nvim.map path passes lhs through")
-    ok(not vim_map_called, "vim.keymap.set fallback NOT used when lib.nvim.map succeeds")
+    ok(captured, "lib.nvim.bindings.keymap path invoked when present")
+    eq(captured.modes, "v", "lib.nvim.bindings.keymap path passes mode through")
+    eq(captured.lhs, "<Plug>(cascade-test-2)", "lib.nvim.bindings.keymap path passes lhs through")
+    ok(not vim_map_called, "vim.keymap.set fallback NOT used when lib.nvim.bindings.keymap succeeds")
   end
 
   -- lib.nvim present (stubbed): M.augroup calls through to
-  -- lib.nvim.autocmd.augroup's `{ create = { clear = fn } }` shape.
+  -- lib.nvim.bindings.autocmd.augroup's `{ create = { clear = fn } }` shape.
   do
     local captured_name
-    package.loaded["lib.nvim.autocmd.augroup"] = {
+    package.loaded["lib.nvim.bindings.autocmd.augroup"] = {
       create = {
         clear = function(name)
           captured_name = name
@@ -123,10 +123,10 @@ return function(H)
     }
 
     local id = lib.augroup("cascade_test_augroup_bridged")
-    package.loaded["lib.nvim.autocmd.augroup"] = nil
+    package.loaded["lib.nvim.bindings.autocmd.augroup"] = nil
 
-    eq(captured_name, "cascade_test_augroup_bridged", "lib.nvim.autocmd.augroup path passes name through")
-    eq(id, -12345, "lib.nvim.autocmd.augroup path's return value is used, not a fresh nvim_create_augroup id")
+    eq(captured_name, "cascade_test_augroup_bridged", "lib.nvim.bindings.autocmd.augroup path passes name through")
+    eq(id, -12345, "lib.nvim.bindings.autocmd.augroup path's return value is used, not a fresh nvim_create_augroup id")
   end
 
   -- dotrepeat_run: without vim-repeat installed, the wrapped fn still runs

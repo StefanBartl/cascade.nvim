@@ -2,7 +2,7 @@
 --- Soft, guarded bridge to a handful of `lib.nvim` helpers.
 ---
 --- `lib.nvim` itself is now a required dependency (the :Cascade command is
---- built on lib.nvim.usercmd.composer, see bindings/usrcmds.lua) — but these
+--- built on lib.nvim.bindings.usercmd.composer, see bindings/usrcmds.lua) — but these
 --- specific accessors (`lib.map`, `lib.notify`, ...) stay soft-guarded for
 --- callers that want a native-API fallback instead of a hard call, and each
 --- probes its module with `pcall` accordingly.
@@ -12,8 +12,8 @@ local M = {}
 
 ---@internal
 --- Resolve a sub-module of `lib` once, swallowing load errors. Accepts both
---- table modules (`lib.nvim.notify`, `lib.nvim.autocmd.augroup`) and bare
---- function modules (`lib.nvim.map` returns a function, not a table).
+--- table modules (`lib.nvim.notify`, `lib.nvim.bindings.autocmd.augroup`) and bare
+--- function modules (`lib.nvim.bindings.keymap` returns a function, not a table).
 ---@param name string
 ---@return table|function|nil
 local function try_require(name)
@@ -90,7 +90,7 @@ function M.debug_log(enabled, msg, ctx)
   vim.notify(("[cascade] %s"):format(text), vim.log.levels.DEBUG)
 end
 
---- Set a keymap. Uses `lib.nvim.map` if available, else `vim.keymap.set`.
+--- Set a keymap. Uses `lib.nvim.bindings.keymap` if available, else `vim.keymap.set`.
 ---@param mode string|string[]
 ---@param lhs string
 ---@param rhs string|function
@@ -98,7 +98,7 @@ end
 ---@return nil
 function M.map(mode, lhs, rhs, opts)
   opts = opts or {}
-  local lib = try_require("lib.nvim.map")
+  local lib = try_require("lib.nvim.bindings.keymap")
   if type(lib) == "function" then
     local ok = pcall(lib, mode, lhs, rhs, opts)
     if ok then
@@ -112,7 +112,7 @@ end
 ---@param name string
 ---@return integer
 function M.augroup(name)
-  local lib = try_require("lib.nvim.autocmd.augroup")
+  local lib = try_require("lib.nvim.bindings.autocmd.augroup")
   if lib and type(lib.create) == "table" and type(lib.create.clear) == "function" then
     local ok, id = pcall(lib.create.clear, name)
     if ok and type(id) == "number" then

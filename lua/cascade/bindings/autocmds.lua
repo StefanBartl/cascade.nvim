@@ -15,7 +15,7 @@ local config = require("cascade.config")
 local Context = require("cascade.core.context")
 local renumber = require("cascade.lists.renumber")
 local format = require("cascade.lists.format")
-local autocmd = require("lib.nvim.autocmd")
+local autocmd = require("lib.nvim.bindings.autocmd")
 local lib = require("cascade.util.lib")
 
 local M = {}

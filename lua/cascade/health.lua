@@ -3,7 +3,7 @@
 ---
 --- Reports Neovim version, whether each domain is enabled, `lib.nvim`
 --- availability (required — the :Cascade command layer is built on
---- lib.nvim.usercmd.composer), and basic config sanity (non-empty cycle
+--- lib.nvim.bindings.usercmd.composer), and basic config sanity (non-empty cycle
 --- groups / checkbox states). Read-only: never mutates state.
 
 local M = {}
@@ -31,9 +31,9 @@ function M.check()
     return
   end
 
-  -- lib.nvim: required for the :Cascade command layer (lib.nvim.usercmd.composer);
+  -- lib.nvim: required for the :Cascade command layer (lib.nvim.bindings.usercmd.composer);
   -- lib.map/lib.notify remain soft (util/lib.lua falls back to native APIs).
-  if pcall(require, "lib.nvim.usercmd.composer") then
+  if pcall(require, "lib.nvim.bindings.usercmd.composer") then
     ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
   else
     warn('lib.nvim not found — :Cascade will fail to load; install "StefanBartl/lib.nvim"')
