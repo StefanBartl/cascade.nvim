@@ -5,36 +5,20 @@
 --- `get(path)` accessor (dot-separated path) so other modules never read a raw
 --- options table directly. This preserves fallback semantics and keeps the
 --- merged config in one place.
+---
+--- The merge and the dot-path lookup are `lib.lua.config`'s: this module used
+--- to carry its own byte-identical copies of both (spotlight.nvim had the
+--- other copy) — see that lib module's doc comment for why the merge isn't
+--- `lib.lua.tables.core.deep_merge`.
 
 local DEFAULTS = require("cascade.config.DEFAULTS")
+local lib_config = require("lib.lua.config")
 
 ---@class CascadeConfigModule
 ---@field options CascadeConfig
 local M = {}
 
 M.options = DEFAULTS
-
----@internal
---- Recursively merge `override` into a copy of `base`.
---- Arrays (list-like tables) are replaced wholesale, not concatenated, so a user
---- can fully redefine e.g. `cycle.groups` without inheriting defaults.
----@param base table
----@param override table
----@return table
-local function deep_merge(base, override)
-  local out = {}
-  for k, v in pairs(base) do
-    out[k] = v
-  end
-  for k, v in pairs(override) do
-    if type(v) == "table" and type(out[k]) == "table" and not vim.islist(v) then
-      out[k] = deep_merge(out[k], v)
-    else
-      out[k] = v
-    end
-  end
-  return out
-end
 
 ---@internal
 --- Normalize `sequence`: guard the two values `cascade.sequence.renumber` reads
@@ -94,9 +78,9 @@ end
 ---@return nil
 function M.setup(opts)
   if type(opts) ~= "table" then
-    M.options = deep_merge(DEFAULTS, {})
+    M.options = lib_config.deep_merge(DEFAULTS, {})
   else
-    M.options = deep_merge(DEFAULTS, opts)
+    M.options = lib_config.deep_merge(DEFAULTS, opts)
   end
   normalize(M.options)
 end
@@ -105,17 +89,7 @@ end
 ---@param path string
 ---@return any
 function M.get(path)
-  if type(path) ~= "string" then
-    return nil
-  end
-  local node = M.options
-  for key in path:gmatch("[^.]+") do
-    if type(node) ~= "table" then
-      return nil
-    end
-    node = node[key]
-  end
-  return node
+  return lib_config.get(M.options, path)
 end
 
 return M
