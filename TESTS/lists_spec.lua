@@ -518,6 +518,43 @@ return function(H)
   )
   vim.bo[buf].filetype = "markdown"
 
+  -- `O` on a list line takes the marker's own slot.
+  cfg.setup({})
+  local oopts = cfg.get("lists")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- first", "- second" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  local o_handled = require("cascade.lists.continue").O(require("cascade.core.context").new(), oopts)
+  eq(o_handled, true, "continue.O: handles a list line")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "- first", "- ", "- second" },
+    "continue.O: new bullet takes the current line's slot"
+  )
+  local o_cur = vim.api.nvim_win_get_cursor(0)
+  eq(o_cur[1], 2, "continue.O: cursor row lands on the new bullet")
+  eq(o_cur[2], 2, "continue.O: cursor col lands after the marker")
+  vim.cmd("stopinsert")
+
+  -- `O` on a non-list line falls back to the marker directly above, so
+  -- opening above a blank/prose line right under a bullet still continues
+  -- the list instead of inserting a plain blank line.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- first", "", "prose" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  local o_fallback = require("cascade.lists.continue").O(require("cascade.core.context").new(), oopts)
+  eq(o_fallback, true, "continue.O: falls back to the marker above a non-list line")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "- first", "- ", "", "prose" },
+    "continue.O: new bullet inserted above, non-list line pushed down"
+  )
+  vim.cmd("stopinsert")
+
+  -- No marker on the current line and none above either: untouched, native fallback.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "prose one", "prose two" })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  local o_none = require("cascade.lists.continue").O(require("cascade.core.context").new(), oopts)
+  eq(o_none, false, "continue.O: no marker on current or previous line -> unhandled")
+
   -- lists.precision = "treesitter": skip a configured node type (default: a
   -- markdown fenced code block) so a line that only *looks* like a marker
   -- inside a code fence isn't treated as a real list item. The pure/pcall-

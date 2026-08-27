@@ -133,6 +133,12 @@ function M.cr()
   feed("<CR>")
 end
 
+--- Escape hatch for `M.cr`: always a plain newline, list continuation skipped.
+---@return nil
+function M.cr_literal()
+  feed("<CR>")
+end
+
 --- `o`: open a continued item below, or fall back to native `o`.
 ---@return nil
 function M.o()

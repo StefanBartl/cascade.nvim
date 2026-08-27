@@ -71,20 +71,40 @@ function M.o(ctx, opts)
 end
 
 --- Handle `O` (open line above) on a list line.
+---
+--- The current line is checked first: `O` there takes the marker's own slot,
+--- pushing it (and the rest of the list) down. When the current line isn't a
+--- list item but the line directly above it is, `O` still opens a new bullet
+--- -- the next sibling after that item -- and pushes the current (non-list)
+--- line down below it, same as `o` on the line above would have.
 ---@param ctx CascadeContext
 ---@param opts CascadeListOpts
 ---@return boolean handled
 function M.O(ctx, opts)
   local m = marker.parse(ctx.line, opts)
-  if not m then
+  if m then
+    -- New item takes the current marker's slot; renumber pushes the rest down.
+    local fresh = { indent = m.indent, kind = m.kind, marker = m.marker, delim = m.delim, text = "" }
+    if m.checkbox ~= nil then
+      fresh.checkbox = opts.checkbox.states[1]
+    end
+    local prefix = marker.render(fresh)
+    vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, ctx.row0, false, { prefix })
+    vim.api.nvim_win_set_cursor(0, { ctx.row0 + 1, #prefix })
+    maybe_renumber(ctx.bufnr, ctx.row0, opts)
+    vim.cmd("startinsert!")
+    return true
+  end
+
+  if ctx.row0 == 0 then
     return false
   end
-  -- New item takes the current marker's slot; renumber pushes the rest down.
-  local fresh = { indent = m.indent, kind = m.kind, marker = m.marker, delim = m.delim, text = "" }
-  if m.checkbox ~= nil then
-    fresh.checkbox = opts.checkbox.states[1]
+  local above = vim.api.nvim_buf_get_lines(ctx.bufnr, ctx.row0 - 1, ctx.row0, false)[1]
+  local am = above and marker.parse(above, opts)
+  if not am then
+    return false
   end
-  local prefix = marker.render(fresh)
+  local prefix = marker.render(marker.advance(am, opts))
   vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, ctx.row0, false, { prefix })
   vim.api.nvim_win_set_cursor(0, { ctx.row0 + 1, #prefix })
   maybe_renumber(ctx.bufnr, ctx.row0, opts)

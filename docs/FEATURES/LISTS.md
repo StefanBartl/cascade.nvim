@@ -12,11 +12,15 @@ is harmless. Each feature can be switched off individually via
 
 `<CR>` in insert mode, `o`/`O` in normal mode insert the next bullet,
 incrementing ordered markers. `<CR>` on an already-empty bullet deletes it
-and ends the list instead of continuing it.
+and ends the list instead of continuing it. `O` on a non-list line falls
+back to the marker on the line directly above, so opening above a
+trailing blank/prose line right under a bullet still inserts a new item
+instead of a plain blank line. `<M-CR>` is a plain newline that always
+skips continuation, for when you want a literal Enter inside a list line.
 
-- **Module:** `lists/continue.lua` (`M.cr`, `M.o`, `M.O`)
+- **Module:** `lists/continue.lua` (`M.cr`, `M.o`, `M.O`), `cascade.cr_literal`
 - **Config:** `lists.features.continue`, `lists.continue.delete_empty`
-- **Keymaps:** [`../BINDINGS.md#preset-keymaps`](../BINDINGS.md#preset-keymaps) (`<CR>`/`o`/`O`)
+- **Keymaps:** [`../BINDINGS.md#preset-keymaps`](../BINDINGS.md#preset-keymaps) (`<CR>`/`<M-CR>`/`o`/`O`)
 
 ## Renumber
 

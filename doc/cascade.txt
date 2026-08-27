@@ -169,6 +169,7 @@ With `keymaps.preset = true`:
 
   Buffer-local in `lists.filetypes`:
     i <CR>          ->  cr
+    i <M-CR>        ->  cr_literal
     n o             ->  o
     n O             ->  O
     n <leader>cx    ->  toggle_checkbox

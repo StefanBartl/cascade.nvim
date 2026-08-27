@@ -165,7 +165,7 @@ Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
 `<leader>cp` (interactive `vim.ui.select` picker for the cursor's cycle-group),
 `<leader><Right>`/`<leader><Left>` (char/selection swap) and
 `<leader><C-Right>`/`<leader><C-Left>` (word/selection swap) globally, and, in
-the list filetypes, buffer-local `<CR>`/`o`/`O` plus `<leader>cx` (checkbox),
+the list filetypes, buffer-local `<CR>`/`<M-CR>`/`o`/`O` plus `<leader>cx` (checkbox),
 `<A-->`/`<A-*>`/`<A-0>`/`<A-c>` (quick bullet/star/number/checkbox toggle —
 also work on a Visual/Visual-line selection, each line toggled independently),
 `<leader>ct`/`<leader>cT` (list type), `<leader>cr` (renumber). In Visual
@@ -179,6 +179,7 @@ require("cascade").setup({}) -- keymaps.preset defaults to false: no keys bound
 
 local cascade = require("cascade")
 vim.keymap.set("i", "<CR>",    cascade.cr)
+vim.keymap.set("i", "<M-CR>",  cascade.cr_literal)
 vim.keymap.set("n", "o",       cascade.o)
 vim.keymap.set("n", "O",       cascade.O)
 vim.keymap.set("n", "<C-y>",   cascade.cycle_word_next)
@@ -203,8 +204,9 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | Function                    | Mode  | Action                                    |
 | ---------------------------- | ----- | ----------------------------------------- |
 | `cr`                          | i     | Continue list / delete empty bullet       |
+| `cr_literal`                  | i     | Plain newline (skip list continuation)    |
 | `o`                           | n     | Open item below                           |
-| `O`                           | n     | Open item above                           |
+| `O`                           | n     | Open item above (also below a bullet)     |
 | `toggle_checkbox`             | n     | Toggle/cycle checkbox                     |
 | `bullet_toggle` / `_visual`   | n / x | Toggle `-` bullet (no marker required)    |
 | `star_toggle` / `_visual`     | n / x | Toggle `*` bullet (no marker required)    |

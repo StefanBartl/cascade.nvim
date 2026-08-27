@@ -82,8 +82,9 @@ Buffer-local, bound per `lists.filetypes`.
 | lhs | mode | action | feature | desc |
 | --- | --- | --- | --- | --- |
 | `<CR>` | i | `cr` | continue | Continue list |
+| `<M-CR>` | i | `cr_literal` | continue | Plain newline (skip list continuation) |
 | `o` | n | `o` | continue | Open item below |
-| `O` | n | `O` | continue | Open item above |
+| `O` | n | `O` | continue | Open item above (also from a non-list line directly below a bullet) |
 | `<leader>cx` | n | `toggle_checkbox` | checkbox | Toggle checkbox |
 | `<A-->` | n | `bullet_toggle` | bullet_toggle | Toggle "-" bullet (no marker required). `N` = the next N lines |
 | `<A-->` | x | `bullet_toggle_visual` | bullet_toggle | Toggle "-" bullet on every line in the selection |

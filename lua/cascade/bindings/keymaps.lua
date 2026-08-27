@@ -47,7 +47,7 @@ end
 --- The buffer-local list keys, by feature family.
 ---@type table<string, string[]>
 local LIST_FAMILIES = {
-  continue = { "continue", "open_below", "open_above" },
+  continue = { "continue", "continue_literal", "open_below", "open_above" },
   checkbox = { "toggle_checkbox" },
   bullet_toggle = { "bullet_toggle", "star_toggle" },
   number_toggle = { "number_toggle" },
@@ -75,6 +75,7 @@ function M.bind_list_buffer()
     which_key = { group = "cascade" },
     order = {
       "continue",
+      "continue_literal",
       "open_below",
       "open_above",
       "toggle_checkbox",
@@ -93,6 +94,12 @@ function M.bind_list_buffer()
     },
     actions = {
       continue = { default = "<CR>", mode = "i", rhs = api.cr, desc = "continue list" },
+      continue_literal = {
+        default = "<M-CR>",
+        mode = "i",
+        rhs = api.cr_literal,
+        desc = "plain newline (skip list continuation)",
+      },
       open_below = { default = "o", rhs = api.o, desc = "open item below" },
       open_above = { default = "O", rhs = api.O, desc = "open item above" },
 
