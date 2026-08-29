@@ -97,12 +97,12 @@
 ---@field preset boolean # Bind the opinionated default keymaps on setup.
 
 ---@class CascadeConfig
----@field lists CascadeListOpts
----@field cycle CascadeCycleOpts
----@field sequence CascadeSequenceOpts
----@field transpose CascadeTransposeOpts
----@field keymaps CascadeKeymapOpts
----@field debug boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).
+---@field lists? CascadeListOpts
+---@field cycle? CascadeCycleOpts
+---@field sequence? CascadeSequenceOpts
+---@field transpose? CascadeTransposeOpts
+---@field keymaps? CascadeKeymapOpts
+---@field debug? boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).
 
 -- #####################################################################
 -- core/context.lua
