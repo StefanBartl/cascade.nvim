@@ -85,10 +85,44 @@ function M.check()
   -- Cycle domain.
   local cyc = config.get("cycle")
   if cyc.enable then
+    local packs_mod = require("cascade.cycle.packs")
+    local pack_names = type(cyc.packs) == "table" and cyc.packs or {}
+    local pack_groups = packs_mod.resolve(pack_names)
     local scope = cyc.filetypes and table.concat(cyc.filetypes, ", ") or "all filetypes"
-    ok(("cycle: enabled (%s), %d groups"):format(scope, #cyc.groups))
+    ok(("cycle: enabled (%s), %d own groups + %d from packs"):format(scope, #cyc.groups, #pack_groups))
+    info(
+      #pack_names > 0 and ("packs: %s (order = precedence)"):format(table.concat(pack_names, ", "))
+        or "packs: none — only cycle.groups is active"
+    )
     if cyc.number_fallback then
       info("number fallback: native <C-y>/<C-x> on numeric tokens")
+    end
+
+    -- A word may only live in one group of the effective set: `find_group`
+    -- takes the first, so any later group holding it is unreachable. Easy to
+    -- hit once several language packs are on ("no" is English and Spanish).
+    local effective = {}
+    for i = 1, #cyc.groups do
+      effective[#effective + 1] = cyc.groups[i]
+    end
+    for i = 1, #pack_groups do
+      effective[#effective + 1] = pack_groups[i]
+    end
+    local clashes = packs_mod.conflicts(effective)
+    if #clashes > 0 then
+      local lines = {}
+      for i = 1, math.min(#clashes, 8) do
+        local c = clashes[i]
+        lines[#lines + 1] = ("  %q → { %s } wins, { %s } unreachable"):format(
+          c.word,
+          table.concat(c.winner, ", "),
+          table.concat(c.shadowed, ", ")
+        )
+      end
+      if #clashes > 8 then
+        lines[#lines + 1] = ("  … and %d more"):format(#clashes - 8)
+      end
+      warn(("%d word(s) appear in more than one cycle group:\n%s"):format(#clashes, table.concat(lines, "\n")))
     end
   else
     info("cycle: disabled")

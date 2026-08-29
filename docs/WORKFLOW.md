@@ -94,6 +94,23 @@ marker, comment or not.
 | `transpose` (char/word swap) | global, no filetype option at all | — |
 | Indent/dedent, move | global; renumber only inside `lists.filetypes` | Renumbering silently skipped outside prose (correct — it's just `>>`/`<<`) |
 
+## Cycle packs: the order you list them is the tie-breaker
+
+`cycle.packs` is a list, and that list is a precedence order, not a set. It
+matters as soon as two enabled languages share a word — `no` is both English
+and Spanish, `ja` is both German and Dutch, `falso` is both Spanish and
+Italian. A word belongs only to the *first* group containing it, so
+`{ "en", "es" }` makes `no` cycle to `yes` and `{ "es", "en" }` makes it cycle
+to `sí`. Put your primary language first.
+
+The shipped default (`{ "en", "de", "dev" }`) is collision-free, so this only
+becomes a question once you add packs. `:checkhealth cascade` lists exactly
+which words your combination makes unreachable, rather than leaving you to
+discover it on a keypress that silently does the wrong thing.
+
+Anything in `cycle.groups` outranks every pack, which is the intended way to
+override a single pair without disabling a whole language.
+
 ## Turning a feature off vs. rebinding it
 
 `lists.features.rotate = false` (etc.) is not the same as just not binding

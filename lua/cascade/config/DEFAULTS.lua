@@ -110,36 +110,29 @@ local DEFAULTS = {
     },
     filetypes = nil,
     number_fallback = true,
+    -- Named bundles of word groups, switched on by name instead of pasted
+    -- into `groups` below. Language packs ("en", "de", "es", "fr", "it",
+    -- "pt", "nl", "ru") carry that language's boolean/state vocabulary;
+    -- "dev" carries the language-neutral developer cycles (dev/stage/prod,
+    -- todo/doing/done, log levels, HTTP verbs, ...). See
+    -- cascade/cycle/packs/ for the contents -- one small file per pack.
+    --
+    -- The ORDER is the precedence: the first group a word appears in wins, so
+    -- with { "es", "en" } a Spanish "no" cycles to "sí", and with
+    -- { "en", "es" } it cycles to "yes". `:checkhealth cascade` reports the
+    -- words that collide across the packs you enabled.
+    --
+    -- Set to {} to run with only your own `groups`.
+    packs = { "en", "de", "dev" },
+    -- Your own groups, plus the language-neutral syntax cycles that are not
+    -- part of any language. Checked BEFORE the packs, so a group here
+    -- overrides whatever a pack says about the same word.
     groups = {
-      -- 2-state toggles
-      { "true", "false" },
-      { "on", "off" },
-      { "yes", "no" },
-      { "enabled", "disabled" },
-      { "enable", "disable" },
-      { "active", "inactive" },
-      { "visible", "hidden" },
-      { "show", "hide" },
-      { "accept", "reject" },
-      { "include", "exclude" },
-      { "open", "closed" },
-      { "lock", "unlock" },
-      { "locked", "unlocked" },
-      { "connected", "disconnected" },
-      { "attach", "detach" },
-      { "start", "stop" },
-      { "pause", "resume" },
-      { "mute", "unmute" },
-      { "muted", "unmuted" },
-      { "up", "down" },
-      { "left", "right" },
-      { "in", "out" },
-      { "asc", "desc" },
       -- multi-state cycles (wrap around)
       { ".", "/", "\\" },
       -- operator flips: not 'iskeyword' characters, so word_cycle.lua matches
       -- these via a literal-position scan (token.operator_span) rather than
-      -- the keyword-span used for the word groups above.
+      -- the keyword-span used for the word groups in the packs.
       { "==", "!=" },
       { "&&", "||" },
       { "<", ">" },

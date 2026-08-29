@@ -166,6 +166,87 @@ return function(H)
 
   cfg.setup({})
 
+  -- cascade.cycle.packs: named bundles resolved in list order.
+  local packs = require("cascade.cycle.packs")
+
+  eq(#packs.resolve(nil), 0, "packs.resolve: nil -> no groups")
+  eq(#packs.resolve({}), 0, "packs.resolve: empty -> no groups")
+  eq(#packs.resolve({ "en" }) > 0, true, "packs.resolve: a known pack yields groups")
+  eq(#packs.resolve({ "en", "de" }), #packs.resolve({ "en" }) + #packs.resolve({ "de" }), "packs.resolve: two packs concatenate")
+  eq(#packs.resolve({ "nope-not-a-pack" }), 0, "packs.resolve: unknown pack is skipped, not fatal")
+
+  -- Order is precedence: find_group takes the first group holding the word.
+  local en_first = packs.resolve({ "en", "es" })
+  local es_first = packs.resolve({ "es", "en" })
+  local function first_group_with(groups, word)
+    for i = 1, #groups do
+      for j = 1, #groups[i] do
+        if groups[i][j] == word then
+          return table.concat(groups[i], ",")
+        end
+      end
+    end
+  end
+  eq(first_group_with(en_first, "no"), "yes,no", "packs: en listed first owns 'no'")
+  eq(first_group_with(es_first, "no"), "sí,no", "packs: es listed first owns 'no'")
+
+  -- conflicts(): a word in two DIFFERING groups shadows the later one;
+  -- outright identical groups (de/nl both have links/rechts) are not flagged.
+  eq(#packs.conflicts({ { "a", "b" }, { "c", "d" } }), 0, "conflicts: disjoint groups are clean")
+  eq(#packs.conflicts({ { "a", "b" }, { "a", "z" } }), 1, "conflicts: shared word across differing groups")
+  eq(#packs.conflicts({ { "a", "b" }, { "a", "b" } }), 0, "conflicts: identical duplicate groups are not a conflict")
+
+  -- The shipped default combination must be collision-free out of the box.
+  cfg.setup({})
+  local dflt = cfg.get("cycle")
+  local effective = {}
+  for _, g in ipairs(dflt.groups) do
+    effective[#effective + 1] = g
+  end
+  for _, g in ipairs(packs.resolve(dflt.packs)) do
+    effective[#effective + 1] = g
+  end
+  eq(#packs.conflicts(effective), 0, "default packs { en, de, dev } have no word collisions")
+
+  -- Facade-level: a German word from the "de" pack cycles out of the box.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "wert = wahr" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "wert = falsch", "de pack: wahr -> falsch")
+
+  -- ... and a dev-pack multi-state cycle wraps.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "env: prod" })
+  vim.api.nvim_win_set_cursor(0, { 1, 5 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "env: dev", "dev pack: prod wraps to dev")
+
+  -- packs = {} leaves only cycle.groups, so a pack word stops cycling while
+  -- an operator group (which lives in `groups`) keeps working.
+  cfg.setup({ cycle = { packs = {} } })
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "flag = true", "second line" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "flag = true", "packs = {}: 'true' no longer cycles")
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "if (a == b) then" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "if (a != b) then", "packs = {}: operator groups still work")
+
+  -- A hand-written group beats a pack for the same word (groups first).
+  cfg.setup({ cycle = { packs = { "en" }, groups = { { "true", "maybe", "false" } } } })
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "flag = true" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "flag = maybe", "cycle.groups overrides a pack for the same word")
+
+  cfg.setup({})
+
   -- token.operator_span: pure literal-position matching against groups,
   -- distinct from token.span's 'iskeyword' scan.
   local token = require("cascade.cycle.token")
@@ -178,6 +259,19 @@ return function(H)
 
   eq(select(1, token.operator_span("local x = true", 8, op_groups)), nil, "operator_span: word entries never match")
   eq(select(1, token.operator_span("plain text", 3, op_groups)), nil, "operator_span: no operator present")
+
+  -- Regression: a NON-ASCII word entry is still a word, not an operator.
+  -- The classifier used to be `^%w+$`, and Lua's %w is ASCII-only, so "sí"
+  -- fell through to this unanchored literal scan and matched *inside* "así",
+  -- corrupting the text. Language packs made that reachable by default.
+  local accented = { { "sí", "no" }, { "да", "нет" } }
+  eq(select(1, token.operator_span("es así hoy", 4, accented)), nil, "operator_span: 'sí' never matches inside 'así'")
+  eq(
+    select(1, token.operator_span("это неправда", 9, accented)),
+    nil,
+    "operator_span: Cyrillic words are not operators"
+  )
+  eq(select(2, token.operator_span("a == b", 2, op_groups)), 4, "operator_span: real operators still match")
 
   -- longest-match preference: a group containing both "<" and "<=" should
   -- resolve to the longer "<=" when the cursor sits on it.

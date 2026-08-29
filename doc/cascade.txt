@@ -253,7 +253,8 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
         features = { word = true, date = true, letter = true },
         filetypes = nil,
         number_fallback = true,
-        groups = { { "true", "false" }, ... },
+        packs = { "en", "de", "dev" },
+        groups = { { "==", "!=" }, ... },
         per_filetype = {},
       },
       sequence = {
@@ -384,13 +385,51 @@ cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
                                   that; off a number and a cyclable word, the
                                   pressed key still falls back to its own
                                   native meaning either way.
-cycle.groups          (string[][]) Cycle groups; first match wins, wrap-around.
-                                  A group entry that isn't a plain word (e.g.
-                                  "==", "&&", "<") is matched by literal
+cycle.packs           (string[])  Built-in group bundles to enable, in
+                                  precedence order. See |cascade-cycle-packs|.
+cycle.groups          (string[][]) Your own cycle groups; first match wins,
+                                  wrap-around. Checked BEFORE `packs`.
+                                  A group entry made purely of punctuation
+                                  (e.g. "==", "&&", "<") is matched by literal
                                   position instead of 'iskeyword', so operator
                                   flips work out of the box: "==" <-> "!=",
                                   "&&" <-> "||", "<" <-> ">", "+" <-> "-".
 cycle.per_filetype    (table)     ft -> extra groups, merged after the globals.
+
+CYCLE PACKS                                            *cascade-cycle-packs*
+
+`cycle.packs` switches whole bundles of word groups on by name instead of
+pasting them into `cycle.groups`. Each pack is one file under
+lua/cascade/cycle/packs/ -- read one to see its contents, or copy it as a
+template for your own.
+
+    en   (default)  true/false, on/off, yes/no, show/hide, start/stop, ...
+    de   (default)  wahr/falsch, ja/nein, ein/aus, oben/unten, ...
+    dev  (default)  dev/stage/prod, todo/doing/done, low/medium/high,
+                    draft/review/final, alpha/beta/rc/stable,
+                    debug/info/warn/error, get/post/put/patch/delete,
+                    xs/sm/md/lg/xl
+    es fr it pt nl ru               the same vocabulary per language, opt-in
+
+Precedence runs most specific to least: `cycle.groups`, then
+`cycle.per_filetype[ft]`, then `cycle.packs` in the order you list them. A
+word belongs only to the FIRST group containing it, so `{ "en", "es" }` makes
+`no` cycle to `yes` while `{ "es", "en" }` makes it cycle to `sí`. >lua
+    cycle = {
+      packs  = { "de", "en", "dev", "fr" },
+      groups = { { "wahr", "vielleicht", "falsch" } }, -- beats every pack
+    }
+<
+The default `{ "en", "de", "dev" }` is collision-free; |:checkhealth| cascade
+reports the words your own combination makes unreachable.
+
+`packs = {}` disables all of them and leaves only your own `groups`.
+
+Scripts without word separators (Chinese, Japanese) are deliberately not
+shipped: cascade takes the token under the cursor with `\k\+`, and
+'iskeyword's `@` class matches every alphabetic character, so an unspaced run
+of CJK is captured as one token rather than a word and never matches a group
+entry. Cyrillic (`ru`) is unaffected -- it uses spaces.
 
 `cycle_pick` (preset: <leader>cp) shows every entry of the cursor's cycle
 group via |vim.ui.select()| and replaces it with whichever one you pick,

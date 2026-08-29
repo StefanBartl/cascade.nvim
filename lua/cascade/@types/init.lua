@@ -64,8 +64,13 @@
 ---@field features CascadeCycleFeatures # Per-feature on/off switches.
 ---@field filetypes string[]|nil # Restrict to these filetypes; nil = every filetype (global).
 ---@field number_fallback boolean # Fall back to native <C-y>/<C-x> on numeric tokens.
----@field groups string[][] # Cycle groups; first match under the cursor wins.
+---@field packs CascadeCyclePack[] # Built-in group bundles to enable; order = precedence.
+---@field groups string[][] # Cycle groups; first match under the cursor wins. Checked before `packs`.
 ---@field per_filetype table<string, string[][]> # Extra groups merged in per filetype.
+
+--- A bundle shipped in `cascade/cycle/packs/`: a language's boolean/state
+--- vocabulary, or the language-neutral developer cycles ("dev").
+---@alias CascadeCyclePack "en"|"de"|"es"|"fr"|"it"|"pt"|"nl"|"ru"|"dev"
 
 ---@alias CascadeSequenceKind "digit"|"ascii"|"roman"
 

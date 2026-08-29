@@ -50,7 +50,7 @@ end
 --- Find an operator-style group entry (e.g. `"=="`, `"&&"`, `"<"`) touching
 --- the cursor, via a literal-position scan rather than `span`'s keyword scan
 --- -- operator characters aren't `'iskeyword'`, so `\k\+` never sees them.
---- Only entries that aren't plain word characters are considered, so this
+--- Only entries made purely of punctuation/symbols are considered, so this
 --- never shadows the word groups. Prefers the longest match at the cursor
 --- (e.g. `"!="` over a hypothetical single-char `"="` entry).
 ---@param line string
@@ -63,7 +63,12 @@ function M.operator_span(line, col0, groups)
     local grp = groups[i]
     for j = 1, #grp do
       local entry = grp[j]
-      if entry ~= "" and not entry:match("^%w+$") then
+      -- An entry is an operator only if it holds no letter at all: no ASCII
+      -- alphanumeric and no byte >= 0x80 (accented Latin, Cyrillic, ...).
+      -- `^%w+$` used to decide this, but Lua's `%w` is ASCII-only, so every
+      -- non-ASCII *word* ("sí", "wahr" is fine but "sí" is not) fell in here
+      -- -- and this scan is unanchored, so "sí" then matched inside "así".
+      if entry ~= "" and not entry:match("[%w\128-\255]") then
         local len = #entry
         for p = math.max(0, col0 - len + 1), col0 do
           if p + len <= #line and line:sub(p + 1, p + len) == entry then

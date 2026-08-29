@@ -83,6 +83,11 @@ function M.setup(opts)
     M.options = lib_config.deep_merge(DEFAULTS, opts)
   end
   normalize(M.options)
+  -- Pack resolution is cached per pack list (it runs on every keypress); a
+  -- re-setup() with different `cycle.packs` has to invalidate it.
+  pcall(function()
+    require("cascade.cycle.packs").invalidate()
+  end)
 end
 
 --- Read a value by dot-path, e.g. `get("lists.checkbox.states")`.

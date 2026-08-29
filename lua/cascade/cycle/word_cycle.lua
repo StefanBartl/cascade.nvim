@@ -28,24 +28,38 @@ local function wrap(n, idx, dir)
 end
 
 ---@internal
---- Build the effective group list for a filetype (global + per-filetype).
+--- Build the effective group list for a filetype: `cycle.groups`, then this
+--- filetype's extras, then the enabled packs.
+---
+--- Order is precedence -- `find_group` takes the first group a word appears
+--- in -- so it runs most specific to least: what the user wrote by hand beats
+--- a whole-language pack, and a pack listed earlier in `cycle.packs` beats a
+--- later one (`no` is both English and Spanish).
 ---@param opts CascadeCycleOpts
 ---@param ft string
 ---@return string[][]
 local function groups_for(opts, ft)
+  local packs = require("cascade.cycle.packs").resolve(opts.packs)
   local extra = opts.per_filetype and opts.per_filetype[ft]
-  if not extra or #extra == 0 then
+  if #packs == 0 and (not extra or #extra == 0) then
     return opts.groups
   end
+
   local out = {}
   local k = 0
   for i = 1, #opts.groups do
     k = k + 1
     out[k] = opts.groups[i]
   end
-  for i = 1, #extra do
+  if extra then
+    for i = 1, #extra do
+      k = k + 1
+      out[k] = extra[i]
+    end
+  end
+  for i = 1, #packs do
     k = k + 1
-    out[k] = extra[i]
+    out[k] = packs[i]
   end
   return out
 end

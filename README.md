@@ -67,6 +67,7 @@
 | **lists**  | Move lines             | Move a line/selection up/down + reindent + renumber.               |
 | **lists**  | Roman & Alpha          | `I.II.III.` and `a)b)c)` ↔ integer, cleanly encapsulated.          |
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
+| **cycle**  | Language packs         | `en`/`de`/`dev` on by default; `es`, `fr`, `it`, `pt`, `nl`, `ru` opt-in by name. |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Letter cycle           | A single a-z/A-Z letter under the cursor steps through the alphabet (wraps, case preserved). |
@@ -388,7 +389,8 @@ require("cascade").setup({
     features = { word = true, date = true, letter = true }, -- word/boolean, ISO-date, a-z/A-Z letter cycle on/off
     filetypes = nil,                         -- nil = all filetypes
     number_fallback = true,                  -- native <C-a>/<C-x> on numbers; false = skip just that
-    groups = { { "true", "false" }, { "on", "off" } },
+    packs = { "en", "de", "dev" },           -- built-in bundles; order = precedence. {} = only your groups
+    groups = { { "==", "!=" } },             -- your own groups; checked BEFORE the packs
     per_filetype = {                         -- e.g. only in Lua:
       -- lua = { { "pairs", "ipairs" } },
     },
@@ -406,6 +408,42 @@ require("cascade").setup({
   debug = false,                             -- log detect/advance/fallback decisions; see :h cascade-config
 })
 ```
+
+### Cycle packs (languages + dev)
+
+`cycle.packs` switches whole bundles of word groups on by name, instead of
+pasting them into `cycle.groups`. Each is one small file under
+[`lua/cascade/cycle/packs/`](lua/cascade/cycle/packs) — open one to see
+exactly what it contains, or as a template for your own.
+
+| Pack | Contents |
+| --- | --- |
+| `en` *(default)* | `true`/`false`, `on`/`off`, `yes`/`no`, `show`/`hide`, `start`/`stop`, `up`/`down`, … |
+| `de` *(default)* | `wahr`/`falsch`, `ja`/`nein`, `ein`/`aus`, `sichtbar`/`unsichtbar`, `oben`/`unten`, … |
+| `dev` *(default)* | `dev`/`stage`/`prod`, `todo`/`doing`/`done`, `low`/`medium`/`high`, `draft`/`review`/`final`, `alpha`/`beta`/`rc`/`stable`, `debug`/`info`/`warn`/`error`, `get`/`post`/`put`/`patch`/`delete`, `xs`…`xl` |
+| `es` `fr` `it` `pt` `nl` `ru` | The same boolean/state vocabulary in those languages. Opt-in. |
+
+```lua
+cycle = {
+  packs = { "de", "en", "dev", "fr" },  -- add French, and let German win ties
+  groups = { { "wahr", "vielleicht", "falsch" } }, -- your own; beats every pack
+}
+```
+
+**Precedence is list order, most specific first:** `cycle.groups` →
+`cycle.per_filetype[ft]` → `cycle.packs` (in the order you list them). A word
+only ever belongs to the *first* group that contains it, so with
+`{ "en", "es" }` the word `no` cycles to `yes`, and with `{ "es", "en" }` it
+cycles to `sí`. The default `{ "en", "de", "dev" }` is collision-free;
+`:checkhealth cascade` lists any collisions your own combination produces.
+
+`packs = {}` disables all of them and leaves only your `groups`.
+
+> **Not shipped:** Chinese, Japanese and other scripts without word
+> separators. cascade finds the token under the cursor with `\k\+`, and
+> `'iskeyword'`'s `@` class matches every alphabetic character — so an
+> unspaced run of CJK is captured as *one* token rather than a word, and
+> would never match a group entry. Cyrillic (`ru`) is fine: it uses spaces.
 
 **Scopes — global vs. ft-scoped:** cascade has domains with deliberately
 different scope:
