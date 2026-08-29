@@ -250,7 +250,7 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
       },
       cycle = {
         enable = true,
-        features = { word = true, date = true },
+        features = { word = true, date = true, letter = true },
         filetypes = nil,
         number_fallback = true,
         groups = { { "true", "false" }, ... },
@@ -376,8 +376,8 @@ lists.precision_nodes (table<string,string[]>) Per-filetype skip-node type
                                   norg: verbatim tags).
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
-cycle.features        (table)     Per-feature switches. Keys: word, date.
-                                  Missing key = enabled.
+cycle.features        (table)     Per-feature switches. Keys: word, date,
+                                  letter. Missing key = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
 cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
                                   (via <C-y>/<C-x> or +/-). false only skips
@@ -410,6 +410,17 @@ this: it only sees the numeric island touching the cursor and misreads the
 <
 Set `cycle.features.date = false` to turn this off and fall back to the
 native (date-unaware) behavior.
+
+On a single a-z/A-Z letter under the cursor -- not part of any configured
+`cycle.groups` entry, or that would already have matched -- +/- (and
+<C-y>/<C-x>) step it through the alphabet, wrapping at the boundary and
+keeping its case: >
+    a  <C-y>  ->  b        z  <C-y>  ->  a
+    A  <C-x>  ->  Z        B  <C-x>  ->  A
+<
+A count steps N places at once: `3<C-y>` on "a" gives "d". Set
+`cycle.features.letter = false` to turn this off and fall back to the
+pressed key's own native meaning.
 
 sequence.enable       (boolean)   Master switch for the sequence domain
                                   (renumbering inside a selection).

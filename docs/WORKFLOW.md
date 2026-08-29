@@ -90,7 +90,7 @@ marker, comment or not.
 | Domain | Scope | Typical surprise |
 | --- | --- | --- |
 | `lists` (continue, checkbox, rotate, sort, …) | `lists.filetypes` only | Expecting it in code buffers |
-| `cycle` (word/boolean, numbers, dates) | global (`filetypes = nil`) | Not expecting it outside prose |
+| `cycle` (word/boolean, numbers, dates, letters) | global (`filetypes = nil`) | Not expecting it outside prose |
 | `transpose` (char/word swap) | global, no filetype option at all | — |
 | Indent/dedent, move | global; renumber only inside `lists.filetypes` | Renumbering silently skipped outside prose (correct — it's just `>>`/`<<`) |
 
@@ -119,14 +119,16 @@ behavior is automatic (via `pcall`) if the filetype has no Treesitter
 parser installed, so turning it on for a filetype you don't have a parser
 for costs nothing but also fixes nothing.
 
-## `+`/`-` are shared: word cycle, date, number, then native line motion
+## `+`/`-` are shared: date, word cycle, letter, number, then native line motion
 
-Binding `+`/`-` (as the preset does) layers four behaviors on one pair of
+Binding `+`/`-` (as the preset does) layers five behaviors on one pair of
 keys, tried in this order: an ISO date under the cursor steps its
 year/month/day segment; failing that, a matching word/boolean group
-cycles; failing that, a plain number falls back to native
-`<C-a>`/`<C-x>`; failing all three, `+`/`-` do what Vim always did with
-them — move to the first non-blank of the next/previous line. Nothing
-needs configuring for this chain to make sense, but it explains why `+` on
-an arbitrary line without a date, group word, or number "does nothing
-special" — that's it correctly falling through to native, not a bug.
+cycles; failing that, a lone a-z/A-Z letter steps through the alphabet
+(case preserved, e.g. `a` → `b`, `Z` → `A`); failing that, a plain number
+falls back to native `<C-a>`/`<C-x>`; failing all four, `+`/`-` do what Vim
+always did with them — move to the first non-blank of the next/previous
+line. Nothing needs configuring for this chain to make sense, but it
+explains why `+` on an arbitrary line without a date, group word, letter,
+or number "does nothing special" — that's it correctly falling through to
+native, not a bug.

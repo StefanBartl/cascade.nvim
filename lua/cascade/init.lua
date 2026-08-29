@@ -25,6 +25,7 @@ local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
 local token = require("cascade.cycle.token")
 local date = require("cascade.cycle.date")
+local letter = require("cascade.cycle.letter")
 local treesitter = require("cascade.core.treesitter")
 local sequence = require("cascade.sequence.renumber")
 local transpose_char = require("cascade.transpose.char")
@@ -467,6 +468,22 @@ local function cycle_word_work(dir, number_key, own_key)
       end
       if cycled then
         return
+      end
+    end
+
+    if cf("letter") then
+      -- A single a-z/A-Z token (not part of a configured group, or `word`
+      -- above would already have handled it): cycle it through the alphabet,
+      -- wrapping within its own case. The replacement is always one byte, so
+      -- `count` steps collapse into one `dir * count` jump instead of a loop.
+      local s, e, text = token.span(ctx.line, ctx.col0)
+      if s then
+        ---@cast e integer
+        local repl = letter.step(text, dir * count)
+        if repl then
+          vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
+          return
+        end
       end
     end
 

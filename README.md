@@ -69,6 +69,7 @@
 | **cycle**  | Word / boolean cycle   | Case-preserving, extensible per filetype, dot-repeatable.          |
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
+| **cycle**  | Letter cycle           | A single a-z/A-Z letter under the cursor steps through the alphabet (wraps, case preserved). |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
 | **sequence** | Selection renumber  | Renumber the ordinals (`1.`, `a)`, `II.`) inside a Visual selection — numbered headlines, inline numbers mid-prose, any filetype. |
@@ -384,7 +385,7 @@ require("cascade").setup({
   },
   cycle = {
     enable = true,
-    features = { word = true },              -- word/boolean cycle on/off
+    features = { word = true, date = true, letter = true }, -- word/boolean, ISO-date, a-z/A-Z letter cycle on/off
     filetypes = nil,                         -- nil = all filetypes
     number_fallback = true,                  -- native <C-a>/<C-x> on numbers; false = skip just that
     groups = { { "true", "false" }, { "on", "off" } },

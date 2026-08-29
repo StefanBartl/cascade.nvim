@@ -106,6 +106,7 @@ local DEFAULTS = {
     features = {
       word = true, -- cycle the word/boolean under the cursor
       date = true, -- step the year/month/day segment of an ISO date (YYYY-MM-DD) under the cursor
+      letter = true, -- cycle a single a-z/A-Z letter under the cursor through the alphabet (case preserved)
     },
     filetypes = nil,
     number_fallback = true,

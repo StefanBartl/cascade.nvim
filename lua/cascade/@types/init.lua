@@ -42,6 +42,7 @@
 ---@class CascadeCycleFeatures
 ---@field word boolean # Cycle the word/boolean under the cursor.
 ---@field date boolean # Step the year/month/day segment of an ISO date (YYYY-MM-DD) under the cursor.
+---@field letter boolean # Cycle a single a-z/A-Z letter under the cursor through the alphabet (case preserved).
 
 ---@class CascadeListOpts
 ---@field enable boolean # Master switch for the list domain.

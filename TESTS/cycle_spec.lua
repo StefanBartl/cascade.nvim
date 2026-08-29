@@ -1,4 +1,4 @@
--- TESTS/cycle_spec.lua — word/boolean cycle.
+-- TESTS/cycle_spec.lua — word/boolean, date and letter cycle.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 
 return function(H)
@@ -110,6 +110,59 @@ return function(H)
     "due: 2024-01-30",
     "features.date = false: native <C-a> misreads the '-' as a sign and decrements"
   )
+
+  cfg.setup({})
+
+  -- cascade.cycle.letter: pure step behavior -- wraps within its own case.
+  local letter = require("cascade.cycle.letter")
+
+  eq(letter.step("a", 1), "b", "letter.step: a -> b")
+  eq(letter.step("z", 1), "a", "letter.step: z wraps to a")
+  eq(letter.step("A", 1), "B", "letter.step: A -> B (case preserved)")
+  eq(letter.step("Z", 1), "A", "letter.step: Z wraps to A")
+  eq(letter.step("b", -1), "a", "letter.step: b -> a")
+  eq(letter.step("a", -1), "z", "letter.step: a wraps back to z")
+  eq(letter.step("a", 3), "d", "letter.step: a step count of 3 jumps 3 places")
+  eq(letter.step("y", 5), "d", "letter.step: a multi-step jump wraps past z")
+  eq(letter.step("ab", 1), nil, "letter.step: nil on a multi-char token")
+  eq(letter.step("1", 1), nil, "letter.step: nil on a non-letter")
+  eq(letter.step("", 1), nil, "letter.step: nil on empty text")
+  eq(letter.step(nil, 1), nil, "letter.step: nil on nil text")
+
+  -- Facade-level: +/- (and <C-y>/<C-x>) cycle a lone a-z/A-Z letter through
+  -- the alphabet, wrapping at the boundary and keeping its case -- but only
+  -- when it isn't already handled by a configured cycle.groups entry above.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "x = a" })
+  vim.api.nvim_win_set_cursor(0, { 1, 4 }) -- on "a"
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = b", "+ cycles a lone letter forward")
+  cascade.decrement()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = a", "- cycles a lone letter backward")
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "x = Z" })
+  vim.api.nvim_win_set_cursor(0, { 1, 4 }) -- on "Z"
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = A", "+ wraps uppercase Z to A, case preserved")
+
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "x = a" })
+  vim.api.nvim_win_set_cursor(0, { 1, 4 })
+  cascade.cycle_word_next()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = b", "<C-y> also cycles a lone letter")
+
+  -- features.letter = false disables it; a lone letter then falls through
+  -- to the pressed key's own native meaning (here +'s native line-down
+  -- motion, same as any other unmatched token).
+  cfg.setup({ cycle = { features = { letter = false } } })
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "x = a", "second line" })
+  vim.api.nvim_win_set_cursor(0, { 1, 4 })
+  cascade.increment()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = a", "features.letter = false: no longer rewritten")
+  eq(vim.api.nvim_win_get_cursor(0)[1], 2, "features.letter = false: + falls back to native line-down motion")
 
   cfg.setup({})
 
