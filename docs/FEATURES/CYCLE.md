@@ -82,9 +82,9 @@ years). Checked before the word-cycle group match.
 
 ## In-word char cycle (2026-08-30)
 
-`<C-M-y>`/`<C-M-x>` step the single character under the cursor through the
-alphabet — wrapping, case preserved — **wherever it sits**, including in the
-middle of a word.
+`<C-M-y>`/`<C-M-x>` — equivalently `<leader>cy`/`<leader>cY`, both are bound —
+step the single character under the cursor through the alphabet, wrapping,
+case preserved, **wherever it sits**, including in the middle of a word.
 
 This exists because `<C-y>` deliberately cannot do it. `<C-y>` reads the whole
 keyword under the cursor (`'iskeyword'`, via `token.span`) and looks it up in
@@ -108,13 +108,36 @@ multi-byte character) it is a silent no-op — unlike `<C-y>`/`+`, these keys
 have no native meaning to fall back to. Dot-repeatable like every other cycle
 action.
 
-Not every terminal can encode Ctrl+Alt. Where the key never arrives, rebind:
-`keymaps = { globals = { cycle_char_next = "<leader>cy" } }`.
+### Two keys for one action
+
+This is the only action in cascade with a second `lhs` in its `default` list,
+and the reason is worth writing down once.
+
+Ctrl+Alt+letter is *nearly* universal: terminals encode Alt as an `ESC` prefix
+(`:help :map-alt-keys`) and `0x19` — `<C-y>` — is a byte every terminal since
+the VT100 sends, so `ESC 0x19` arrives and Neovim reassembles it into
+`<M-C-y>`. Two real gaps remain: a terminal with "Alt sends Escape" switched
+off, and a keyboard layout where AltGr *is* Ctrl+Alt (German and most European
+layouts) on a combination that carries a third-level character — `AltGr+q`
+produces `@`, and no key event ever reaches the application.
+
+**Neither is detectable, and cascade deliberately does not try.** Neovim asks
+the terminal at startup whether it speaks "CSI u" (`:help tui-csiu`) but
+exposes the answer to no Lua API; and even with it, "this terminal supports
+the protocol" is not "this key survives the trip through tmux, ssh and the
+keyboard layout". A self-test cannot close the gap either:
+`nvim_feedkeys`/`nvim_input` inject *below* the terminal's input decoder, so
+Neovim pressing its own key always succeeds — including on a terminal that
+could never have sent it. There is no way to make a terminal send a key to
+itself.
+
+So both keys are bound, and the question stops mattering. Drop either one the
+ordinary way: `keymaps = { globals = { cycle_char_next = "<C-M-y>" } }`.
 
 - **Module:** `cycle/letter.lua` (`M.step_at`), `init.lua` (`cycle_char_work`)
 - **Config:** `cycle.features.char`
-- **Tests:** `TESTS/cycle_spec.lua`
-- **Keymaps:** `<C-M-y>`/`<C-M-x>` (global, preset)
+- **Tests:** `TESTS/cycle_spec.lua`, `TESTS/commands_spec.lua` (both keys bound)
+- **Keymaps:** `<C-M-y>`/`<C-M-x>` and `<leader>cy`/`<leader>cY` (global, preset)
 
 ## Operator flips
 

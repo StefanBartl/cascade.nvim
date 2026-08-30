@@ -77,7 +77,7 @@
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Letter cycle           | A single a-z/A-Z letter under the cursor steps through the alphabet (wraps, case preserved). |
-| **cycle**  | In-word char cycle     | `<C-M-y>`/`<C-M-x>` step the character under the cursor even inside a word, where `<C-y>` finds no group and stands down. |
+| **cycle**  | In-word char cycle     | `<C-M-y>`/`<C-M-x>` (or `<leader>cy`/`<leader>cY`) step the character under the cursor even inside a word, where `<C-y>` finds no group and stands down. |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
 | **sequence** | Selection renumber  | Renumber the ordinals (`1.`, `a)`, `II.`) inside a Visual selection — numbered headlines, inline numbers mid-prose, any filetype. |
@@ -171,7 +171,9 @@ require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
-`<C-M-y>`/`<C-M-x>` (step the character under the cursor, inside a word too),
+`<C-M-y>`/`<C-M-x>` **and** `<leader>cy`/`<leader>cY` (step the character
+under the cursor, inside a word too — two keys for one action, see the note
+under [Keymaps](#keymaps)),
 `<leader>cp` (interactive `vim.ui.select` picker for the cursor's cycle-group),
 `<leader><Right>`/`<leader><Left>` (char/selection swap) and
 `<leader><C-Right>`/`<leader><C-Left>` (word/selection swap) globally, and, in
@@ -231,8 +233,8 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `increment`                   | n     | Word/number forward (`+`; native line-down otherwise) |
 | `decrement`                   | n     | Word/number backward (`-`; native line-up otherwise) |
 | `cycle_pick`                  | n     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) |
-| `cycle_char_next`             | n     | Character under the cursor forward through the alphabet, inside a word too |
-| `cycle_char_prev`             | n     | Character under the cursor backward through the alphabet |
+| `cycle_char_next`             | n     | Character under the cursor forward through the alphabet, inside a word too (bound to `<C-M-y>` *and* `<leader>cy`) |
+| `cycle_char_prev`             | n     | Character under the cursor backward through the alphabet (`<C-M-x>` / `<leader>cY`) |
 | `indent` / `indent_visual`    | n / x | Indent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `indent_levels` / `dedent_levels` | n | Indent/dedent the current line by N *levels* (old count meaning of `indent`/`dedent`) |
@@ -253,10 +255,16 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
 
-> `<C-M-y>`/`<C-M-x>` (in-word char cycle) need a terminal that can encode
-> Ctrl+Alt. If nothing happens where a lone letter *does* cycle with `<C-y>`,
-> the key never reached Neovim — move it with
-> `keymaps = { globals = { cycle_char_next = "<leader>cy", cycle_char_prev = "<leader>cY" } }`.
+> **The in-word char cycle is bound twice on purpose**: `<C-M-y>`/`<C-M-x>`
+> *and* `<leader>cy`/`<leader>cY`. Ctrl+Alt+letter reaches Neovim as `ESC`
+> plus the letter's control byte (`:help :map-alt-keys`), which is about as
+> portable as a modified key gets — but not universally: a terminal with
+> "Alt sends Escape" off drops it, and on a German keyboard AltGr *is*
+> Ctrl+Alt, so any combination carrying a third-level character never arrives
+> as a key at all. Neovim cannot detect this — `feedkeys` enters below the
+> terminal's decoder, so a self-test would pass on a terminal that cannot
+> send the key. Binding the leader alias too costs one key and settles it.
+> Drop either with `keymaps = { globals = { cycle_char_next = "<C-M-y>" } }`.
 
 ### Context menu (optional)
 

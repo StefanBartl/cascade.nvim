@@ -276,16 +276,25 @@ function M.bind_preset_globals(cfg)
 
       -- The modifier-heavy siblings of <C-y>/<C-x>: same direction, but the
       -- single character under the cursor rather than the whole token, so a
-      -- letter inside a word is reachable. Not every terminal can encode
-      -- Ctrl+Alt -- rebind via `keymaps.globals.cycle_char_next` where it
-      -- doesn't arrive.
+      -- letter inside a word is reachable.
+      --
+      -- Two keys each, not one. Ctrl+Alt+<letter> reaches Neovim as ESC plus
+      -- the letter's control byte (|:map-alt-keys|), which is about as
+      -- portable as a modified key gets -- but "about" is not "always": a
+      -- terminal with "Alt sends Escape" switched off drops it, and on a
+      -- German layout AltGr *is* Ctrl+Alt, so a combination that happens to
+      -- carry a third-level character (AltGr+q = @) never arrives as a key
+      -- at all. None of that is detectable from inside Neovim -- feedkeys
+      -- enters below the terminal decoder, so a self-test would pass on a
+      -- terminal that cannot send the key. Binding the leader alias too costs
+      -- one key and removes the question.
       cycle_char_next = {
-        default = "<C-M-y>",
+        default = { "<C-M-y>", "<leader>cy" },
         rhs = api.cycle_char_next,
         desc = "cycle char under cursor (in-word)",
       },
       cycle_char_prev = {
-        default = "<C-M-x>",
+        default = { "<C-M-x>", "<leader>cY" },
         rhs = api.cycle_char_prev,
         desc = "cycle char under cursor back (in-word)",
       },

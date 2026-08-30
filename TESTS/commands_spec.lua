@@ -93,6 +93,24 @@ return function(H)
 
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "mtx", false)
 
+  -- cycle_char_* is the one action bound to two lhs (see docs/FEATURES/CYCLE.md):
+  -- the Ctrl+Alt key AND a leader alias no terminal or keyboard layout can
+  -- swallow. Both must reach the same action -- a preset that quietly bound
+  -- only one of them would leave exactly the users the alias exists for with
+  -- no key at all.
+  eq(vim.fn.maparg("<C-M-y>", "n") ~= "", true, "preset binds <C-M-y> (cycle_char_next)")
+  eq(vim.fn.maparg("<leader>cy", "n") ~= "", true, "preset binds the <leader>cy alias too")
+  eq(vim.fn.maparg("<C-M-x>", "n") ~= "", true, "preset binds <C-M-x> (cycle_char_prev)")
+  eq(vim.fn.maparg("<leader>cY", "n") ~= "", true, "preset binds the <leader>cY alias too")
+
+  -- Reuses `ebuf` rather than opening a buffer of its own: the checks below
+  -- drive the current window, so leaving a different buffer displayed would
+  -- silently point them somewhere else.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "local cat = 1" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 }) -- on the "a" of "cat"
+  vim.api.nvim_feedkeys(vim.keycode("<leader>cy"), "mtx", false)
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "local cbt = 1", "the <leader>cy alias runs the same in-word char cycle")
+
   -- Normal-mode <A-Right>/<A-Left> count means "how many LINES" (starting at
   -- the cursor, one level each) instead of "how many levels" on one line —
   -- the old count meaning moved to <leader><A-Right>/<leader><A-Left>.

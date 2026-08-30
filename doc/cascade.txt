@@ -168,8 +168,8 @@ With `keymaps.preset = true`:
     +           ->  increment
     -           ->  decrement
     <leader>cp  ->  cycle_pick
-    <C-M-y>     ->  cycle_char_next
-    <C-M-x>     ->  cycle_char_prev
+    <C-M-y>     ->  cycle_char_next   (also <leader>cy)
+    <C-M-x>     ->  cycle_char_prev   (also <leader>cY)
     <leader>cR  ->  renumber_selection   (Visual mode only)
 
   Buffer-local in `lists.filetypes`:
@@ -489,9 +489,25 @@ multi-byte character -- these keys are a silent no-op: unlike <C-y> and +/-
 they have no native meaning of their own to fall back to. A count jumps N
 places in one edit. Set `cycle.features.char = false` to turn the feature off.
 
-Not every terminal can encode Ctrl+Alt. Where the keys never arrive, rebind
-them: >lua
-    keymaps = { globals = { cycle_char_next = "<leader>cy" } }
+This action is bound to TWO keys -- <C-M-y> and <leader>cy (and <C-M-x> /
+<leader>cY) -- the only one in cascade that is. Ctrl+Alt+letter is nearly
+universal: terminals encode Alt as an ESC prefix (|:map-alt-keys|) and 0x19
+(<C-y>) is a byte every terminal sends, so `ESC 0x19` arrives and Nvim
+reassembles it. Two gaps remain: a terminal with "Alt sends Escape" off, and a
+layout where AltGr IS Ctrl+Alt (German and most European layouts) on a
+combination carrying a third-level character -- AltGr+q gives "@" and no key
+event reaches the application at all.
+
+Neither is detectable, and cascade does not try. Nvim asks the terminal
+whether it speaks "CSI u" (|tui-csiu|) but exposes the answer to no Lua API,
+and that answer describes the terminal rather than the path a key takes
+through tmux, ssh and the keyboard layout. A self-test is impossible for a
+simpler reason: |nvim_feedkeys()| and |nvim_input()| inject BELOW the
+terminal's input decoder, so Nvim pressing its own key always succeeds --
+including on a terminal that could never have sent it.
+
+Binding both costs one key and settles it. Drop either the ordinary way: >lua
+    keymaps = { globals = { cycle_char_next = "<C-M-y>" } }
 <
 
 sequence.enable       (boolean)   Master switch for the sequence domain

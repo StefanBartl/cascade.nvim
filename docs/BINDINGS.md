@@ -30,7 +30,9 @@ Bound for every filetype.
 | `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise). `N` = N steps |
 | `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
 | `<C-M-y>` | n | `cycle_char_next` | cycle.char | Step the char under the cursor through the alphabet, inside a word too. `N` = N places |
+| `<leader>cy` | n | `cycle_char_next` | cycle.char | The same action, on a key no terminal can fail to send (see below) |
 | `<C-M-x>` | n | `cycle_char_prev` | cycle.char | … backward. `N` = N places |
+| `<leader>cY` | n | `cycle_char_prev` | cycle.char | … backward, portable alias |
 | `<leader>cR` | x | `renumber_selection` | sequence.enable | Renumber the ordinal tokens inside the selection (any filetype) |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
@@ -57,9 +59,30 @@ flagged. Since 2026-08-24 they do:
   on `a` gives `d`) — one edit, not a loop, since the replacement is always
   one byte wide. No native fallback: off an a-z/A-Z byte these keys are a
   silent no-op, because unlike `<C-y>`/`+` they have no meaning of their own
-  to hand the keypress back to. Not every terminal encodes Ctrl+Alt; rebind
-  via `keymaps.globals.cycle_char_next`/`cycle_char_prev` if they never
-  arrive.
+  to hand the keypress back to.
+
+### Why `cycle_char_*` is bound to two keys
+
+`cycle_char_next`/`cycle_char_prev` are the only actions here with a second
+`lhs` in their `default` list. Ctrl+Alt+letter is *nearly* universal —
+terminals send it as `ESC` plus the letter's control byte (`:help
+:map-alt-keys`), and `0x19` (`<C-y>`) is a byte every terminal since the VT100
+emits. "Nearly" leaves two real gaps: a terminal configured with "Alt sends
+Escape" off, and a keyboard layout where AltGr *is* Ctrl+Alt (German, and most
+other European layouts) and the combination carries a third-level character —
+there the key never reaches the application at all.
+
+Neither is detectable from inside Neovim. Nvim does query the terminal for
+"CSI u" support at startup (`:help tui-csiu`), but never exposes the answer to
+Lua, and that answer would be the wrong question anyway: it describes the
+terminal, not the path through tmux/ssh/the keyboard layout that a specific
+key actually takes. A self-test is impossible for a more basic reason —
+`nvim_feedkeys`/`nvim_input` inject *below* the terminal's decoder, so
+pressing your own key always succeeds, including on a terminal that could
+never have sent it.
+
+So the portable alias is simply bound as well. One extra key, and the question
+stops mattering.
 - **Cycle** (`<C-y>`/`<C-x>`/`+`/`-`): `N` takes N steps. Stepping rather
   than jumping keeps every group kind right with one rule — a 2-state
   toggle lands where its parity says (`2<C-y>` on `true` is still `true`),
