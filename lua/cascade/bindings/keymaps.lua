@@ -209,6 +209,7 @@ end
 ---@type table<string, string[]>
 local GLOBAL_FAMILIES = {
   cycle_word = { "cycle_word_next", "cycle_word_prev", "increment", "decrement", "cycle_pick" },
+  cycle_char = { "cycle_char_next", "cycle_char_prev" },
   sequence = { "renumber_selection" },
   indent = { "indent", "dedent", "indent_insert", "dedent_insert", "indent_levels", "dedent_levels" },
   move = { "move_up", "move_down", "move_up_insert", "move_down_insert" },
@@ -234,6 +235,8 @@ function M.bind_preset_globals(cfg)
       "increment",
       "decrement",
       "cycle_pick",
+      "cycle_char_next",
+      "cycle_char_prev",
       "renumber_selection",
       "indent",
       "dedent",
@@ -269,6 +272,22 @@ function M.bind_preset_globals(cfg)
         default = "<leader>cp",
         rhs = api.cycle_pick,
         desc = "pick a cycle-group value",
+      },
+
+      -- The modifier-heavy siblings of <C-y>/<C-x>: same direction, but the
+      -- single character under the cursor rather than the whole token, so a
+      -- letter inside a word is reachable. Not every terminal can encode
+      -- Ctrl+Alt -- rebind via `keymaps.globals.cycle_char_next` where it
+      -- doesn't arrive.
+      cycle_char_next = {
+        default = "<C-M-y>",
+        rhs = api.cycle_char_next,
+        desc = "cycle char under cursor (in-word)",
+      },
+      cycle_char_prev = {
+        default = "<C-M-x>",
+        rhs = api.cycle_char_prev,
+        desc = "cycle char under cursor back (in-word)",
       },
 
       -- Visual mode only, on purpose: an Ex-command range (`:'<,'>`) is always
@@ -418,6 +437,7 @@ function M.bind_preset_globals(cfg)
 
   local off = {
     cycle_word = not (cfg.cycle and cfg.cycle.enable and cyc_feat.word ~= false),
+    cycle_char = not (cfg.cycle and cfg.cycle.enable and cyc_feat.char ~= false),
     sequence = type(seq) == "table" and seq.enable == false,
     indent = not (cfg.lists and cfg.lists.enable and list_feat.indent ~= false),
     move = not (cfg.lists and cfg.lists.enable and list_feat.move ~= false),

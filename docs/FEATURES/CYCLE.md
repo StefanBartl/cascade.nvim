@@ -80,6 +80,42 @@ years). Checked before the word-cycle group match.
 - **Module:** `cycle/date.lua` (`M.span`, `M.step`)
 - **Config:** `cycle.features.date`
 
+## In-word char cycle (2026-08-30)
+
+`<C-M-y>`/`<C-M-x>` step the single character under the cursor through the
+alphabet — wrapping, case preserved — **wherever it sits**, including in the
+middle of a word.
+
+This exists because `<C-y>` deliberately cannot do it. `<C-y>` reads the whole
+keyword under the cursor (`'iskeyword'`, via `token.span`) and looks it up in
+the cycle groups; on a word that is in no group it hands the keypress back to
+its native meaning. So `a` on its own cycles (the letter feature sees a
+one-character token), but the `a` inside `cat` never does — the token is
+`cat`, no group holds it, and nothing happens. Widening that chain to "no
+group matched, so step the character instead" would rewrite text on every
+unknown word, exactly where the user expects a no-op. A separate key says
+which of the two was meant, and keeps `<C-y>` predictable.
+
+```
+cat   <C-M-y>  (cursor on "a")  ->  cbt
+caT   <C-M-y>  (cursor on "T")  ->  caU     (case preserved)
+czt   <C-M-y>  (cursor on "z")  ->  cat     (wraps)
+a     3<C-M-y>                  ->  d       (count = N places, one edit)
+```
+
+Off an a-z/A-Z byte (a digit, punctuation, past the end of the line, a
+multi-byte character) it is a silent no-op — unlike `<C-y>`/`+`, these keys
+have no native meaning to fall back to. Dot-repeatable like every other cycle
+action.
+
+Not every terminal can encode Ctrl+Alt. Where the key never arrives, rebind:
+`keymaps = { globals = { cycle_char_next = "<leader>cy" } }`.
+
+- **Module:** `cycle/letter.lua` (`M.step_at`), `init.lua` (`cycle_char_work`)
+- **Config:** `cycle.features.char`
+- **Tests:** `TESTS/cycle_spec.lua`
+- **Keymaps:** `<C-M-y>`/`<C-M-x>` (global, preset)
+
 ## Operator flips
 
 Flips an operator in place — `==`↔`!=`, `&&`↔`||`, `<`↔`>`, `+`↔`-` —

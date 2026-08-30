@@ -77,6 +77,9 @@ keys you like with a normal |vim.keymap.set()|:
     decrement                normal  cycle word / native decrement / native
                                       line-up (`-`'s own meaning) otherwise
     cycle_pick                normal  pick a cycle-group value via vim.ui.select
+    cycle_char_next          normal  step the char under the cursor through the
+                                      alphabet, inside a word too
+    cycle_char_prev          normal  the same, backward
     indent / indent_visual       n / x   indent + level-aware renumber (normal-
                                           mode count = N lines from cursor)
     dedent / dedent_visual       n / x   dedent + level-aware renumber (normal-
@@ -165,6 +168,8 @@ With `keymaps.preset = true`:
     +           ->  increment
     -           ->  decrement
     <leader>cp  ->  cycle_pick
+    <C-M-y>     ->  cycle_char_next
+    <C-M-x>     ->  cycle_char_prev
     <leader>cR  ->  renumber_selection   (Visual mode only)
 
   Buffer-local in `lists.filetypes`:
@@ -250,7 +255,7 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
       },
       cycle = {
         enable = true,
-        features = { word = true, date = true, letter = true },
+        features = { word = true, date = true, letter = true, char = true },
         filetypes = nil,
         number_fallback = true,
         packs = { "en", "de", "dev" },
@@ -378,7 +383,7 @@ lists.precision_nodes (table<string,string[]>) Per-filetype skip-node type
 
 cycle.enable          (boolean)   Master switch for the cycle domain.
 cycle.features        (table)     Per-feature switches. Keys: word, date,
-                                  letter. Missing key = enabled.
+                                  letter, char. Missing key = enabled.
 cycle.filetypes       (string[]|nil) Restrict to these fts; nil = all.
 cycle.number_fallback (boolean)   Use native <C-a>/<C-x> on numeric tokens
                                   (via <C-y>/<C-x> or +/-). false only skips
@@ -460,6 +465,34 @@ keeping its case: >
 A count steps N places at once: `3<C-y>` on "a" gives "d". Set
 `cycle.features.letter = false` to turn this off and fall back to the
 pressed key's own native meaning.
+
+IN-WORD CHAR CYCLE                                        *cascade-cycle-char*
+
+<C-M-y>/<C-M-x> step the single character under the cursor through the
+alphabet -- wrapping, case preserved -- wherever it sits, the middle of a word
+included: >
+    cat   <C-M-y>  (cursor on "a")  ->  cbt
+    caT   <C-M-y>  (cursor on "T")  ->  caU
+    czt   <C-M-y>  (cursor on "z")  ->  cat
+    a     3<C-M-y>                  ->  d
+<
+This is a separate key on purpose, not another link in the <C-y> chain. <C-y>
+reads the whole keyword under the cursor and looks it up in the cycle groups;
+on a word no group contains, it hands the keypress back to its native meaning.
+So a lone "a" cycles (the letter feature sees a one-character token) while the
+"a" inside "cat" does not -- the token is "cat". Extending that chain with a
+final "nothing matched, so step the character" step would rewrite text on
+every unknown word, exactly where a no-op is expected.
+
+Off an a-z/A-Z byte -- a digit, punctuation, past the end of the line, a
+multi-byte character -- these keys are a silent no-op: unlike <C-y> and +/-
+they have no native meaning of their own to fall back to. A count jumps N
+places in one edit. Set `cycle.features.char = false` to turn the feature off.
+
+Not every terminal can encode Ctrl+Alt. Where the keys never arrive, rebind
+them: >lua
+    keymaps = { globals = { cycle_char_next = "<leader>cy" } }
+<
 
 sequence.enable       (boolean)   Master switch for the sequence domain
                                   (renumbering inside a selection).

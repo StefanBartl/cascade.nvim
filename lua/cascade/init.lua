@@ -496,6 +496,46 @@ local function cycle_word_work(dir, number_key, own_key)
   end
 end
 
+---@internal
+--- Step the single character under the cursor through the alphabet, wherever
+--- it sits -- inside a word just as well as on its own.
+---
+--- Deliberately its own action rather than another link in `cycle_word_work`'s
+--- chain. That chain is dictionary-driven: on a word it looks for a
+--- `cycle.groups` entry and, finding none, hands the key back to its native
+--- meaning -- which is why the "a" in "cat" is unreachable from `<C-y>`.
+--- Widening the chain to "no group matched, so step the character instead"
+--- would rewrite text on every unknown word, exactly where the user expects
+--- nothing to happen. A separate key says which of the two was meant.
+---
+--- No native fallback: `<C-M-y>`/`<C-M-x>` have no meaning of their own to
+--- fall back to, so off a letter this is a silent no-op (like `cycle_pick`).
+--- The count is a jump, not a loop -- the replacement is always one byte, so
+--- `3<C-M-y>` on "a" is one edit landing on "d".
+---@param dir integer # 1 forward, -1 backward.
+---@return fun()
+local function cycle_char_work(dir)
+  return function()
+    local count = pending_cycle_count
+    local opts = config.get("cycle")
+    if not opts.enable or not cf("char") then
+      return
+    end
+    local ctx = Context.new()
+    if not Context.writable(ctx.bufnr) or not ft_in(opts.filetypes, ctx.ft) then
+      return
+    end
+
+    local s, e, repl = letter.step_at(ctx.line, ctx.col0, dir * count)
+    if not s then
+      return
+    end
+    ---@cast e integer
+    ---@cast repl string
+    vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
+  end
+end
+
 --- Show an interactive picker over every entry in the cursor's cycle group
 --- (word or operator), replacing it with whichever the user picks. Silent
 --- no-op when the cursor isn't on a cyclable token -- there's no "own key"
@@ -632,6 +672,8 @@ local cycle_next_repeatable = dotrepeat.repeatable("cycle_word_next", cycle_word
 local cycle_prev_repeatable = dotrepeat.repeatable("cycle_word_prev", cycle_word_work(-1, "<C-x>", "<C-x>"))
 local increment_repeatable = dotrepeat.repeatable("increment", cycle_word_work(1, "<C-a>", "+"))
 local decrement_repeatable = dotrepeat.repeatable("decrement", cycle_word_work(-1, "<C-x>", "-"))
+local cycle_char_next_repeatable = dotrepeat.repeatable("cycle_char_next", cycle_char_work(1))
+local cycle_char_prev_repeatable = dotrepeat.repeatable("cycle_char_prev", cycle_char_work(-1))
 
 --- Capture the count before the trampoline, then run. `.` afterwards replays
 --- with this same stashed count, matching how `swap_right`/`swap_left` behave.
@@ -659,6 +701,16 @@ M.increment = counted_cycle(increment_repeatable)
 --- Decrement the token under the cursor. `N` steps N times.
 ---@return nil
 M.decrement = counted_cycle(decrement_repeatable)
+
+--- Step the character under the cursor forward through the alphabet, inside a
+--- word as well as on its own. `N` jumps N places. No-op off an a-z/A-Z byte.
+---@return nil
+M.cycle_char_next = counted_cycle(cycle_char_next_repeatable)
+
+--- Step the character under the cursor backward through the alphabet. `N`
+--- jumps N places. No-op off an a-z/A-Z byte.
+---@return nil
+M.cycle_char_prev = counted_cycle(cycle_char_prev_repeatable)
 
 -- ---------- block / visual transforms ----------
 

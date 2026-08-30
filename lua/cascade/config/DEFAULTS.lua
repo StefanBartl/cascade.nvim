@@ -107,6 +107,7 @@ local DEFAULTS = {
       word = true, -- cycle the word/boolean under the cursor
       date = true, -- step the year/month/day segment of an ISO date (YYYY-MM-DD) under the cursor
       letter = true, -- cycle a single a-z/A-Z letter under the cursor through the alphabet (case preserved)
+      char = true, -- <C-M-y>/<C-M-x>: step the character under the cursor through the alphabet, inside a word too
     },
     filetypes = nil,
     number_fallback = true,

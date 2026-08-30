@@ -1,4 +1,4 @@
--- TESTS/cycle_spec.lua — word/boolean, date and letter cycle.
+-- TESTS/cycle_spec.lua — word/boolean, date, letter and in-word char cycle.
 ---@diagnostic disable: missing-fields, need-check-nil, param-type-mismatch
 
 return function(H)
@@ -163,6 +163,53 @@ return function(H)
   flush()
   eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = a", "features.letter = false: no longer rewritten")
   eq(vim.api.nvim_win_get_cursor(0)[1], 2, "features.letter = false: + falls back to native line-down motion")
+
+  cfg.setup({})
+
+  -- cascade.cycle.letter.step_at: the cursor column IS the span, so word
+  -- boundaries are irrelevant -- this is what <C-y> deliberately can't do.
+  local at_s, at_e, at_repl = letter.step_at("cat", 1, 1)
+  eq(at_s, 1, "letter.step_at: span starts at the cursor column")
+  eq(at_e, 2, "letter.step_at: span is exactly one byte wide")
+  eq(at_repl, "b", "letter.step_at: steps the 'a' inside 'cat'")
+  eq(select(3, letter.step_at("cat", 0, -1)), "b", "letter.step_at: backward inside a word")
+  eq(select(3, letter.step_at("caT", 2, 1)), "U", "letter.step_at: case preserved inside a word")
+  eq(select(3, letter.step_at("czt", 1, 1)), "a", "letter.step_at: wraps at z inside a word")
+  eq(letter.step_at("c4t", 1, 1), nil, "letter.step_at: nil on a non-letter byte")
+  eq(letter.step_at("cat", 3, 1), nil, "letter.step_at: nil past the end of the line")
+  eq(letter.step_at("", 0, 1), nil, "letter.step_at: nil on an empty line")
+  eq(letter.step_at("cat", -1, 1), nil, "letter.step_at: nil on a negative column")
+
+  -- Facade-level: <C-M-y>/<C-M-x> rewrite the char under the cursor where
+  -- <C-y> would find no cycle group and hand the key back to the terminal.
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "local cat = 1" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 }) -- on the "a" of "cat"
+  cascade.cycle_word_next()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "local cat = 1", "<C-y> leaves an ungrouped word alone")
+  cascade.cycle_char_next()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "local cbt = 1", "<C-M-y> steps the char inside the word")
+  cascade.cycle_char_prev()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "local cat = 1", "<C-M-x> steps it back")
+
+  -- Off a letter it is a silent no-op: these keys have no native meaning to
+  -- fall back to (unlike +/- and <C-y>/<C-x>).
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "x = 41", "second line" })
+  vim.api.nvim_win_set_cursor(0, { 1, 5 }) -- on the "1"
+  cascade.cycle_char_next()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "x = 41", "cycle_char: no-op on a digit (no native fallback)")
+  eq(vim.api.nvim_win_get_cursor(0)[1], 1, "cycle_char: no-op leaves the cursor put")
+
+  -- features.char = false disables it without touching the letter feature.
+  cfg.setup({ cycle = { features = { char = false } } })
+  vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "local cat = 1" })
+  vim.api.nvim_win_set_cursor(0, { 1, 7 })
+  cascade.cycle_char_next()
+  flush()
+  eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "local cat = 1", "features.char = false: no longer rewritten")
 
   cfg.setup({})
 

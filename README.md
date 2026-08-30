@@ -77,6 +77,7 @@
 | **cycle**  | Number fallback        | Native `<C-a>`/`<C-x>` for int/float/hex, via `<C-y>`/`<C-x>` or `+`/`-`. |
 | **cycle**  | Date increment         | Steps the year/month/day segment of an ISO date under the cursor, with calendar-aware rollover. |
 | **cycle**  | Letter cycle           | A single a-z/A-Z letter under the cursor steps through the alphabet (wraps, case preserved). |
+| **cycle**  | In-word char cycle     | `<C-M-y>`/`<C-M-x>` step the character under the cursor even inside a word, where `<C-y>` finds no group and stands down. |
 | **cycle**  | Operator flips         | `==`↔`!=`, `&&`↔`\|\|`, `<`↔`>`, `+`↔`-`, matched by position, not `iskeyword`. |
 | **cycle**  | Interactive picker     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) instead of stepping. |
 | **sequence** | Selection renumber  | Renumber the ordinals (`1.`, `a)`, `II.`) inside a Visual selection — numbered headlines, inline numbers mid-prose, any filetype. |
@@ -170,6 +171,7 @@ require("cascade").setup({ keymaps = { preset = true } })
 ```
 
 Binds `<C-y>`/`<C-x>` and `+`/`-` globally (word cycle + number fallback),
+`<C-M-y>`/`<C-M-x>` (step the character under the cursor, inside a word too),
 `<leader>cp` (interactive `vim.ui.select` picker for the cursor's cycle-group),
 `<leader><Right>`/`<leader><Left>` (char/selection swap) and
 `<leader><C-Right>`/`<leader><C-Left>` (word/selection swap) globally, and, in
@@ -192,6 +194,8 @@ vim.keymap.set("n", "o",       cascade.o)
 vim.keymap.set("n", "O",       cascade.O)
 vim.keymap.set("n", "<C-y>",   cascade.cycle_word_next)
 vim.keymap.set("n", "<C-x>",   cascade.cycle_word_prev)
+vim.keymap.set("n", "<C-M-y>", cascade.cycle_char_next)
+vim.keymap.set("n", "<C-M-x>", cascade.cycle_char_prev)
 vim.keymap.set("n", "+",       cascade.increment)
 vim.keymap.set("n", "-",       cascade.decrement)
 vim.keymap.set("n", "<Tab>",   cascade.indent)
@@ -227,6 +231,8 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 | `increment`                   | n     | Word/number forward (`+`; native line-down otherwise) |
 | `decrement`                   | n     | Word/number backward (`-`; native line-up otherwise) |
 | `cycle_pick`                  | n     | Pick a cycle-group value via `vim.ui.select` (Telescope-backed if registered) |
+| `cycle_char_next`             | n     | Character under the cursor forward through the alphabet, inside a word too |
+| `cycle_char_prev`             | n     | Character under the cursor backward through the alphabet |
 | `indent` / `indent_visual`    | n / x | Indent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `dedent` / `dedent_visual`    | n / x | Dedent + level-aware renumber. Normal-mode count = N *lines* from cursor |
 | `indent_levels` / `dedent_levels` | n | Indent/dedent the current line by N *levels* (old count meaning of `indent`/`dedent`) |
@@ -246,6 +252,11 @@ be bound with a normal `vim.keymap.set` — no `<Plug>` indirection:
 
 > `<Tab>`/`<S-Tab>` are deliberately **not** in the preset (conflict with
 > completion). Bind them yourself via `cascade.indent`/`cascade.dedent` if wanted.
+
+> `<C-M-y>`/`<C-M-x>` (in-word char cycle) need a terminal that can encode
+> Ctrl+Alt. If nothing happens where a lone letter *does* cycle with `<C-y>`,
+> the key never reached Neovim — move it with
+> `keymaps = { globals = { cycle_char_next = "<leader>cy", cycle_char_prev = "<leader>cY" } }`.
 
 ### Context menu (optional)
 
@@ -392,7 +403,7 @@ require("cascade").setup({
   },
   cycle = {
     enable = true,
-    features = { word = true, date = true, letter = true }, -- word/boolean, ISO-date, a-z/A-Z letter cycle on/off
+    features = { word = true, date = true, letter = true, char = true }, -- word/boolean, ISO-date, lone-letter, in-word char cycle on/off
     filetypes = nil,                         -- nil = all filetypes
     number_fallback = true,                  -- native <C-a>/<C-x> on numbers; false = skip just that
     packs = { "en", "de", "dev" },           -- built-in bundles; order = precedence. {} = only your groups

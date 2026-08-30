@@ -29,6 +29,8 @@ Bound for every filetype.
 | `+` | n | `increment` | cycle.word | Increment / cycle word (native line-down otherwise) |
 | `-` | n | `decrement` | cycle.word | Decrement / cycle word (native line-up otherwise). `N` = N steps |
 | `<leader>cp` | n | `cycle_pick` | cycle.word | Pick a cycle-group value via `vim.ui.select` |
+| `<C-M-y>` | n | `cycle_char_next` | cycle.char | Step the char under the cursor through the alphabet, inside a word too. `N` = N places |
+| `<C-M-x>` | n | `cycle_char_prev` | cycle.char | … backward. `N` = N places |
 | `<leader>cR` | x | `renumber_selection` | sequence.enable | Renumber the ordinal tokens inside the selection (any filetype) |
 | `<A-Right>` | n | `indent` | lists.indent | Indent (+renumber). No count/1: current line. `N` = N lines from cursor, 1 level each |
 | `<A-Right>` | x | `indent_visual` | lists.indent | Indent (+renumber) |
@@ -51,6 +53,13 @@ Indent/dedent had a deliberate count design from the start; the cycle, move
 and quick-toggle keys did not, which was the inconsistency the count audit
 flagged. Since 2026-08-24 they do:
 
+- **In-word char cycle** (`<C-M-y>`/`<C-M-x>`): `N` jumps N places (`3<C-M-y>`
+  on `a` gives `d`) — one edit, not a loop, since the replacement is always
+  one byte wide. No native fallback: off an a-z/A-Z byte these keys are a
+  silent no-op, because unlike `<C-y>`/`+` they have no meaning of their own
+  to hand the keypress back to. Not every terminal encodes Ctrl+Alt; rebind
+  via `keymaps.globals.cycle_char_next`/`cycle_char_prev` if they never
+  arrive.
 - **Cycle** (`<C-y>`/`<C-x>`/`+`/`-`): `N` takes N steps. Stepping rather
   than jumping keeps every group kind right with one rule — a 2-state
   toggle lands where its parity says (`2<C-y>` on `true` is still `true`),

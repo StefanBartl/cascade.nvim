@@ -90,7 +90,7 @@ marker, comment or not.
 | Domain | Scope | Typical surprise |
 | --- | --- | --- |
 | `lists` (continue, checkbox, rotate, sort, …) | `lists.filetypes` only | Expecting it in code buffers |
-| `cycle` (word/boolean, numbers, dates, letters) | global (`filetypes = nil`) | Not expecting it outside prose |
+| `cycle` (word/boolean, numbers, dates, letters, in-word chars) | global (`filetypes = nil`) | Not expecting it outside prose |
 | `transpose` (char/word swap) | global, no filetype option at all | — |
 | Indent/dedent, move | global; renumber only inside `lists.filetypes` | Renumbering silently skipped outside prose (correct — it's just `>>`/`<<`) |
 
@@ -149,3 +149,17 @@ line. Nothing needs configuring for this chain to make sense, but it
 explains why `+` on an arbitrary line without a date, group word, letter,
 or number "does nothing special" — that's it correctly falling through to
 native, not a bug.
+
+## …and `<C-M-y>`/`<C-M-x>` are the deliberate exception to that chain
+
+The chain above is dictionary-driven, which has one consequence worth naming:
+a lone `a` cycles, but the `a` inside `cat` does not. The token under the
+cursor is `cat`, no group contains it, so the key falls through to native —
+correct, and occasionally not what you wanted.
+
+`<C-M-y>`/`<C-M-x>` are that other intent, on their own keys: step the
+character under the cursor, no lookup, no word boundary. They are *not* a
+sixth link in the `+`/`-` chain on purpose — a final "nothing matched, so
+edit the character" step would rewrite text on every unknown word, turning
+the one thing the chain guarantees (an unknown word is left alone) into a
+coin flip. Two intents, two keys.
