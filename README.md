@@ -557,3 +557,7 @@ used when present, native fallback otherwise.
 ## Roadmap
 
 No open items.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
