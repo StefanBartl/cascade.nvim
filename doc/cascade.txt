@@ -247,7 +247,7 @@ Defaults (excerpt -- full reference below and in `cascade.config.DEFAULTS`): >lu
         per_filetype_patterns = {},
         cycle = { "-", "*", "+", "1.", "a)", "I." },
         forms = { "1.", "1. [ ]", "- [ ]", "-" },
-        checkbox = { states = { " ", "x" } },
+        checkbox = { states = { " ", "x", "~" } },
         continue = { delete_empty = true, hanging_indent = true },
         renumber = { enable = true, on = { "edit", "save" }, blank_break = 0 },
         precision = "off",
@@ -319,10 +319,12 @@ lists.forms           (string[])  Form-rotation templates for block/visual
                                   transforms. A form is a cycle template plus an
                                   optional `[ ]` suffix, e.g. "1.", "1. [ ]",
                                   "- [ ]", "-".
-lists.checkbox.states (string[])  Ordered states cycled in `[ ]`. Normally one
-                                  character; a longer state (e.g. an emoji) is
-                                  also accepted but must be listed here to be
-                                  recognized on parse.
+lists.checkbox.states (string[])  Ordered states cycled in `[ ]`, default
+                                  { " ", "x", "~" } (open -> done -> in
+                                  progress). Normally one character; a longer
+                                  state (e.g. an emoji) is also accepted but
+                                  must be listed here to be recognized on
+                                  parse.
 lists.continue.delete_empty (boolean) <CR> on an empty bullet removes it.
 lists.continue.hanging_indent (boolean) Sets buffer-local 'formatlistpat' (from
                                   `types`/`unordered_markers`) and adds `n` to
@@ -564,7 +566,7 @@ Examples: >
 without an existing marker (they insert one), unlike the actions above: >
     plain line  ->  bullet_toggle    ->  - plain line
     plain line  ->  star_toggle      ->  * plain line
-    plain line  ->  checkbox_toggle  ->  - [ ] plain line  ->  (again)  ->  - [x] plain line  ->  (again)  ->  plain line
+    plain line  ->  checkbox_toggle  ->  - [ ] plain line  ->  (again)  ->  - [x] plain line  ->  (again)  ->  - [~] plain line  ->  (again)  ->  plain line
 <
 Their `_visual` variants apply the same toggle independently to every
 non-blank line of a Visual or Visual-line selection.

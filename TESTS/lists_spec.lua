@@ -370,13 +370,15 @@ return function(H)
   eq(qt.number(Context.new(), lo), true, "number: strips")
   eq(vim.api.nvim_buf_get_lines(buf, 1, 2, false)[1], "Second", "number: stripped back to plain text")
 
-  -- checkbox: full none -> "[ ]" -> "[x]" -> none cycle on a plain line.
+  -- checkbox: full none -> "[ ]" -> "[x]" -> "[~]" -> none cycle on a plain line.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Task item" })
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
   qt.checkbox(Context.new(), lo)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [ ] Task item", "checkbox: created from plain line")
   qt.checkbox(Context.new(), lo)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [x] Task item", "checkbox: advances to next state")
+  qt.checkbox(Context.new(), lo)
+  eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "- [~] Task item", "checkbox: advances to the in-progress state")
   qt.checkbox(Context.new(), lo)
   eq(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1], "Task item", "checkbox: last state strips the whole item")
 

@@ -60,7 +60,7 @@
 | **lists**  | Continuation           | `<CR>`, `o`, `O` insert the next bullet (including increment).       |
 | **lists**  | Empty-bullet deletion  | `<CR>` on an empty bullet ends the list.                            |
 | **lists**  | Renumber               | Context-aware, respects a start offset ≠ 1.                        |
-| **lists**  | Checkbox cycle         | Configurable N-state cycle (`[ ]`→`[x]`→…), dot-repeatable.          |
+| **lists**  | Checkbox cycle         | Configurable N-state cycle (`[ ]`→`[x]`→`[~]`→…), dot-repeatable.    |
 | **lists**  | Quick bullet toggle    | `-` on/off any line, no existing marker required, dot-repeatable.    |
 | **lists**  | Quick number toggle    | `1.` on/off any line, no existing marker required, dot-repeatable.   |
 | **lists**  | Quick checkbox toggle  | `- [ ]` insert→cycle→remove on any line, dot-repeatable.             |
@@ -401,7 +401,7 @@ require("cascade").setup({
     unordered_markers = { "-", "*", "+" },
     cycle = { "-", "*", "+", "1.", "a)", "I." },  -- cycle_type (single line)
     forms = { "1.", "1. [ ]", "- [ ]", "-" },     -- form rotation (block/visual)
-    checkbox = { states = { " ", "x" } },    -- N-state cycle; multi-byte states (e.g. emoji) also work if listed here
+    checkbox = { states = { " ", "x", "~" } }, -- N-state cycle (open -> done -> in progress); multi-byte states (e.g. emoji) also work if listed here
     continue = { delete_empty = true },
     renumber = {                             -- WHEN it renumbers automatically
       enable = true,

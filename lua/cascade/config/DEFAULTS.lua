@@ -61,7 +61,7 @@ local DEFAULTS = {
     cycle = { "-", "*", "+", "1.", "a)", "I." },
     forms = { "1.", "1. [ ]", "- [ ]", "-" },
     checkbox = {
-      states = { " ", "x" },
+      states = { " ", "x", "~" },
     },
     continue = {
       delete_empty = true,

@@ -39,7 +39,7 @@ wrapped paragraph or note) never breaks the sequence — matches Markdown's
 ## Checkbox cycle
 
 Cycles the checkbox under the cursor through a configurable N-state
-sequence (`[ ]` → `[x]` → …, wrapping around). Dot-repeatable.
+sequence (`[ ]` → `[x]` → `[~]` → …, wrapping around). Dot-repeatable.
 Multi-byte states (e.g. emoji) work if listed in `lists.checkbox.states`.
 
 - **Module:** `lists/checkbox.lua` (`M.toggle`)
