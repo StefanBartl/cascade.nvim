@@ -157,6 +157,7 @@ function M.pick(ctx, opts)
   if not found then
     return false
   end
+  ---@cast s integer
   ---@cast e integer
 
   require("lib.nvim.ui.kit").select({
