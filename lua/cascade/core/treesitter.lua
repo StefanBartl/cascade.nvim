@@ -47,6 +47,10 @@ function M.in_skip_node(bufnr, row0, col0, ft, opts)
 
   local ok, hit = pcall(function()
     local parser = vim.treesitter.get_parser(bufnr, ft)
+    if not parser then
+      -- No parser for this filetype: a clean `false`, not a caught error.
+      return false
+    end
     local root = parser:parse()[1]:root()
     local node = root:named_descendant_for_range(row0, col0, row0, col0)
     while node do

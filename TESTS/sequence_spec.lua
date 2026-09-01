@@ -207,6 +207,7 @@ return function(H)
   eq(table.concat(defaults.types, ","), "digit,ascii,roman", "config: default types")
 
   -- malformed values degrade to the documented defaults instead of erroring.
+  ---@diagnostic disable-next-line: assign-type-mismatch
   cfg.setup({ sequence = { start = "nonsense", types = {} } })
   eq(cfg.get("sequence").start, "keep", "config: unknown start mode falls back to keep")
   eq(table.concat(cfg.get("sequence").types, ","), "digit,ascii,roman", "config: empty types falls back")

@@ -369,6 +369,10 @@ return function(H)
   local orig_select = vim.ui.select
   local seen_items, choice_idx
 
+  -- Test double over a typed surface; restored right after the case.
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+
   vim.ui.select = function(items, _, on_choice)
     seen_items = items
     on_choice(items[choice_idx])
@@ -391,6 +395,8 @@ return function(H)
 
   -- off a cyclable token: returns false and never opens the picker.
   local select_called = false
+  -- Test double over a typed surface; restored right after the case.
+  ---@diagnostic disable-next-line: duplicate-set-field
   vim.ui.select = function()
     select_called = true
   end
@@ -401,6 +407,8 @@ return function(H)
   eq(select_called, false, "pick: never opens the picker when there's nothing to pick")
 
   -- facade-level: cascade.cycle_pick() (bound to <leader>cp in the preset).
+  -- Test double over a typed surface; restored right after the case.
+  ---@diagnostic disable-next-line: duplicate-set-field
   vim.ui.select = function(items, _, on_choice)
     on_choice(items[2])
   end

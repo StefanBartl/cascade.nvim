@@ -132,6 +132,7 @@ function M.cycle(ctx, opts, dir)
   if not found then
     return false
   end
+  ---@cast s integer
   ---@cast e integer
   ---@cast idx integer
 

@@ -100,6 +100,7 @@ function M.map(mode, lhs, rhs, opts)
   opts = opts or {}
   local lib = try_require("lib.nvim.bindings.keymap")
   if vim.is_callable(lib) then
+    ---@cast lib fun(mode: any, lhs: any, rhs: any, opts: any)
     local ok = pcall(lib, mode, lhs, rhs, opts)
     if ok then
       return
@@ -501,9 +502,12 @@ end
 
 --- Run `fn(srow, erow)` against the current Visual selection's 0-based
 --- inclusive row range, then reselect the same rows linewise.
+--- The callback's return value is passed through, but every caller today
+--- runs it for its effect -- hence the optional `T`, which lets a callback
+--- end without a `return` instead of owing one.
 ---@generic T
----@param fn fun(srow: integer, erow: integer): T
----@return T
+---@param fn fun(srow: integer, erow: integer): T?
+---@return T?
 function M.keep_lines(fn)
   local srow, erow = M.lines()
   local ret = fn(srow, erow)
@@ -542,7 +546,7 @@ end
 ---@return T|nil ret, boolean applicable
 function M.keep_chars(fn)
   local row, scol, ecol = M.chars()
-  if not row then
+  if not row or not scol or not ecol then
     return nil, false
   end
   local ret = fn(row, scol, ecol)

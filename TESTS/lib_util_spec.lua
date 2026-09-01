@@ -23,6 +23,8 @@ return function(H)
   do
     local captured
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function(msg, level, opts)
       captured = { msg = msg, level = level, opts = opts }
     end
@@ -37,6 +39,8 @@ return function(H)
   do
     local captured
     local orig = vim.keymap.set
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.keymap.set = function(mode, lhs, rhs, opts)
       captured = { mode = mode, lhs = lhs, rhs = rhs, opts = opts }
     end
@@ -72,6 +76,8 @@ return function(H)
 
     local vim_notify_called = false
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function()
       vim_notify_called = true
     end
@@ -95,6 +101,8 @@ return function(H)
 
     local vim_map_called = false
     local orig = vim.keymap.set
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.keymap.set = function()
       vim_map_called = true
     end
@@ -180,6 +188,8 @@ return function(H)
     local lib2 = require("cascade.util.lib")
     local notified = false
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function()
       notified = true
     end
@@ -198,12 +208,16 @@ return function(H)
   do
     package.loaded["cascade.util.lib"] = nil
     package.loaded["lib.nvim.logger"] = nil
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     package.preload["lib.nvim.logger"] = function()
       error("simulated absent for this test")
     end
     local lib2 = require("cascade.util.lib")
     local captured
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function(msg, level)
       captured = { msg = msg, level = level }
     end
@@ -232,6 +246,8 @@ return function(H)
     local lib2 = require("cascade.util.lib")
     local notify_called = false
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function()
       notify_called = true
     end
@@ -254,6 +270,8 @@ return function(H)
   do
     package.loaded["cascade.util.lib"] = nil
     package.loaded["lib.nvim.logger"] = nil
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     package.preload["lib.nvim.logger"] = function()
       error("simulated absent for this test")
     end
@@ -265,6 +283,8 @@ return function(H)
     cfg.setup({ debug = true })
     local notifications = {}
     local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function(msg)
       notifications[#notifications + 1] = msg
     end
@@ -286,6 +306,8 @@ return function(H)
     -- debug = false (default): the exact same call produces no debug output.
     cfg.setup({})
     local notified_again = false
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function()
       notified_again = true
     end

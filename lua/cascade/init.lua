@@ -404,10 +404,6 @@ end
 --- (no match at all), fall back to the triggering key's own native meaning,
 --- so e.g. `+`/`-` still move a line when the cursor isn't on a cyclable
 --- word, a date, or a number.
----@param dir integer
----@param number_key string # native key that increments/decrements numbers.
----@param own_key string # the key this action is bound to.
----@return fun()
 --- Count for the cycle keys, captured the same way and for the same reason as
 --- `pending_swap_count` below: `cycle_word_next` and friends run through the
 --- dot-repeat trampoline, so by the time the deferred work fires the count
@@ -426,6 +422,10 @@ local pending_cycle_count = 1
 --- keys mean something counted natively: `3<C-a>` increments a number by 3,
 --- and `3<C-y>` scrolls three lines. Dropping it there would have made the
 --- count silently mean "1" exactly where the user could see it should not.
+---@param dir integer
+---@param number_key string # native key that increments/decrements numbers.
+---@param own_key string # the key this action is bound to.
+---@return fun()
 local function cycle_word_work(dir, number_key, own_key)
   return function()
     local count = pending_cycle_count
@@ -447,7 +447,7 @@ local function cycle_word_work(dir, number_key, own_key)
       for _ = 1, count do
         local cur = Context.new(ctx.bufnr)
         local s0, e0, repl = date.step(cur.line, cur.col0, dir)
-        if not s0 then
+        if not s0 or not e0 then
           break
         end
         vim.api.nvim_buf_set_text(cur.bufnr, cur.row0, s0, cur.row0, e0, { repl })
@@ -479,6 +479,7 @@ local function cycle_word_work(dir, number_key, own_key)
       local s, e, text = token.span(ctx.line, ctx.col0)
       if s then
         ---@cast e integer
+        ---@cast text string
         local repl = letter.step(text, dir * count)
         if repl then
           vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
