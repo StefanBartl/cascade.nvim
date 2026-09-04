@@ -575,6 +575,17 @@ used when present, native fallback otherwise.
 
 ---
 
+## Documentation
+
+Start at [docs/README.md](docs/README.md), which says what is where and which
+question each page answers.
+
+- [Features](docs/FEATURES/README.md) — one page per area: cycling, lists, sequence renumbering, transposing, and what separates them.
+- [Bindings](docs/BINDINGS.md) — every keymap, user command and autocommand, and how to wire the optional context menu.
+- [Workflow](docs/WORKFLOW.md) — which key to reach for when a line is *almost* the list item you want.
+
+---
+
 ## Roadmap
 
 No open items.
