@@ -10,19 +10,27 @@ feature can be switched off individually via `cycle.features.*`.
 ## Word / boolean cycle
 
 Steps the word under the cursor through a configured group
-(`true`↔`false`, `on`↔`off`, `enabled`↔`disabled`, …, 22 built-in 2-state
-pairs plus a 3-state `. / \` cycle). Case-preserving (matches the
-replacement's case shape to the original), extensible per filetype via
-`cycle.per_filetype`, dot-repeatable.
+(`true`↔`false`, `on`↔`off`, `enabled`↔`disabled`, …). Case-preserving
+(matches the replacement's case shape to the original), extensible per
+filetype via `cycle.per_filetype`, dot-repeatable.
 
-- **Module:** `cycle/word_cycle.lua` (`M.cycle`), `cycle/token.lua` (`M.case_shape`, `M.apply_shape`)
-- **Config:** `cycle.features.word`, `cycle.groups`, `cycle.per_filetype`
+The vocabulary comes from two places: `cycle.groups` (yours, plus the
+operator flips below) and the **packs** — named bundles switched on by name,
+`{ "en", "de", "dev" }` by default. A word only ever belongs to the first
+group that holds it, so the order of `cycle.packs` is a precedence order and
+not a set. Both the pack contents and that rule are in
+[`../configuration.md#cycle-packs`](../configuration.md#cycle-packs);
+`:checkhealth cascade` names every word a combination of packs makes
+unreachable.
 
-## Runtime cycle groups (2026-08-24)
+- **Module:** `cycle/word_cycle.lua` (`M.cycle`), `cycle/packs/` (`M.resolve`, `M.conflicts`), `cycle/token.lua` (`M.case_shape`, `M.apply_shape`)
+- **Config:** `cycle.features.word`, `cycle.groups`, `cycle.packs`, `cycle.per_filetype`
+
+## Runtime cycle groups
 
 `cycle.groups` was config-only, so trying out a group meant editing the
 config and reloading — enough friction that for a group you need for the next
-ten minutes, you simply wouldn't. Closes the flag/option audit's entry.
+ten minutes, you simply wouldn't.
 
 ```vim
 :Cascade cycle add alpha,beta,gamma
@@ -36,9 +44,9 @@ keypress, so it takes effect immediately. Values may contain spaces — the
 whole tail is taken, not just the first token, since otherwise
 `TODO,IN PROGRESS,DONE` would silently lose everything after the space.
 
-Two refusals, both because the result would be a cycle that cannot cycle: a
-group with fewer than two distinct values, and one with duplicates (which
-would stall on the repeat).
+Values are trimmed, and duplicates inside one group are dropped — a repeated
+value would stall the cycle on itself. If fewer than two distinct values
+remain, the group is refused: a cycle of one cannot cycle.
 
 `remove` drops the first group containing the value you name, so any member
 identifies it. `list` reports the global groups *and* the current filetype's,
@@ -63,7 +71,7 @@ cycle group or date matches, `<C-y>`/`<C-x>`/`+`/`-` fall back to native
 `<C-a>`/`<C-x>` instead of doing nothing.
 
 - **Module:** `init.lua` (`cycle_word_work`), `cycle/token.lua` (`M.is_numeric`)
-- **Count (2026-08-24):** `N` takes N steps. The number fallback re-emits the
+- **Count:** `N` takes N steps. The number fallback re-emits the
   count (`3<C-y>` on a number is `<C-a>` three times), as does the native-key
   fallback — dropping it would make the count silently mean 1 exactly where
   the user can see it should not. The count is captured before the dot-repeat
@@ -80,7 +88,7 @@ years). Checked before the word-cycle group match.
 - **Module:** `cycle/date.lua` (`M.span`, `M.step`)
 - **Config:** `cycle.features.date`
 
-## In-word char cycle (2026-08-30)
+## In-word char cycle
 
 `<C-M-y>`/`<C-M-x>` — equivalently `<leader>cy`/`<leader>cY`, both are bound —
 step the single character under the cursor through the alphabet, wrapping,

@@ -18,7 +18,8 @@ and every action still has to be wired by hand via `vim.keymap.set`. If
 you want the preset's global word/number cycle in `.lua`/`.ts` files too
 (not just prose), load with `event = "VeryLazy"`, not `ft = { ... }` —
 `ft`-scoped loading means the plugin (and its global cycle) doesn't exist
-yet outside those filetypes.
+yet outside those filetypes. The trade-off per loading strategy is laid out
+in [`installation.md`](installation.md#which-loading-strategy).
 
 `lib.nvim` is a **required** dependency, not a soft one: without it,
 `:Cascade` fails to load outright (`lib.nvim.bindings.usercmd.composer` builds the

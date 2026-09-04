@@ -14,6 +14,10 @@ Every mapping binds directly onto a facade action (`require("cascade").<action>`
 — there is no `<Plug>` indirection. which-key (if installed) only labels the
 `<leader>c` prefix as a group; it does not register the individual keys.
 
+To bind those actions to keys of your own instead of taking the preset, the
+list of them is [`keymaps.md`](keymaps.md); to move or drop a single preset
+key, [`configuration.md`](configuration.md#keymaps).
+
 ## Preset Keymaps
 
 Only active when `keymaps.preset = true` is set.
@@ -48,18 +52,40 @@ Bound for every filetype.
 | `<A-Down>` | x | `move_down_visual` | lists.move | Move selection down |
 | `<A-Up>` | i | `<C-o>:m .-2<CR><C-o>==` (native) | lists.move | Move line up (insert) |
 | `<A-Down>` | i | `<C-o>:m .+1<CR><C-o>==` (native) | lists.move | Move line down (insert) |
+| `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor. `N` = swap N times |
+| `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor. `N` = swap N times |
+| `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char. `N` = swap N times |
+| `<leader><Left>` | x | `swap_left_visual` | transpose.char | Swap selection with left neighbor char. `N` = swap N times |
+| `<leader><C-Right>` | n | `swap_word_right` | transpose.word | Swap word with right neighbor word. `N` = swap N times |
+| `<leader><C-Left>` | n | `swap_word_left` | transpose.word | Swap word with left neighbor word. `N` = swap N times |
+| `<leader><C-Right>` | x | `swap_word_right_visual` | transpose.word | Swap selection with right neighbor word. `N` = swap N times |
+| `<leader><C-Left>` | x | `swap_word_left_visual` | transpose.word | Swap selection with left neighbor word. `N` = swap N times |
 
 ### Count support
 
 Indent/dedent had a deliberate count design from the start; the cycle, move
-and quick-toggle keys did not, which was the inconsistency the count audit
-flagged. Since 2026-08-24 they do:
+and quick-toggle keys did not. They do now, and the meaning differs per key
+because the useful one does:
 
 - **In-word char cycle** (`<C-M-y>`/`<C-M-x>`): `N` jumps N places (`3<C-M-y>`
   on `a` gives `d`) — one edit, not a loop, since the replacement is always
   one byte wide. No native fallback: off an a-z/A-Z byte these keys are a
   silent no-op, because unlike `<C-y>`/`+` they have no meaning of their own
   to hand the keypress back to.
+- **Cycle** (`<C-y>`/`<C-x>`/`+`/`-`): `N` takes N steps. Stepping rather
+  than jumping keeps every group kind right with one rule — a 2-state
+  toggle lands where its parity says (`2<C-y>` on `true` is still `true`),
+  a 3-state cycle wraps, and an ISO date rolls over months (`3<C-y>` on
+  `2026-08-30` gives `2026-09-02`, not day 33).
+  The two native fallbacks re-emit the count instead of swallowing it, so
+  `3<C-y>` on a number is `<C-a>` three times and on nothing cyclable it is
+  a three-line scroll.
+- **Move** (`<A-Up>`/`<A-Down>`): `N` moves N lines, one step at a time so
+  reindenting and list renumbering stay correct at each one. Stops at the
+  buffer edge rather than erroring.
+- **Quick-toggle** (`<A-->`/`<A-*>`): `N` widens the *scope* to the next N
+  lines rather than repeating the toggle — repeating it would be a no-op for
+  every even count. Same reinterpretation `<leader>et` uses in emojis.nvim.
 
 ### Why `cycle_char_*` is bound to two keys
 
@@ -83,29 +109,6 @@ never have sent it.
 
 So the portable alias is simply bound as well. One extra key, and the question
 stops mattering.
-- **Cycle** (`<C-y>`/`<C-x>`/`+`/`-`): `N` takes N steps. Stepping rather
-  than jumping keeps every group kind right with one rule — a 2-state
-  toggle lands where its parity says (`2<C-y>` on `true` is still `true`),
-  a 3-state cycle wraps, and an ISO date rolls over months (`3<C-y>` on
-  `2026-08-30` gives `2026-09-02`, not day 33).
-  The two native fallbacks re-emit the count instead of swallowing it, so
-  `3<C-y>` on a number is `<C-a>` three times and on nothing cyclable it is
-  a three-line scroll.
-- **Move** (`<A-Up>`/`<A-Down>`): `N` moves N lines, one step at a time so
-  reindenting and list renumbering stay correct at each one. Stops at the
-  buffer edge rather than erroring.
-- **Quick-toggle** (`<A-->`/`<A-*>`): `N` widens the *scope* to the next N
-  lines rather than repeating the toggle — repeating it would be a no-op for
-  every even count. Same reinterpretation `<leader>et` uses in emojis.nvim.
-
-| `<leader><Right>` | n | `swap_right` | transpose.char | Swap char with right neighbor. `N` = swap N times |
-| `<leader><Left>` | n | `swap_left` | transpose.char | Swap char with left neighbor. `N` = swap N times |
-| `<leader><Right>` | x | `swap_right_visual` | transpose.char | Swap selection with right neighbor char. `N` = swap N times |
-| `<leader><Left>` | x | `swap_left_visual` | transpose.char | Swap selection with left neighbor char. `N` = swap N times |
-| `<leader><C-Right>` | n | `swap_word_right` | transpose.word | Swap word with right neighbor word. `N` = swap N times |
-| `<leader><C-Left>` | n | `swap_word_left` | transpose.word | Swap word with left neighbor word. `N` = swap N times |
-| `<leader><C-Right>` | x | `swap_word_right_visual` | transpose.word | Swap selection with right neighbor word. `N` = swap N times |
-| `<leader><C-Left>` | x | `swap_word_left_visual` | transpose.word | Swap selection with left neighbor word. `N` = swap N times |
 
 ### Buffer-local
 
@@ -163,12 +166,17 @@ local sub = require("cascade.integrations.menu").submenu()  -- { name = "  Casca
 One command, `:Cascade <subcommand>` (built via
 [`lib.nvim.bindings.usercmd.composer`](https://github.com/StefanBartl/lib.nvim), with
 `<Tab>` completion), always defined regardless of the preset configuration.
-**Bang now attaches to the verb, not the subcommand**: `:CascadeRotate!` is
-now `:Cascade! rotate` (Vim's `!` always binds to the command name itself, so
-collapsing multiple commands into one verb moves it there).
+**The bang attaches to the verb, not the subcommand**: `:Cascade! rotate`, not
+`:Cascade rotate!` — Vim's `!` always binds to the command name itself, so
+collapsing multiple commands into one verb moves it there.
+
+Full usage and examples: [`commands.md`](commands.md).
 
 | subcommand | args | bang | range | desc |
 | --- | --- | --- | --- | --- |
+| `:Cascade cycle list` | — | no | no | List the cycle groups in effect for this buffer (globals + this filetype's) |
+| `:Cascade cycle add` | `{values}` | no | no | Add a cycle group for this session: `:Cascade cycle add on,off,maybe` |
+| `:Cascade cycle remove` | `{value}` | no | no | Remove the runtime cycle group containing a value |
 | `:Cascade rotate` | `[next\|prev]` | yes (`:Cascade!`) | yes | Rotate list form (range-aware; `!` or `prev` = backward) |
 | `:Cascade sort` | — | yes (`:Cascade!`) | yes | Sort list A-Z (range-aware; `!` = Z-A) |
 | `:Cascade reverse` | — | no | yes | Reverse list order (range-aware) |

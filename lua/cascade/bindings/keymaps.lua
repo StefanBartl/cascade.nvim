@@ -8,12 +8,10 @@
 --- which-key, since a user reading a popup does not care that the plugin
 --- splits its keymaps internally.
 ---
---- Every key used to be hard-coded here, with only the feature switches
---- (`lists.features.*`, `cycle.features.*`, …) deciding whether a whole group
---- was bound. Declaring them as named actions makes each one individually
---- overridable -- `keymaps = { toggle_checkbox = "<leader>x" }` moves one,
---- `= false` drops one -- while the feature switches keep working: a
---- switched-off feature forces its own keys to `false`.
+--- Each key is a named action, so it is individually overridable through the
+--- surface it belongs to: `keymaps = { list = { toggle_checkbox = "<leader>x" } }`
+--- moves one, `= false` drops one. The feature switches keep working on top of
+--- that: a switched-off feature forces its own keys to `false`.
 ---
 --- Maps go straight onto the facade actions in `cascade` — no `<Plug>`
 --- indirection. which-key needs no registration for the individual keys; it

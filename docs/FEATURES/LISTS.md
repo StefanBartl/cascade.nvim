@@ -95,6 +95,16 @@ checkbox states are preserved while rotating; ordered targets are
 renumbered automatically. Dot-repeatable (normal), range-aware
 (`:Cascade rotate`).
 
+```
+1. one         ->   1. [ ] one         ->   - [ ] one         ->   - one
+2. two              2. [ ] two              - [ ] two              - two
+```
+
+"Numbering to checkbox" is thus the first rotation step, which is why this is
+worth reaching for instead of a `:s` substitution: substitution will not
+renumber the ordered forms it produces, and will not confine itself to the
+block under the cursor without a manual range.
+
 - **Module:** `lists/transform.lua` (`M.rotate`)
 - **Config:** `lists.features.rotate`, `lists.forms`
 - **Keymaps:** `<leader>cf` / `<leader>cF` (preset, buffer-local, normal + visual)
@@ -136,10 +146,37 @@ Level-aware: indenting/dedenting a numbered list renumbers every level a
 change touches (a deeper level starts fresh at `1.`, a shallower level
 continues, the level left behind closes its gap). A single line carries
 its subtree (nested children, wrapped continuation text) along with it.
-Outside `lists.filetypes` it is a plain `>>`/`<<`. Global keymaps
-(`<A-Right>`/`<A-Left>`), `vim.v.count` means "how many lines" (one level
-each); `<leader><A-Right>`/`<leader><A-Left>` shift a single line by `N`
-levels instead.
+Outside `lists.filetypes` it is a plain `>>`/`<<`, so it fully replaces a
+generic indent mapping. Global keymaps (`<A-Right>`/`<A-Left>`), where
+`vim.v.count` means "how many lines" (one level each);
+`<leader><A-Right>`/`<leader><A-Left>` shift a single line by `N` levels
+instead.
+
+Every indent level a change touches is renumbered — a deeper level starts
+fresh at `1.`, returning to a shallower one continues, and the level you left
+closes its gap:
+
+```
+1. top              1. top
+  1. a       →        1. a
+  2. b                2. b
+  3. c  (>>)            1. c     ← new sub-level starts at 1.
+  4. d                3. d       ← gap closed (4→3)
+  5. e                4. e       ← (5→4)
+2. bot              2. bot
+```
+
+A single line carries its **subtree** along: any deeper-indented lines
+directly following it — nested children, or its own wrapped continuation
+text — shift by the same amount instead of being left behind.
+
+```
+1. top              1. top
+  1. item    →         1. item
+    1. x                 1. x
+    2. y      (>>)       2. y
+  2. sibling          1. sibling   ← gap closed (2→1)
+```
 
 - **Module:** `lists/indent.lua` (`M.shift_line`, `M.shift_range`)
 - **Config:** `lists.features.indent`

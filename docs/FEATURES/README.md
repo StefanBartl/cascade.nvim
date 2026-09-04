@@ -24,6 +24,7 @@ it is for.
   no filetype option at all, because swapping two characters does not depend
   on what language they are in.
 
-Every feature can be switched off on its own; the keys and the option names
-are in [BINDINGS.md](../BINDINGS.md), and how they combine day to day is in
+Every feature can be switched off on its own: the keys are in
+[BINDINGS.md](../BINDINGS.md), the option that gates each one is in
+[configuration.md](../configuration.md), and how they combine day to day is in
 [WORKFLOW.md](../WORKFLOW.md).

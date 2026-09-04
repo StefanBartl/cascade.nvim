@@ -49,7 +49,7 @@ action.
     })
 <
 Calling setup() merges your options over the defaults and defines the
-`:Cascade*` user commands. With `keymaps.preset = true` it additionally binds
+`:Cascade` user command. With `keymaps.preset = true` it additionally binds
 the default keys (see |cascade-keymaps|) directly onto the facade actions — no
 `<Plug>` indirection. setup() is safe to call once.
 
@@ -131,11 +131,27 @@ line in the selection is left untouched.
 USER COMMANDS                                               *cascade-commands*
 
 One command, :Cascade <subcommand> (built via lib.nvim.bindings.usercmd.composer, with
-<Tab> completion). All subcommands are |:command-range| aware: without a
-range they act on the list block at the cursor; with a range (e.g. visual
-`:'<,'>`) on the selected lines. Bang attaches to the VERB, not the
-subcommand: :Cascade! rotate (not :Cascade rotate!).
+<Tab> completion). The list transforms below are |:command-range| aware:
+without a range they act on the list block at the cursor; with a range (e.g.
+visual `:'<,'>`) on the selected lines. The three `cycle` subcommands edit
+configuration rather than text and take no range. Bang attaches to the VERB,
+not the subcommand: :Cascade! rotate (not :Cascade rotate!).
                                                                     *:Cascade*
+    :Cascade cycle list                                 *:Cascade-cycle-list*
+                    list the cycle groups in effect for this buffer: the
+                    global `cycle.groups` plus `cycle.per_filetype[ft]`.
+                    Pack contents are not listed; |:checkhealth| reports
+                    those, together with any collisions between them.
+    :Cascade cycle add {values}                          *:Cascade-cycle-add*
+                    add a cycle group for this session from comma-separated
+                    values, e.g. :Cascade cycle add on,off,maybe. The whole
+                    tail is taken, so a value may contain spaces. Values are
+                    trimmed and de-duplicated; fewer than two distinct values
+                    is refused. Deliberately NOT persisted -- the config file
+                    stays the source of truth for groups worth keeping.
+    :Cascade cycle remove {value}                     *:Cascade-cycle-remove*
+                    remove the first runtime group containing {value}; any
+                    member of a group identifies it.
     :Cascade rotate [next|prev]                             *:Cascade-rotate*
                     rotate list form forward/backward; :Cascade! rotate
                     rotates backward.
@@ -343,7 +359,9 @@ lists.renumber        (table)     When ordered lists are auto-renumbered.
                                           lines that end a block. 0 (default)
                                           = any blank line breaks it; raise to
                                           1 for the "loose list" reading.
-                                  A boolean is also accepted: true = { "edit" }.
+                                  A boolean is also accepted:
+                                          true = { "edit", "save" },
+                                          false = {}.
 
                                   A non-marker, non-blank line (a wrapped
                                   continuation paragraph or note) never
