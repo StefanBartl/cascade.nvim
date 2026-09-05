@@ -96,7 +96,7 @@
 
 ---@class CascadeKeymapOpts
 ---@field preset boolean # Bind the opinionated default keymaps on setup.
----@field globals? table<string, string|string[]|false> # Per-action overrides for the keys that work everywhere; `false` drops one. See bindings/keymaps.lua for the names.
+---@field globals? table<string, string|string[]|false> # Per-action overrides for the keys that work everywhere; `false` drops one. Names: bindings/keymaps.lua.
 ---@field list? table<string, string|string[]|false> # The same, for the keys bound inside a matched buffer.
 
 ---@class CascadeConfig
