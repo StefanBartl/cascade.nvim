@@ -22,16 +22,16 @@ cascade.nvim applies a single pattern to four feature domains:
     detect the context under the cursor -> advance it one step -> fall back to
     the native key when nothing matches.
 
-  - The *lists* domain continues markdown/text/tex/norg lists, renumbers them,
+  - The lists domain continues markdown/text/tex/norg lists, renumbers them,
     toggles checkboxes, cycles marker types and indents items. It is filetype
     scoped.
-  - The *cycle* domain rotates the word under the cursor (true/false, on/off,
+  - The cycle domain rotates the word under the cursor (true/false, on/off,
     ...) and defers to native |CTRL-A|/|CTRL-X| on numeric tokens. It is global
     by default.
-  - The *sequence* domain renumbers the ordinal tokens (1., a), II.) inside
+  - The sequence domain renumbers the ordinal tokens (1., a), II.) inside
     a Visual selection, whatever precedes them -- numbered headlines, inline
     numbers in prose. It is global and filetype-agnostic.
-  - The *transpose* domain swaps a character or a word (or a same-line
+  - The transpose domain swaps a character or a word (or a same-line
     selection) with its left/right neighbor. It is global and
     filetype-agnostic.
 
@@ -119,7 +119,7 @@ dependency. If vim-repeat happens to be installed, cascade also calls its
 `repeat#set` alongside the native trick, purely as optional interop -- `.`
 works identically either way.
 
-Unlike `toggle_checkbox`/`cycle_type_next`, which only ever *advance* an
+Unlike `toggle_checkbox`/`cycle_type_next`, which only ever advance an
 existing marker (they no-op on a plain line), `bullet_toggle`, `star_toggle`,
 `number_toggle` and `checkbox_toggle` also work without one: they insert the
 marker from scratch, and toggle it back off again on a second press. Their
@@ -171,7 +171,7 @@ not the subcommand: :Cascade! rotate (not :Cascade rotate!).
                     given range); :Cascade renumber all sweeps every list
                     block in the buffer instead, each numbered independently;
                     :Cascade renumber selection renumbers the ordinal tokens
-                    *inside* the range's lines rather than the list markers
+                    inside the range's lines rather than the list markers
                     (see |cascade-sequence|).
 
 PRESET                                                         *cascade-preset*
@@ -382,7 +382,7 @@ lists.precision       ("off"|"treesitter") Default "off": cascade is a pure
                                   toggles, single-line indent, ...) when the
                                   cursor sits inside a configured "skip" node
                                   -- by default, a markdown/norg fenced code
-                                  block, so a line that only *looks* like a
+                                  block, so a line that only looks like a
                                   marker inside one (a shell `- flag`, a
                                   Python `# 1. note`) isn't treated as a real
                                   list item. Falls back safely to "off"
@@ -616,7 +616,7 @@ lines by one level each: >
     2. two     2>>        1. two    (2 lines, one level each)
     3. three            2. three
 <
-To shift a single line by N *levels* instead (the old count meaning of
+To shift a single line by N levels instead (the old count meaning of
 `indent`/`dedent`), use `indent_levels`/`dedent_levels`
 (`<leader><A-Right>`/`<leader><A-Left>` in the preset).
 
@@ -708,7 +708,7 @@ line boundary.
 
 No-op at a line boundary (nothing to swap with) or, for the visual variant,
 across multiple lines — there is no single well-defined neighbor there. On a
-no-op the visual selection is restored (`gv`); on success the *swapped* text
+no-op the visual selection is restored (`gv`); on success the swapped text
 stays selected (re-anchored to its new position, not the original columns).
 
 `swap_word_right`/`swap_word_left` (and their `_visual` counterparts) work
