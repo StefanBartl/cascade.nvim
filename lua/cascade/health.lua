@@ -23,7 +23,7 @@ function M.check()
   if vim.fn.has("nvim-0.9") == 1 then
     ok("Neovim " .. tostring(vim.version()))
   else
-    warn("cascade.nvim targets Neovim 0.9+")
+    warn("cascade.nvim targets Neovim 0.9+", { "Upgrade Neovim to 0.9+" })
   end
 
   local cfg_ok, config = pcall(require, "cascade.config")
@@ -37,7 +37,7 @@ function M.check()
   if pcall(require, "lib.nvim.bindings.usercmd.composer") then
     ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
   else
-    err('lib.nvim not found — :Cascade will fail to load; install "StefanBartl/lib.nvim"')
+    err("lib.nvim not found — :Cascade will fail to load", { 'Install "StefanBartl/lib.nvim"' })
   end
 
   -- Optional which-key integration.
@@ -63,15 +63,15 @@ function M.check()
   if lists.enable then
     ok(("lists: enabled for { %s }"):format(table.concat(lists.filetypes, ", ")))
     if type(lists.checkbox.states) ~= "table" or #lists.checkbox.states == 0 then
-      warn("lists.checkbox.states is empty — checkbox toggling disabled")
+      warn("lists.checkbox.states is empty — checkbox toggling disabled", { "Set lists.checkbox.states in setup()" })
     else
       info("checkbox states: " .. table.concat(lists.checkbox.states, " -> "))
     end
     if type(lists.cycle) ~= "table" or #lists.cycle == 0 then
-      warn("lists.cycle is empty — marker-type cycling disabled")
+      warn("lists.cycle is empty — marker-type cycling disabled", { "Set lists.cycle in setup()" })
     end
     if type(lists.forms) ~= "table" or #lists.forms == 0 then
-      warn("lists.forms is empty — form rotation disabled")
+      warn("lists.forms is empty — form rotation disabled", { "Set lists.forms in setup()" })
     end
     local r = lists.renumber
     if type(r) == "table" and r.enable and type(r.on) == "table" and #r.on > 0 then
@@ -123,7 +123,10 @@ function M.check()
       if #clashes > 8 then
         lines[#lines + 1] = ("  … and %d more"):format(#clashes - 8)
       end
-      warn(("%d word(s) appear in more than one cycle group:\n%s"):format(#clashes, table.concat(lines, "\n")))
+      warn(
+        ("%d word(s) appear in more than one cycle group:\n%s"):format(#clashes, table.concat(lines, "\n")),
+        { "Remove the word from one of the conflicting lists.cycle groups" }
+      )
     end
   else
     info("cycle: disabled")
