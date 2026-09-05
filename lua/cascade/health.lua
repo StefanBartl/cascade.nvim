@@ -15,6 +15,7 @@ function M.check()
   local start = health.start or health.report_start
   local ok = health.ok or health.report_ok
   local warn = health.warn or health.report_warn
+  local err = health.error or health.report_error
   local info = health.info or health.report_info
 
   start("cascade.nvim")
@@ -36,7 +37,7 @@ function M.check()
   if pcall(require, "lib.nvim.bindings.usercmd.composer") then
     ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
   else
-    warn('lib.nvim not found — :Cascade will fail to load; install "StefanBartl/lib.nvim"')
+    err('lib.nvim not found — :Cascade will fail to load; install "StefanBartl/lib.nvim"')
   end
 
   -- Optional which-key integration.
