@@ -193,4 +193,8 @@ Registered by `setup()`.
 | --- | --- | --- | --- | --- |
 | `FileType` | `cascade_list_keymaps` | `lists.filetypes` | `keymaps.preset = true` | Bind buffer-local list keymaps |
 | `FileType` | `cascade_list_format` | `lists.filetypes` | `lists.continue.hanging_indent` | Set `formatlistpat`/`formatoptions` for `gq` hanging indent |
-| `BufWritePre` | `cascade_renumber_save` | `*` | `"save" in lists.renumber.on` | Renumber ordered lists on save |
+| `BufWritePre` | `cascade_renumber_save` | `*` | `"save" in lists.renumber.on` | Renumber ordered lists on save (`pcall`-wrapped, so a renumbering bug can't block the write) |
+
+Both `FileType` autocmds also apply immediately, once, to whatever buffer is
+already open with a matching filetype at `setup()` time — not just buffers
+opened afterward.
