@@ -1,4 +1,5 @@
 *cascade.txt*                          Context-aware lists & cycling for Neovim
+                                                                *cascade.nvim*
 
 ==============================================================================
 CONTENTS                                                     *cascade-contents*
