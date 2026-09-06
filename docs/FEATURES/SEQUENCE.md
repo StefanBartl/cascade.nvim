@@ -4,7 +4,7 @@ Renumbers the ordinal tokens (`1.`, `a)`, `II.`) **inside a selection**,
 whatever precedes them — global, filetype-independent, no list context
 required. This is the case `lists.renumber` structurally cannot see:
 `lists/marker.lua`'s parser requires the number to be the very first token
-of the line, so a numbered Markdown headline (`### 2. iwas`) or a number
+of the line, so a numbered Markdown headline (`### 2. two`) or a number
 sitting mid-sentence in prose is invisible to it.
 
 Both motivating cases are the same operation — scan the selected text for
@@ -14,16 +14,16 @@ extension of the list renumberer.
 
 ```md
 ### 7. keep me           (outside the selection — untouched)
-### 2. iwas          ─┐
+### 2. two           ─┐
 prose in between      │  selected, then <leader>cR:
-### 3. sad            │  2. / 3. / 9.  ->  2. / 3. / 4.
+### 3. sad           │  2. / 3. / 9.  ->  2. / 3. / 4.
 ### 9. more          ─┘  ("keep": the first hit sets the start value)
 ### 4. keep me too       (outside the selection — untouched)
 ```
 
 ```txt
-te 4. text der nur als 5. beispiel 9. um wa
-   ->  te 4. text der nur als 5. beispiel 6. um wa
+text with only a 4. item and a 5. sample and 9. more
+   ->  text with only a 4. item and a 5. sample and 6. more
 ```
 
 ## What counts as an ordinal
@@ -81,7 +81,7 @@ mid-line charwise selection needs.
 
 ```md
 before ### 7. keep me      (before the selection start — untouched)
-### 2. iwas          ─┐
+### 2. two           ─┐
 prose in between      │  selected mid-line on both ends, then <leader>cR:
 ### 9. sad tail      ─┘  2. / 9.  ->  2. / 3.  ("sad" in, " tail" stays out)
 ```

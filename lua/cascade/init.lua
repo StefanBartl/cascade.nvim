@@ -537,9 +537,6 @@ local function cycle_char_work(dir)
   end
 end
 
---- Show an interactive picker over every entry in the cursor's cycle group
---- (word or operator), replacing it with whichever the user picks. Silent
---- no-op when the cursor isn't on a cyclable token -- there's no "own key"
 --- Add a cycle group at runtime.
 ---
 --- `cycle.groups` is otherwise config-only, so trying out a group meant
@@ -633,6 +630,9 @@ function M.cycle_groups_list()
   notify.info(table.concat(lines, "\n"))
 end
 
+--- Show an interactive picker over every entry in the cursor's cycle group
+--- (word or operator), replacing it with whichever the user picks. Silent
+--- no-op when the cursor isn't on a cyclable token -- there's no "own key"
 --- native meaning to fall back to for an otherwise-unbound leader mapping.
 ---@return nil
 function M.cycle_pick()

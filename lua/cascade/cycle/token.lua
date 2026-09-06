@@ -65,9 +65,10 @@ function M.operator_span(line, col0, groups)
       local entry = grp[j]
       -- An entry is an operator only if it holds no letter at all: no ASCII
       -- alphanumeric and no byte >= 0x80 (accented Latin, Cyrillic, ...).
-      -- `^%w+$` used to decide this, but Lua's `%w` is ASCII-only, so every
-      -- non-ASCII *word* ("sí", "wahr" is fine but "sí" is not) fell in here
-      -- -- and this scan is unanchored, so "sí" then matched inside "así".
+      -- `^%w+$` used to decide this, but Lua's `%w` is ASCII-only, so an
+      -- all-ASCII word ("wahr") passed as a word while a non-ASCII one
+      -- ("sí") fell through to here -- and this scan is unanchored, so "sí"
+      -- then matched inside "así".
       if entry ~= "" and not entry:match("[%w\128-\255]") then
         local len = #entry
         for p = math.max(0, col0 - len + 1), col0 do

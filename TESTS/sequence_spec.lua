@@ -23,13 +23,13 @@ return function(H)
 
   -- motivating case 2: inline numbers mid-prose, no list context at all.
   eq(
-    rw("te 4. text der nur als 5. beispiel 9. um wa", KEEP),
-    "te 4. text der nur als 5. beispiel 6. um wa",
+    rw("text with only a 4. item and a 5. sample and 9. more", KEEP),
+    "text with only a 4. item and a 5. sample and 6. more",
     "inline: keep starts at the first hit"
   )
   eq(
-    rw("te 4. text der nur als 5. beispiel 9. um wa", ONE),
-    "te 1. text der nur als 2. beispiel 3. um wa",
+    rw("text with only a 4. item and a 5. sample and 9. more", ONE),
+    "text with only a 1. item and a 2. sample and 3. more",
     "inline: one restarts at 1"
   )
 
@@ -66,9 +66,9 @@ return function(H)
   -- shared state carries one sequence across several strings (how `range`
   -- walks a multi-line selection).
   local state = {}
-  local l1 = seq.rewrite("### 2. iwas", KEEP, state)
+  local l1 = seq.rewrite("### 2. two", KEEP, state)
   local l2 = seq.rewrite("### 3. sad", KEEP, state)
-  eq(l1, "### 2. iwas", "carried state: first line keeps its start value")
+  eq(l1, "### 2. two", "carried state: first line keeps its start value")
   eq(l2, "### 3. sad", "carried state: second line continues the run")
   eq(state.kind, "digit", "carried state: kind committed on the first hit")
 
@@ -79,7 +79,7 @@ return function(H)
   -- motivating case 1: numbered headlines, only the selected block renumbered.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "### 7. keep me",
-    "### 2. iwas",
+    "### 2. two",
     "prose in between",
     "### 3. sad",
     "### 9. more",
@@ -88,7 +88,7 @@ return function(H)
   eq(seq.range(buf, 1, 4, KEEP), true, "range: reports a change")
   eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), {
     "### 7. keep me",
-    "### 2. iwas",
+    "### 2. two",
     "prose in between",
     "### 3. sad",
     "### 4. more",
@@ -107,15 +107,15 @@ return function(H)
   -- ---------- buffer: same-line charwise span ----------
 
   -- only the selected byte range is touched; the rest of the line is not.
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. outside te 4. text als 5. bsp 9. um wa" })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. outside here 4. text and 5. sample 9. of it" })
   local line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
-  local scol = line:find("te ", 1, true) - 1
+  local scol = line:find("here ", 1, true) - 1
   local ecol = #line - 1
   local changed, new_ecol = seq.span(buf, 0, scol, ecol, KEEP)
   eq(changed, true, "span: reports a change")
   eq(
     vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1],
-    "1. outside te 4. text als 5. bsp 6. um wa",
+    "1. outside here 4. text and 5. sample 6. of it",
     "span: leading '1.' outside the selection is untouched"
   )
   eq(new_ecol, ecol, "span: end column follows the rewritten text (9. -> 6. keeps its width)")
@@ -135,7 +135,7 @@ return function(H)
   -- selection (its " tail" suffix does not) and is the one real rewrite.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "before ### 7. keep me",
-    "### 2. iwas",
+    "### 2. two",
     "prose in between",
     "### 9. sad tail",
   })
@@ -148,7 +148,7 @@ return function(H)
     eq(changed, true, "span_multi: reports a change")
     eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), {
       "before ### 7. keep me",
-      "### 2. iwas",
+      "### 2. two",
       "prose in between",
       "### 3. sad tail",
     }, "span_multi: the out-of-selection '7.' survives, the in-selection '9.' becomes '3.'")
@@ -159,7 +159,7 @@ return function(H)
   -- boundary lines is affected -- the untouched prefix/suffix survive as-is.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
     "before ### 7. keep me",
-    "### 2. iwas",
+    "### 2. two",
     "prose in between",
     "### 9. sad tail",
   })
@@ -172,7 +172,7 @@ return function(H)
     eq(changed, true, "span_multi one: reports a change")
     eq_lines(vim.api.nvim_buf_get_lines(buf, 0, -1, false), {
       "before ### 7. keep me",
-      "### 1. iwas",
+      "### 1. two",
       "prose in between",
       "### 2. sad tail",
     }, "span_multi one: only the selected part of each boundary line is renumbered")
@@ -255,7 +255,7 @@ return function(H)
 
     vim.api.nvim_buf_set_lines(cbuf, 0, -1, false, {
       "before ### 7. keep me",
-      "### 2. iwas",
+      "### 2. two",
       "prose in between",
       "### 9. sad tail",
     })
@@ -272,7 +272,7 @@ return function(H)
 
     eq_lines(vim.api.nvim_buf_get_lines(cbuf, 0, -1, false), {
       "before ### 7. keep me",
-      "### 2. iwas",
+      "### 2. two",
       "prose in between",
       "### 3. sad tail",
     }, "renumber_selection: real multi-line charwise Visual selection, boundary text untouched")

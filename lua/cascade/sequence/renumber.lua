@@ -4,8 +4,8 @@
 --- The list domain's `lists/renumber.lua` can only re-sequence real list items:
 --- `lists.marker.parse` requires the number to be the very first token of the
 --- line. This module covers the two cases that leaves out — a Markdown
---- headline with an embedded number (`### 2. iwas`), and plain inline numbers
---- in prose (`... nur als 5. beispiel ...`), possibly selected mid-line.
+--- headline with an embedded number (`### 2. two`), and plain inline numbers
+--- in prose (`... only the 5. sample ...`), possibly selected mid-line.
 ---
 --- Both are structurally the same operation: scan the selected text for an
 --- ordinal token in order of appearance and rewrite the hits sequentially,
