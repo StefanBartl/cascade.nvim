@@ -1,9 +1,7 @@
 # cascade.nvim — Binding Cheatsheet
 
-Machine-readable overview of every keymap, user command, and autocommand
-defined by `cascade.nvim`. This file is documentation only and mirrors the
-source of truth in `lua/cascade/bindings/`. Any change there must be reflected
-here.
+Every keymap, user command, and autocommand `cascade.nvim` defines. Kept in
+sync with `lua/cascade/bindings/`.
 
 The `feature` column refers to `lists.features.*` / `cycle.features.*` /
 `transpose.features.*` toggles (the sequence domain has a single
