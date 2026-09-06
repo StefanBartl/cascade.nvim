@@ -145,7 +145,7 @@ local DEFAULTS = {
   -- Renumbering *inside a selection*, independent of filetype and of whatever
   -- precedes the number -- the cases `lists.renumber` structurally can't see,
   -- because `lists.marker.parse` requires the number to be the line's first
-  -- token: numbered Markdown headlines (`### 2. iwas`) and inline numbers in
+  -- token: numbered Markdown headlines (`### 2. two`) and inline numbers in
   -- prose, selected mid-line. See cascade.sequence.renumber.
   --   start: "keep" (default) takes the start value from the first hit, like
   --          lists/renumber.lua does; "one" always restarts at 1/a/i.

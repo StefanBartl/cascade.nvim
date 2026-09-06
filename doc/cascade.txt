@@ -648,9 +648,9 @@ Renumbers the ordinal tokens inside a *selection*, whatever precedes them --
 the cases the list domain structurally cannot see, because its marker parser
 requires the number to be the line's very first token:
 
-  - a numbered Markdown headline (`### 2. iwas`), and
+  - a numbered Markdown headline (`### 2. two`), and
   - plain inline numbers in prose, possibly selected mid-line
-    (`te 4. text der nur als 5. beispiel ...`).
+    (`text with only a 4. item and a 5. one ...`).
 
 Both are the same operation: scan the selected text for ordinal tokens in
 order of appearance and rewrite them sequentially, independent of filetype.
