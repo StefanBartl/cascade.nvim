@@ -26,6 +26,12 @@ What is here, and which question each page answers.
 | [FEATURES/](FEATURES/README.md) | One page per area — cycling, lists, sequence renumbering, transposing — and what separates them: how much the plugin has to recognise before it can act, which is also why some are global and some are filetype-scoped |
 | [architecture.md](architecture.md) | The detect → advance → fall back chain all four domains share, where each module sits, and exactly how much of `lib.nvim` is required versus merely used |
 
+## Working on it
+
+| Page | Answers |
+| --- | --- |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Ground rules, project layout, and how to add a domain or feature |
+
 ## Elsewhere
 
 `:h cascade` carries the same reference material in Vim help form
