@@ -7,6 +7,7 @@ What is here, and which question each page answers.
 | Page | Answers |
 | --- | --- |
 | [installation.md](installation.md) | Requirements, why `lib.nvim` is the one hard dependency, which loading strategy fits which use, and the spec for every plugin manager |
+| [quickstart.md](quickstart.md) | The first thing to run after installing |
 | [configuration.md](configuration.md) | Every `setup()` option and its default — plus the three things the defaults alone do not explain: how the cycle packs take precedence over each other, which domains are global and which are filetype-scoped, and when renumbering actually runs |
 | [health.md](health.md) | What each line of `:checkhealth cascade` means, including the one warning that is hard to get any other way: which words your combination of cycle packs makes unreachable |
 
@@ -14,10 +15,12 @@ What is here, and which question each page answers.
 
 | Page | Answers |
 | --- | --- |
+| [what-you-get.md](what-you-get.md) | The keys worth knowing on day one, if you turn `keymaps.preset` on |
 | [BINDINGS.md](BINDINGS.md) | Every keymap, user command and autocommand this plugin registers, including how to wire the optional context menu |
 | [keymaps.md](keymaps.md) | The other half of that question: which *function* to bind, for wiring your own keys instead of taking the preset — and why counts mean different things on different keys |
 | [commands.md](commands.md) | `:Cascade <subcommand>` in full, with examples — including the three cycle-group subcommands that edit configuration rather than text |
 | [WORKFLOW.md](WORKFLOW.md) | The different question: not what each feature does, but how they combine — which key to reach for when a line is *almost* the list item you want |
+| [integrations.md](integrations.md) | How the optional context-menu bridge works, and why cycle/sequence/transpose are deliberately left out of it |
 
 ## Why it is the way it is
 
