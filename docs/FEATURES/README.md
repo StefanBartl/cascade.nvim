@@ -1,10 +1,20 @@
 # cascade.nvim features
 
-Four areas, and what separates them is **what the plugin has to recognise
-first**. Cycling and transposing look at one token and work in any filetype;
-lists need a marker and are therefore scoped; renumbering a selection sits
-deliberately outside the list parser, because that parser cannot see the case
-it is for.
+Four domains under one roof, separated by *what has to be recognised first*:
+
+| Domain | Scope | Does |
+| --- | --- | --- |
+| **lists** | `lists.filetypes` | Continue lists, renumber them, tick checkboxes, cycle marker types, indent/dedent, move lines |
+| **cycle** | global | Advance the token under the cursor — `true`→`false`, an ISO date, a lone letter, an operator — via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers |
+| **sequence** | global | Renumber the ordinals (`1.`, `a)`, `II.`) *inside* a Visual selection, whatever precedes them: numbered headlines, inline numbers in prose |
+| **transpose** | global | Swap a character or a word (or a same-line selection) with its neighbor, UTF-8 safe |
+
+The separation is not cosmetic. A list operation has to know it is in a list
+before it can do anything; a cycle operation only has to know what is under
+the cursor. Mixing the two produces a plugin that either refuses to work
+outside Markdown or corrupts code that happens to start with a dash. See
+[architecture.md](../architecture.md) for the pure-line-scan default this
+follows from.
 
 - **[CYCLE.md](CYCLE.md)** — advancing the token under the cursor one step in
   either direction: a word or boolean, an ISO date segment, a numeric value,
