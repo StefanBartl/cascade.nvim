@@ -557,6 +557,45 @@ return function(H)
   local o_none = require("cascade.lists.continue").O(require("cascade.core.context").new(), oopts)
   eq(o_none, false, "continue.O: no marker on current or previous line -> unhandled")
 
+  -- Soft markdown.nvim integration: `o`/`O` fall back to
+  -- markdown.core.table_mode.insert_row on a non-list table line, in a
+  -- markdown buffer, when that module is on the runtimepath. Stubbed here
+  -- (via package.loaded) so the test doesn't depend on markdown.nvim actually
+  -- being installed alongside cascade.nvim in CI.
+  do
+    cfg.setup({})
+    local calls = {}
+    local prev_table_mode = package.loaded["markdown.core.table_mode"]
+    package.loaded["markdown.core.table_mode"] = {
+      insert_row = function(bufnr, row0, direction)
+        calls[#calls + 1] = { bufnr = bufnr, row0 = row0, direction = direction }
+        return true
+      end,
+    }
+
+    local tbuf = H.editable("markdown")
+    vim.api.nvim_buf_set_lines(tbuf, 0, -1, false, { "| a | b |" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+    cascade.o()
+    eq(#calls, 1, "o: falls back to markdown.core.table_mode.insert_row on a non-list line")
+    eq(calls[1].direction, "below", "o: requests a row below")
+    eq(calls[1].row0, 0, "o: passes the 0-indexed cursor row")
+
+    cascade.O()
+    eq(#calls, 2, "O: falls back to markdown.core.table_mode.insert_row on a non-list line")
+    eq(calls[2].direction, "above", "O: requests a row above")
+
+    -- A real list marker takes priority; the table fallback is never consulted.
+    vim.api.nvim_buf_set_lines(tbuf, 0, -1, false, { "- item" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    cascade.o()
+    eq(#calls, 2, "o: a real list marker is handled by list continuation, table fallback skipped")
+    vim.cmd("stopinsert")
+
+    package.loaded["markdown.core.table_mode"] = prev_table_mode
+  end
+
   -- lists.precision = "treesitter": skip a configured node type (default: a
   -- markdown fenced code block) so a line that only *looks* like a marker
   -- inside a code fence isn't treated as a real list item. The pure/pcall-

@@ -1,5 +1,20 @@
 # Integrations
 
+## markdown.nvim (table rows)
+
+`cascade.o`/`cascade.O` already continue a list bullet below/above the
+cursor; when the current line isn't a list item but a
+[markdown.nvim](https://github.com/StefanBartl/markdown.nvim) GFM table row,
+they fall back to `markdown.core.table_mode.insert_row` instead of a bare
+native open — the table analogue of the same gesture. No dependency
+declaration, no config: cascade `pcall(require(...))`s the module, so the
+fallback is silently unavailable when markdown.nvim isn't installed, and the
+gate is otherwise identical to list continuation (`lists.enable`, the
+buffer's filetype, `lists.features.continue`, and — with
+`lists.precision = "treesitter"` — not inside a skip node). Header and
+separator rows are left to the native key; see that function's doc comment in
+markdown.nvim for the exact row it lands on.
+
 ## Context menu
 
 `cascade.integrations.menu` contributes context-aware entries in the shape

@@ -140,24 +140,51 @@ function M.cr_literal()
   feed("<CR>")
 end
 
---- `o`: open a continued item below, or fall back to native `o`.
+---@internal
+--- Soft integration with markdown.nvim: when `o`/`O` didn't land on a list
+--- item, and the current line is a GFM table data row, insert a table row
+--- instead of falling through to a bare native open -- the table analogue of
+--- list-bullet continuation. No-op when markdown.nvim isn't installed, the
+--- filetype isn't markdown, or the line isn't a table data row (see
+--- `markdown.core.table_mode.insert_row` for header/separator handling).
+---@param ctx CascadeContext
+---@param direction "below"|"above"
+---@return boolean handled
+local function markdown_table_row(ctx, direction)
+  if ctx.ft ~= "markdown" and ctx.ft ~= "markdown.mdx" then
+    return false
+  end
+  local ok, table_mode = pcall(require, "markdown.core.table_mode")
+  if not ok then
+    return false
+  end
+  return table_mode.insert_row(ctx.bufnr, ctx.row0, direction)
+end
+
+--- `o`: open a continued item below (list bullet or table row), or fall back
+--- to native `o`.
 ---@return nil
 function M.o()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and lf("continue") and continue.o(ctx, opts) then
-    return
+  if lists_active(ctx) and lf("continue") then
+    if continue.o(ctx, opts) or markdown_table_row(ctx, "below") then
+      return
+    end
   end
   feed("o")
 end
 
---- `O`: open a continued item above, or fall back to native `O`.
+--- `O`: open a continued item above (list bullet or table row), or fall back
+--- to native `O`.
 ---@return nil
 function M.O()
   local ctx = Context.new()
   local opts = config.get("lists")
-  if lists_active(ctx) and lf("continue") and continue.O(ctx, opts) then
-    return
+  if lists_active(ctx) and lf("continue") then
+    if continue.O(ctx, opts) or markdown_table_row(ctx, "above") then
+      return
+    end
   end
   feed("O")
 end
