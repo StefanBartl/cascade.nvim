@@ -67,25 +67,89 @@ local function line_at(bufnr, r)
   return vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
 end
 
+---@internal
+--- The nearest marker row reachable from `row0` through list-continuation
+--- content (see `cascade.lists.marker.is_continuation`) in either direction;
+--- `row0` itself if it already is one. This is what lets `block_range` find
+--- "the block at the cursor" per its own contract even when the cursor sits
+--- on a wrapped continuation paragraph or a tolerated blank line rather than
+--- on the marker line itself — every other block_range caller already
+--- pre-checks its row is a marker before calling in, so this only widens
+--- what a bare cursor position (`M.renumber`, `:Cascade renumber` with no
+--- range) can resolve.
+---@param bufnr integer
+---@param row0 integer
+---@param opts CascadeListOpts
+---@param max_blank integer
+---@return integer|nil
+local function nearest_marker_row(bufnr, row0, opts, max_blank)
+  local cur = line_at(bufnr, row0)
+  if cur and marker.parse(cur, opts) then
+    return row0
+  end
+
+  local up, ublanks = row0, 0
+  while up - 1 >= 0 do
+    local l = line_at(bufnr, up - 1)
+    if l == nil then
+      break
+    end
+    if marker.parse(l, opts) then
+      return up - 1
+    end
+    local continues
+    continues, ublanks = marker.is_continuation(l, ublanks, max_blank)
+    if not continues then
+      break
+    end
+    up = up - 1
+  end
+
+  local total = vim.api.nvim_buf_line_count(bufnr)
+  local down, dblanks = row0, 0
+  while down + 1 < total do
+    local l = line_at(bufnr, down + 1)
+    if l == nil then
+      break
+    end
+    if marker.parse(l, opts) then
+      return down + 1
+    end
+    local continues
+    continues, dblanks = marker.is_continuation(l, dblanks, max_blank)
+    if not continues then
+      break
+    end
+    down = down + 1
+  end
+
+  return nil
+end
+
 --- The contiguous run of list-item lines containing `row0` (0-based,
---- inclusive). A non-marker, non-blank line (e.g. a wrapped continuation
---- paragraph or note under an item) extends the block instead of ending it,
---- regardless of its own indent; a run of more than
---- `lists.renumber.blank_break` consecutive blank lines still does — matching
---- `cascade.lists.renumber`'s block detection.
+--- inclusive), even when `row0` itself isn't a marker line — a wrapped
+--- continuation paragraph or note under an item (or a blank line within
+--- tolerance) resolves to the block it belongs to (see
+--- `nearest_marker_row`). A non-marker, non-blank line extends the block
+--- instead of ending it, regardless of its own indent; a run of more than
+--- `lists.renumber.blank_break` consecutive blank lines still does —
+--- matching `cascade.lists.renumber`'s block detection. `nil` when `row0`
+--- isn't reachable from any marker this way (plain prose, or no list at
+--- all).
 ---@param bufnr integer
 ---@param row0 integer
 ---@param opts CascadeListOpts
 ---@return integer|nil srow, integer|nil erow
 function M.block_range(bufnr, row0, opts)
-  local cur = line_at(bufnr, row0)
-  if not (cur and marker.parse(cur, opts)) then
-    return nil, nil
-  end
   local total = vim.api.nvim_buf_line_count(bufnr)
   local max_blank = marker.blank_run(opts)
 
-  local s, blanks = row0, 0
+  local anchor = nearest_marker_row(bufnr, row0, opts, max_blank)
+  if not anchor then
+    return nil, nil
+  end
+
+  local s, blanks = anchor, 0
   while s - 1 >= 0 do
     local l = line_at(bufnr, s - 1)
     if l == nil then
@@ -99,7 +163,7 @@ function M.block_range(bufnr, row0, opts)
     s = s - 1
   end
 
-  local e = row0
+  local e = anchor
   blanks = 0
   while e + 1 < total do
     local l = line_at(bufnr, e + 1)

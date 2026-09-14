@@ -339,6 +339,43 @@ return function(H)
   eq(ind[5], "3. Visuals: ...", "indent-on-edit: base-level gap closed (3->3, unaffected)")
   eq(ind[6], "4. System Logs: ...", "indent-on-edit: base-level gap closed (4->4, unaffected)")
 
+  -- Regression: transform.block_range used to require row0 itself to be a
+  -- marker line, so `:Cascade renumber` / `<leader>cr` silently no-op'd with
+  -- the cursor on a continuation paragraph or a tolerated blank line inside
+  -- the block -- contradicting its own doc ("the block at the cursor", see
+  -- docs/commands.md). It must now resolve to the enclosing block from any
+  -- line reachable through continuation content.
+  local rbuf = H.editable("markdown") -- cascade.renumber() gates on writable()
+  vim.api.nvim_buf_set_lines(rbuf, 0, -1, false, {
+    "1. one",
+    "   a note under one",
+    "3. two (stale marker)",
+    "4. three",
+  })
+  vim.api.nvim_win_set_cursor(0, { 2, 3 }) -- on the continuation line, not a marker
+  cascade.renumber()
+  local cont_cursor = vim.api.nvim_buf_get_lines(rbuf, 0, -1, false)
+  eq(cont_cursor[3], "2. two (stale marker)", "renumber from a continuation-line cursor fixes the block")
+  eq(cont_cursor[4], "3. three", "renumber from a continuation-line cursor fixes the block")
+  vim.api.nvim_set_current_buf(buf)
+
+  -- Same fix via block_range directly, plus the "no list reachable" case
+  -- (blank_break's own gap) still correctly reports no block.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. one",
+    "   a note under one",
+    "2. two",
+    "3. three",
+  })
+  local br_s, br_e = transform.block_range(buf, 1, lopts) -- row 1 = the continuation line above
+  eq(br_s, 0, "block_range: continuation-line row0 still resolves the block start")
+  eq(br_e, 3, "block_range: continuation-line row0 still resolves the block end")
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Just a plain paragraph.", "", "1. unrelated list" })
+  local br_none_s, br_none_e = transform.block_range(buf, 0, lopts)
+  eq(br_none_s, nil, "block_range: a blank-line break still means no block on the prose side")
+  eq(br_none_e, nil, "block_range: a blank-line break still means no block on the prose side")
+
   -- quick_toggle: bullet/number/checkbox work without an existing marker,
   -- unlike checkbox.toggle/cycle_type.cycle which no-op without one.
   cfg.setup({})
