@@ -53,10 +53,17 @@ jobs:
           repository: StefanBartl/lib.nvim
           path: lib.nvim
           ref: ci-verified
+      # ui.nvim: cycle_spec.lua's word_cycle.pick test drives
+      # require("ui.kit").select() for real (only vim.ui.select is stubbed),
+      # same sibling-checkout treatment as lib.nvim above.
+      - uses: actions/checkout@v5
+        with:
+          repository: StefanBartl/ui.nvim
+          path: ui.nvim
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
           version: stable
       - name: Run TESTS suite
         working-directory: cascade.nvim
-        run: nvim --headless -u NONE -c "set rtp+=.,../lib.nvim" -c "luafile TESTS/run.lua" -c "qa!"
+        run: nvim --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile TESTS/run.lua" -c "qa!"

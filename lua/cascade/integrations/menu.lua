@@ -3,7 +3,7 @@
 ---@description
 --- cascade.nvim does not depend on a menu plugin. It *provides* a list of
 --- entries in the shape nvzone/menu expects, built with
---- `lib.nvim.contextmenu`'s helpers, and a host — typically the user's own
+--- `ui.contextmenu`'s helpers, and a host — typically the user's own
 --- RightMouse dispatcher — composes them into its own menu for the current
 --- buffer, e.g.:
 --- >
@@ -19,7 +19,7 @@
 --- the same gates `bind_list_buffer` applies, so the menu never offers
 --- anything the keyboard wouldn't.
 
-local contextmenu = require("lib.nvim.contextmenu")
+local contextmenu = require("ui.contextmenu")
 
 local M = {}
 
@@ -46,7 +46,7 @@ end
 --- isn't configured, or every feature is off, so a host can safely
 --- `vim.list_extend` it unconditionally.
 ---@param bufnr? integer defaults to the current buffer
----@return Lib.ContextMenu.Item[]
+---@return Ui.ContextMenu.Item[]
 function M.items(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
@@ -91,7 +91,7 @@ end
 --- entries. Returns nil when there is nothing to show.
 ---@param label? string submenu label (default "  Cascade")
 ---@param bufnr? integer
----@return Lib.ContextMenu.Item|nil
+---@return Ui.ContextMenu.Item|nil
 function M.submenu(label, bufnr)
   return contextmenu.submenu(label or "  Cascade", M.items(bufnr))
 end

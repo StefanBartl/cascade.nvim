@@ -160,7 +160,7 @@ function M.pick(ctx, opts)
   ---@cast s integer
   ---@cast e integer
 
-  require("lib.nvim.ui.kit").select({
+  require("ui.kit").select({
     items = found,
     title = "Cascade: pick a value",
     respect_override = true,
