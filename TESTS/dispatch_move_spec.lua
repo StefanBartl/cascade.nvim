@@ -280,82 +280,79 @@ return function(H)
     cfg.setup({})
   end
 
-  -- ---------- BUG: moving an item into first position inflates the whole
-  -- ---------- block's numbering, and nothing undoes it
+  -- ---------- regression: moving an item into first position no longer
+  -- ---------- inflates the whole block's numbering
 
   do
     -- `renumber.tree`'s base level deliberately keeps "its first item's start
     -- offset", so a list authored as `5. 6. 7.` stays anchored at 5. That
     -- assumption -- the first line's marker is the author's intended start --
-    -- is broken by any edit that changes WHICH line is first, and `move` is
-    -- exactly such an edit: after moving item 1 down, the line now standing
-    -- first carries marker "2", so the block is re-sequenced from 2.
+    -- used to break on any edit that changes WHICH line is first, and `move`
+    -- is exactly such an edit: after moving item 1 down, the line then
+    -- standing first carried marker "2", so the block was re-sequenced from 2,
+    -- drifting upward once per keypress -- and nothing repaired it, since
+    -- both the on-save `renumber.all` and the manual `:Cascade renumber`
+    -- anchor on the same (now wrong) first marker.
     --
-    -- The result drifts upward once per keypress, and nothing repairs it:
-    -- neither the on-save `renumber.all` nor the manual `:Cascade renumber`
-    -- can, because both anchor on the same (now wrong) first marker. The user
-    -- has to retype the first number.
+    -- Notably NOT affected even before the fix: `sort`, `reverse` and
+    -- `:Cascade sort` reorder the same lines and keep 1, 2, 3 -- they re-emit
+    -- the markers themselves instead of going through `tree`. So this was
+    -- `lists/move.lua`'s defect, not `renumber`'s.
     --
-    -- Notably NOT affected: `sort`, `reverse` and `:Cascade sort` reorder the
-    -- same lines and keep 1, 2, 3 -- they re-emit the markers themselves
-    -- instead of going through `tree`. So this is `lists/move.lua`'s defect,
-    -- not `renumber`'s.
-    --
-    -- Pinned rather than fixed: the repair is for `move` to capture the
-    -- block's base start value BEFORE the `:move` and re-apply it afterwards.
-    -- Simply forcing a restart at 1 would be wrong -- it would renumber a
-    -- deliberately-authored `5. 6. 7.` list down to `1. 2. 3.`.
+    -- Fixed by having `move` capture the block's base start value BEFORE the
+    -- `:move` (`renumber.peek_base_start`) and pass it through as `tree`'s
+    -- `forced_base_start`, rather than letting `tree` re-derive it from
+    -- whichever line ends up first after the reorder. Simply forcing a
+    -- restart at 1 would have been wrong -- it would renumber a
+    -- deliberately-authored `5. 6. 7.` list down to `1. 2. 3.` (pinned below).
     cfg.setup({})
     local opts = cfg.get("lists")
     local b = H.editable("markdown")
 
-    -- Moving the first item down.
+    -- Moving the first item down keeps the block anchored at 1.
     vim.api.nvim_buf_set_lines(b, 0, -1, false, { "1. one", "2. two", "3. three", "4. four" })
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     move.selection(b, 0, 0, 1, opts)
     eq_lines(
       vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "2. two", "3. one", "4. three", "5. four" },
-      "BUG: moving the first item down renumbers the block from 2"
+      { "1. two", "2. one", "3. three", "4. four" },
+      "moving the first item down keeps the block anchored at 1"
     )
 
-    -- ... and again, so the drift is cumulative rather than a one-off.
+    -- ... and again: no drift, however often it is repeated.
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     move.selection(b, 0, 0, 1, opts)
     eq_lines(
       vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "3. one", "4. two", "5. three", "6. four" },
-      "BUG: ... and the drift accumulates with every move"
+      { "1. one", "2. two", "3. three", "4. four" },
+      "...and stays anchored at 1 on repeat moves"
     )
 
-    -- Moving the second item UP has the same effect, since it too ends up
-    -- first.
+    -- Moving the second item UP has the same fix applied, since it too ends
+    -- up first.
     vim.api.nvim_buf_set_lines(b, 0, -1, false, { "1. one", "2. two", "3. three" })
     vim.api.nvim_win_set_cursor(0, { 2, 0 })
     move.selection(b, 1, 1, -1, opts)
     eq_lines(
       vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "2. two", "3. one", "4. three" },
-      "BUG: moving the second item up drifts the same way"
+      { "1. two", "2. one", "3. three" },
+      "moving the second item up keeps the block anchored at 1 too"
     )
 
-    -- BUG: neither repair path helps.
+    -- The repair paths were never the right fix (the anchor capture in move
+    -- itself is), but they still work fine on already-correct numbering.
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     require("cascade").renumber()
     eq_lines(
       vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "2. two", "3. one", "4. three" },
-      "BUG: the manual renumber cannot undo the drift"
+      { "1. two", "2. one", "3. three" },
+      "manual renumber leaves correct numbering alone"
     )
     vim.api.nvim_exec_autocmds("BufWritePre", { buffer = b })
-    eq_lines(
-      vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "2. two", "3. one", "4. three" },
-      "BUG: nor can the on-save renumber -- the drift is written to the file"
-    )
+    eq_lines(vim.api.nvim_buf_get_lines(b, 0, -1, false), { "1. two", "2. one", "3. three" }, "and so does the on-save renumber")
 
-    -- The contrast that localizes the defect: the reordering transforms keep
-    -- the block anchored at 1.
+    -- The contrast that used to localize the defect: the reordering
+    -- transforms already kept the block anchored at 1.
     vim.api.nvim_buf_set_lines(b, 0, -1, false, { "1. c", "2. a", "3. b" })
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     require("cascade").sort()

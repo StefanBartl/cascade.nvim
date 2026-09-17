@@ -491,8 +491,8 @@ return function(H)
   -- lists.format: 'formatlistpat' derived from the configured marker types,
   -- so native gq/auto-wrap hang-indents a wrapped item under its text.
   local format = require("cascade.lists.format")
-  cfg.setup({})
-  local fmt_opts = cfg.get("lists") -- default types = { "unordered", "digit" }
+  cfg.setup({ lists = { types = { "unordered", "digit" } } })
+  local fmt_opts = cfg.get("lists")
   local pat = format.list_pat(fmt_opts)
   eq(vim.fn.match("- one", pat) >= 0, true, "formatlistpat: matches a configured unordered bullet")
   eq(vim.fn.match("1. one", pat) >= 0, true, "formatlistpat: matches a configured digit marker")

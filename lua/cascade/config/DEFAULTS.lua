@@ -48,7 +48,27 @@ local DEFAULTS = {
       "gitcommit",
       "mail",
     },
-    types = { "unordered", "digit" },
+    -- Every kind `lists.cycle`'s default sequence can produce ("a)" is ascii,
+    -- "I." is roman). A marker kind missing here is invisible to
+    -- `lists.marker.parse`, so cycling into one used to strand the line: it
+    -- stopped being recognized as a list item at all, and with it every other
+    -- list feature (continue, checkbox, move, renumber) along with cycling
+    -- itself -- a documented dead end reachable with the shipped defaults.
+    --
+    -- Roman before ascii, unlike `sequence.types`' ascii-first order: both
+    -- parsers' patterns accept a bare letter before `.`/`)`, so which one
+    -- claims a letter that is *also* a valid roman numeral (i, v, x, l, c, d,
+    -- m, and their combinations) depends on this order alone.
+    -- `sequence.types` deliberately favors ascii there ("a)b)c) is the
+    -- commoner case"), but `lists.cycle` walks the SAME letter through both
+    -- shapes in one sequence ("a)" then "I."), so ascii-first here would trap
+    -- exactly the roman step: "I." would parse back as ascii (delim "."
+    -- matches both), never match the cycle's own "I." entry, and the ring
+    -- would jump to the nearest unrelated slot instead of closing. Roman-first
+    -- costs nothing for the ordinary case -- "a", "b", "c", ... are not roman
+    -- numerals, so `roman.to_int` rejects them and parsing falls through to
+    -- ascii exactly as before.
+    types = { "unordered", "digit", "roman", "ascii" },
     unordered_markers = { "-", "*", "+" },
     -- Custom, non-incrementing marker patterns per filetype, tried before the
     -- built-in kinds (unordered/digit/ascii/roman) -- e.g. LaTeX's `\item`,

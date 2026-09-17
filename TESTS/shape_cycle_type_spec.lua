@@ -119,7 +119,8 @@ return function(H)
   do
     -- A ring every entry of which `types` can also parse back, so the cycle
     -- actually closes. (`types` has to list `ascii`, or an "a)" line stops
-    -- being a list item -- see the BUG pin at the end of this file.)
+    -- being a list item -- see the shipped-defaults check at the end of this
+    -- file, which now exercises the same round-trip with the real defaults.)
     cfg.setup({
       lists = {
         types = { "unordered", "digit", "ascii" },
@@ -294,31 +295,26 @@ return function(H)
     )
   end
 
-  -- ---------- BUG: the shipped defaults cannot round-trip ----------
+  -- ---------- regression: the shipped defaults now round-trip ----------
 
   do
-    -- `lists.types` defaults to { "unordered", "digit" } while `lists.cycle`
-    -- defaults to { "-", "*", "+", "1.", "a)", "I." }. Cycling *produces*
-    -- shapes the parser was never told to *read*, so on the stock config
-    -- <leader>ct walks - -> * -> + -> 1. -> a) and then dead-ends: an "a)"
-    -- line is no longer a list item at all.
-    --
-    -- The stall is the visible half. The damaging half is that the line has
-    -- silently stopped being a list: `marker.parse` returns nil for it, so
+    -- `lists.cycle` defaults to { "-", "*", "+", "1.", "a)", "I." }, so
+    -- `lists.types` has to recognize all four kinds those markers name
+    -- (unordered/digit/ascii/roman) or cycling *produces* a shape the parser
+    -- was never told to *read*: on the old `{ "unordered", "digit" }` default,
+    -- <leader>ct walked - -> * -> + -> 1. -> a) and then dead-ended, and the
+    -- "a)" line had silently stopped being a list item at all -- invisible to
     -- renumbering (manual, on-edit and on-save), <CR>/o/O continuation,
-    -- checkbox toggling and the block transforms all stop seeing it, and
-    -- cascade's own keys cannot put it back -- the user has to retype the
-    -- marker by hand.
-    --
-    -- Pinned rather than fixed: the repair is a defaults change (either
-    -- widen `lists.types` to { …, "ascii", "roman" } or narrow
-    -- `lists.cycle` to the shapes `types` can read), and widening `types`
-    -- makes every "a) " and "i. " line in every configured filetype parse as
-    -- a list item -- a visible behaviour change for prose, not a test fix.
+    -- checkbox toggling and the block transforms, with no cascade key able to
+    -- put it back.
     cfg.setup({})
     local lopts = cfg.get("lists")
 
-    H.eq_lines(lopts.types, { "unordered", "digit" }, "defaults: lists.types as shipped")
+    H.eq_lines(
+      lopts.types,
+      { "unordered", "digit", "roman", "ascii" },
+      "defaults: lists.types covers every kind lists.cycle can produce, roman before ascii"
+    )
     H.eq_lines(lopts.cycle, { "-", "*", "+", "1.", "a)", "I." }, "defaults: lists.cycle as shipped")
 
     eq(select(1, cycle_once("- item", 1, lopts)), "* item", "defaults: step 1 works")
@@ -326,35 +322,37 @@ return function(H)
     eq(select(1, cycle_once("+ item", 1, lopts)), "1. item", "defaults: step 3 works")
     eq(select(1, cycle_once("1. item", 1, lopts)), "a) item", "defaults: step 4 reaches 'a)'")
 
-    -- BUG: step 5 is a no-op, and every step after it is too.
-    local stuck, handled = cycle_once("a) item", 1, lopts)
-    eq(stuck, "a) item", "BUG: defaults: the cycle dead-ends at 'a)' instead of reaching 'I.'")
-    ok(not handled, "BUG: defaults: ... and reports 'not handled', so the key falls through")
-    eq(select(1, cycle_once("a) item", -1, lopts)), "a) item", "BUG: defaults: backwards is stuck too")
+    -- The ring now closes all the way round instead of dead-ending at 'a)'.
+    local step5, handled5 = cycle_once("a) item", 1, lopts)
+    eq(step5, "I. item", "defaults: step 5 reaches 'I.'")
+    ok(handled5, "defaults: ...and reports handled")
+    eq(select(1, cycle_once("I. item", 1, lopts)), "- item", "defaults: step 6 wraps back to '-'")
+    eq(select(1, cycle_once("a) item", -1, lopts)), "1. item", "defaults: backwards from 'a)' reaches '1.'")
 
-    -- BUG: and the line cascade produced is not a list item any more.
-    eq(marker.parse("a) item", lopts), nil, "BUG: defaults: cascade's own output does not parse as a list item")
-    ok(marker.parse("1. item", lopts) ~= nil, "defaults: the shape one step earlier still parses")
+    -- Every shape cascade produces along the ring is still a list item.
+    eq(marker.parse("a) item", lopts) ~= nil, true, "defaults: cascade's 'a)' output parses as a list item")
+    eq(marker.parse("I. item", lopts) ~= nil, true, "defaults: cascade's 'I.' output parses too")
 
-    -- The downstream damage, through the public facade: a list of "a)" items
-    -- is invisible to renumbering.
+    -- The downstream fix, through the public facade: a list of "a)" items is
+    -- visible to renumbering.
+    -- `renumber.tree` regenerates each line's letter from its own running
+    -- position, so a starting value of "g" for line 3 is rewritten to "c"
+    -- (the correct next letter) rather than left alone -- this asserts the
+    -- kind is recognized and renumbered at all, which is the point.
     local b = H.editable("markdown")
-    vim.api.nvim_buf_set_lines(b, 0, -1, false, { "a) one", "a) two", "a) three" })
+    vim.api.nvim_buf_set_lines(b, 0, -1, false, { "a) one", "b) two", "g) three" })
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     require("cascade").renumber()
     H.eq_lines(
       vim.api.nvim_buf_get_lines(b, 0, -1, false),
-      { "a) one", "a) two", "a) three" },
-      "BUG: defaults: renumber cannot see the list cycle_type just produced"
+      { "a) one", "b) two", "c) three" },
+      "defaults: renumber recognizes and resequences an 'a)' list"
     )
 
     -- ... and to continuation.
     local ctx = require("cascade.core.context").new(b)
     vim.api.nvim_win_set_cursor(0, { 1, 6 })
-    ok(
-      not require("cascade.lists.continue").cr(ctx, lopts),
-      "BUG: defaults: <CR> does not continue the list cycle_type just produced"
-    )
+    ok(require("cascade.lists.continue").cr(ctx, lopts), "defaults: <CR> continues a list cycle_type produced")
 
     -- The same defaults pair is fine for `lists.forms` (block rotation),
     -- whose every entry is a shape `types` can read -- which is what makes
