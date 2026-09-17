@@ -135,32 +135,47 @@ constructor to its opening line. Every key in `bind_list_buffer` and
 `bind_preset_globals`, and every `:Cascade` route, is actually executed
 (`bindings_spec`, `usrcmds_spec`).
 
-## Pinned bugs
+## Bugs found during the coverage round
 
-Six defects found during the coverage round, each asserted at its **current**
-behaviour with a `BUG:`-prefixed message so the pin fails the moment it is
-fixed. None is fixed here — each one changes user-visible behaviour, so each
-belongs in its own change.
+Six defects were found while writing this suite. The first two are **fixed**;
+their assertions stayed on as regression guards. The other four are still
+pinned at their **current** behaviour with a `BUG:`-prefixed message, since
+each fix would be its own visible behaviour change.
 
-1. **`lists/move.lua` inflates an ordered block's start number.**
-   `dispatch_move_spec.lua`. `renumber.tree` deliberately anchors the base
-   level on "its first item's start offset", so a list authored as `5. 6. 7.`
-   stays at 5. Moving an item *into* first position breaks that assumption: the
-   line now standing first carries the next marker, so `1. 2. 3. 4.` becomes
-   `2. 3. 4. 5.`, and again on the next press. Nothing repairs it — neither the
-   on-save `renumber.all` nor `:Cascade renumber`, both of which anchor on the
-   same wrong marker — so the drift is written to the file. `sort`/`reverse`
-   reorder the same lines without drifting, which localizes the defect to
-   `move`. A fix has to capture the base start *before* the `:move`; forcing a
-   restart at 1 would renumber a deliberate `5. 6. 7.` list down to `1. 2. 3.`.
-2. **The shipped `lists.cycle` default cannot round-trip.** `shape_cycle_type_spec.lua`.
-   `lists.types` defaults to `{ "unordered", "digit" }` while `lists.cycle`
-   defaults to `{ "-", "*", "+", "1.", "a)", "I." }`, so `<leader>ct` produces
-   shapes the parser was never told to read: the cycle walks
-   `- → * → + → 1. → a)` and dead-ends. Worse than the stall, the `a)` line has
-   silently stopped being a list item (`marker.parse` returns nil), so
-   renumbering, `<CR>`/`o`/`O` continuation, checkbox toggling and the block
-   transforms all stop seeing it, and cascade's own keys cannot put it back.
+1. **`lists/move.lua` used to inflate an ordered block's start number —
+   fixed.** `dispatch_move_spec.lua`. `renumber.tree` deliberately anchors the
+   base level on "its first item's start offset", so a list authored as
+   `5. 6. 7.` stays at 5. Moving an item *into* first position broke that
+   assumption: the line then standing first carried the next marker, so
+   `1. 2. 3. 4.` became `2. 3. 4. 5.`, and again on the next press, with
+   nothing repairing it — neither the on-save `renumber.all` nor
+   `:Cascade renumber`, both anchored on the same wrong marker.
+   `sort`/`reverse` reorder the same lines without drifting, which localized
+   the defect to `move`. Fixed by having `move.line`/`move.selection` capture
+   the block's base start *before* the `:move` (`renumber.peek_base_start`)
+   and pass it through as `renumber.tree`'s new `forced_base_start`, instead
+   of letting `tree` re-derive it from whichever line ends up first after the
+   reorder. A deliberate `5. 6. 7.` list still stays anchored at 5 — the fix
+   only changes which line's value counts as "first", not whether a
+   non-1 start survives.
+2. **The shipped `lists.cycle` default could not round-trip — fixed.**
+   `shape_cycle_type_spec.lua`. `lists.types` defaulted to
+   `{ "unordered", "digit" }` while `lists.cycle` defaults to
+   `{ "-", "*", "+", "1.", "a)", "I." }`, so `<leader>ct` produced shapes the
+   parser was never told to read: the cycle walked `- → * → + → 1. → a)` and
+   dead-ended. Worse than the stall, the `a)` line had silently stopped being
+   a list item (`marker.parse` returned nil), so renumbering, `<CR>`/`o`/`O`
+   continuation, checkbox toggling and the block transforms all stopped
+   seeing it, with no cascade key able to put it back. `lists.types` now
+   defaults to `{ "unordered", "digit", "roman", "ascii" }` — every kind
+   `lists.cycle` can produce, roman ordered *before* ascii (the reverse of
+   `sequence.types`' order) because `lists.cycle` walks the same letter
+   through both shapes in one sequence ("a)" then "I."): ascii-first would
+   have parsed the cycle's own "I." output back as ascii (its pattern accepts
+   either delimiter) and never matched the cycle's "I." entry, jumping the
+   ring to an unrelated slot instead of closing it. Roman-first costs nothing
+   for the ordinary case, since "a", "b", "c-as-ascii", etc. are simply not
+   valid roman numerals and fall through to ascii exactly as before.
 3. **Two of the three augroups are only cleared when their gate passes.** `bindings_spec.lua`.
    `bindings/autocmds.lua` promises "three autocmds, all idempotent (their
    augroups are cleared on every setup)". `setup_save_renumber` calls

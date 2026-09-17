@@ -111,6 +111,44 @@ function M.all(bufnr, opts)
   return changed
 end
 
+--- Read the block's current base-level start value without rewriting
+--- anything, i.e. the same value `M.tree` would derive from `lines` on its
+--- own. For a caller that is about to reorder the block (`cascade.lists.move`)
+--- and only then call `M.tree`: by the time `M.tree` runs, whichever line
+--- ended up physically first is not necessarily the line that was first
+--- before the reorder, so scanning post-move picks up that line's own
+--- (possibly stale, not-yet-renumbered) value as the new anchor -- one off
+--- with every move in the same direction, cumulatively. Call this before the
+--- reorder and pass its result as `M.tree`'s `forced_base_start`.
+---@param bufnr integer
+---@param srow integer
+---@param erow integer
+---@param opts CascadeListOpts
+---@return integer|nil # nil if the block has no base-level ordered item.
+function M.peek_base_start(bufnr, srow, erow, opts)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
+  local base_w = nil
+  for i = 1, #lines do
+    local m = marker.parse(lines[i], opts)
+    if m then
+      local w = #m.indent
+      if base_w == nil or w < base_w then
+        base_w = w
+      end
+    end
+  end
+  if base_w == nil then
+    return nil
+  end
+  for i = 1, #lines do
+    local m = marker.parse(lines[i], opts)
+    if m and #m.indent == base_w and m.kind ~= "unordered" then
+      return value_of(m.kind, m.marker) or 1
+    end
+  end
+  return nil
+end
+
 --- Indent-aware renumber of the whole block `[srow, erow]` (0-based, inclusive).
 ---
 --- Walks the block once with a counter per indent width: the block's base
@@ -129,15 +167,17 @@ end
 ---@param erow integer
 ---@param opts CascadeListOpts
 ---@param preserve_start boolean|nil # Seed nested levels from their own first marker instead of resetting to 1. Default false.
+---@param forced_base_start integer|nil # Use this instead of scanning `lines` -- see `M.peek_base_start`.
 ---@return boolean changed
-function M.tree(bufnr, srow, erow, opts, preserve_start)
+function M.tree(bufnr, srow, erow, opts, preserve_start, forced_base_start)
   local lines = vim.api.nvim_buf_get_lines(bufnr, srow, erow + 1, false)
   if #lines == 0 then
     return false
   end
 
   -- Base = smallest indent width among list items; its first ordered item sets
-  -- the start offset so a list that begins at e.g. "3." stays anchored there.
+  -- the start offset so a list that begins at e.g. "3." stays anchored there
+  -- -- unless `forced_base_start` overrides it (see that parameter's doc).
   local base_w, base_start = nil, 1
   for i = 1, #lines do
     local m = marker.parse(lines[i], opts)
@@ -151,11 +191,15 @@ function M.tree(bufnr, srow, erow, opts, preserve_start)
   if base_w == nil then
     return false
   end
-  for i = 1, #lines do
-    local m = marker.parse(lines[i], opts)
-    if m and #m.indent == base_w and m.kind ~= "unordered" then
-      base_start = value_of(m.kind, m.marker) or 1
-      break
+  if forced_base_start then
+    base_start = forced_base_start
+  else
+    for i = 1, #lines do
+      local m = marker.parse(lines[i], opts)
+      if m and #m.indent == base_w and m.kind ~= "unordered" then
+        base_start = value_of(m.kind, m.marker) or 1
+        break
+      end
     end
   end
 
