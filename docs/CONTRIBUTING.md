@@ -60,10 +60,24 @@ require("cascade").setup({ keymaps = { preset = true } })
 
 ## Tests
 
-`TESTS/` is a [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
-busted-style suite; [`TESTS/README.md`](../TESTS/README.md) has the invocation.
-[GitHub Actions](../.github/workflows/ci.yml) runs it on every push and PR to
-`main`.
+`TESTS/` is **not** a plenary.nvim/busted suite — it never was. It is a
+framework-free harness: every spec is a file returning `function(H) … end`,
+`H` carries three assertions (`eq`, `eq_lines`, `ok`) plus two buffer helpers,
+and `TESTS/run.lua` runs the specs listed in its own `specs` table. A new spec
+has to be added to that list or it will not run.
+
+Run it from the repo root:
+
+```sh
+nvim --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile TESTS/run.lua" -c "qa!"
+```
+
+`lib.nvim` and `ui.nvim` are expected as sibling checkouts (the `:Cascade`
+composer, the keymap registry, `ui.contextmenu`, `ui.kit.select`).
+[`TESTS/README.md`](../TESTS/README.md) has the full spec register, the
+coverage figures, the deliberate omissions and the pinned bugs.
+[GitHub Actions](../.github/workflows/ci.yml) runs the suite, `luacheck` and
+`stylua --check` on every push and PR to `main`.
 
 ## Workflow
 

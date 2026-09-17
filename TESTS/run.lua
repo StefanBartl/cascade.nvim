@@ -12,15 +12,27 @@
 local dir = debug.getinfo(1, "S").source:sub(2):match("(.*[/\\])") or "./"
 local H = dofile(dir .. "harness.lua")
 
--- Ordered so failures point at the smallest layer first.
+-- Ordered so failures point at the smallest layer first: pure units, then the
+-- feature modules, then the facade, then the wiring (bindings/commands/menu)
+-- and finally health, which reads the config every layer above it wrote.
 local specs = {
   "units_spec.lua",
+  "lib_fallbacks_spec.lua",
+  "packs_spec.lua",
+  "shape_cycle_type_spec.lua",
+  "dispatch_move_spec.lua",
   "lists_spec.lua",
   "cycle_spec.lua",
   "transpose_spec.lua",
   "sequence_spec.lua",
+  "multibyte_spec.lua",
+  "facade_spec.lua",
   "commands_spec.lua",
+  "bindings_spec.lua",
+  "usrcmds_spec.lua",
+  "menu_spec.lua",
   "lib_util_spec.lua",
+  "health_spec.lua",
 }
 
 local failed = 0
