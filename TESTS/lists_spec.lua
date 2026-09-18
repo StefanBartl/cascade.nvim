@@ -162,6 +162,34 @@ return function(H)
   eq(t6[4], "  7. z", "all: nested list continues from 5")
   eq(t6[5], "2. bot", "all: base level unaffected")
 
+  -- BUG: M.tree, called directly over an explicit range spanning MORE THAN
+  -- ONE independent block, does not re-derive a fresh base_start for the
+  -- second block. base_w/base_start are computed once, up front, from the
+  -- range's very first item; a real break (more than blank_break's
+  -- tolerance) mid-range resets the running counters but reseeds them from
+  -- that SAME base_start, not from the block that follows the break's own
+  -- first marker. `M.all` (the on-save sweep) never hits this, because it
+  -- pre-splits the buffer into single blocks and calls `tree` once per
+  -- block; `:Cascade renumber` with an explicit multi-block range does not
+  -- -- it hands `tree` the raw range via `command_rows`, unsplit.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "5. a", -- block A, deliberately starting at 5
+    "5. b",
+    "", -- a real break: blank_break defaults to 0
+    "9. x", -- block B, deliberately starting at 9 -- unrelated to block A
+    "9. y",
+  })
+  rn.tree(buf, 0, 4, lopts, true)
+  local multi = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(multi[1], "5. a", "BUG: multi-block tree range: block A keeps its own start")
+  eq(multi[2], "6. b", "BUG: multi-block tree range: block A continues normally")
+  eq(
+    multi[4],
+    "5. x",
+    "BUG: multi-block tree range: block B's own start (9) is discarded, reseeded from block A's start (5) instead"
+  )
+  eq(multi[5], "6. y", "BUG: multi-block tree range: block B counts on from the wrong reseed, not from 9")
+
   -- (d) indent.shift_line integration: shift a single list line + renumber.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
   vim.bo[buf].expandtab = true
@@ -376,6 +404,15 @@ return function(H)
   eq(br_none_s, nil, "block_range: a blank-line break still means no block on the prose side")
   eq(br_none_e, nil, "block_range: a blank-line break still means no block on the prose side")
 
+  -- block_range's internal `nearest_marker_row` scans up first, then down --
+  -- the down direction covers a cursor that sits BEFORE any reachable
+  -- marker upward (here: the very first line of the buffer, so there is
+  -- nothing above to scan), with the block starting immediately below.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", "1. one", "2. two" })
+  local br_down_s, br_down_e = transform.block_range(buf, 0, lopts)
+  eq(br_down_s, 1, "block_range: cursor on a leading blank line resolves to the list below, not the blank line")
+  eq(br_down_e, 2, "block_range: ...and spans the whole list below")
+
   -- quick_toggle: bullet/number/checkbox work without an existing marker,
   -- unlike checkbox.toggle/cycle_type.cycle which no-op without one.
   cfg.setup({})
@@ -572,6 +609,21 @@ return function(H)
   local o_cur = vim.api.nvim_win_get_cursor(0)
   eq(o_cur[1], 2, "continue.O: cursor row lands on the new bullet")
   eq(o_cur[2], 2, "continue.O: cursor col lands after the marker")
+  vim.cmd("stopinsert")
+
+  -- `o` continuing from a CHECKED checkbox item resets the new item to the
+  -- first configured checkbox state (unchecked) instead of carrying the
+  -- checked item's own state forward -- marker.advance's checkbox branch,
+  -- exercised end to end.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- [x] done task" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  local o_cb = require("cascade.lists.continue").o(require("cascade.core.context").new(), oopts)
+  eq(o_cb, true, "continue.o: handles a checked checkbox line")
+  eq_lines(
+    vim.api.nvim_buf_get_lines(buf, 0, -1, false),
+    { "- [x] done task", "- [ ] " },
+    "continue.o: new item starts unchecked, not carrying the previous item's checked state"
+  )
   vim.cmd("stopinsert")
 
   -- `O` on a non-list line falls back to the marker directly above, so

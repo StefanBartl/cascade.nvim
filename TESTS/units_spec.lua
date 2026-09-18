@@ -32,6 +32,16 @@ return function(H)
   eq(cb and cb.checkbox, " ", "checkbox inner")
   eq(cb.text, "task", "checkbox text")
 
+  -- advance on a checkbox item resets the checkbox to the first configured
+  -- state, whatever the source item's own state was -- the next item in a
+  -- checklist starts unchecked, not carrying the previous one's "done".
+  local checked = marker.parse("- [x] done task", lopts)
+  eq(checked and checked.checkbox, "x", "checkbox item is checked")
+  local cb_next = marker.advance(checked, lopts)
+  eq(cb_next.checkbox, " ", "advance checkbox: resets to the first configured state")
+  eq(cb_next.text, "", "advance checkbox: text is cleared like any other advance")
+  eq(marker.render(cb_next), "- [ ] ", "advance checkbox: renders unchecked")
+
   local rm = marker.parse("IV) item", lopts)
   eq(rm and rm.kind, "roman", "roman kind")
   eq(marker.advance(rm, lopts).marker, "V", "advance roman IV->V")
