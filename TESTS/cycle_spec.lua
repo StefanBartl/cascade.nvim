@@ -66,6 +66,10 @@ return function(H)
   eq(dtext, "2024-01-31", "date.span: full match")
   eq(select(1, date.span("count = 41", 8)), nil, "date.span: no match on plain digits")
   eq(select(1, date.span("see 2024-01-31 today", 17)), nil, "date.span: cursor outside the date")
+  -- Cursor BEFORE the only date in the line: the scan's early-return path
+  -- (the first match already starts past the cursor, so no earlier match
+  -- could ever reach it either) rather than the "no match at all" path above.
+  eq(select(1, date.span("  2024-01-31", 0)), nil, "date.span: cursor before the date on the same line")
 
   local _, _, day_repl = date.step("2024-01-31", 8, 1) -- cursor on "31" (day)
   eq(day_repl, "2024-02-01", "date.step: day rolls over past the end of the month")

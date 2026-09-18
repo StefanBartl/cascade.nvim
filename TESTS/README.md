@@ -135,12 +135,46 @@ constructor to its opening line. Every key in `bind_list_buffer` and
 `bind_preset_globals`, and every `:Cascade` route, is actually executed
 (`bindings_spec`, `usrcmds_spec`).
 
+### Re-audit
+
+Re-checked every "deliberately not covered" skip reason above against the
+current source (none had rotted — no module in that list grew a real branch,
+gained a sibling dependency, or was added after the fact) and re-verified all
+six original bugs plus the two later fixes (`lists/move.lua`'s renumber
+drift, the shipped `lists.cycle`/`lists.types` round-trip) still match the
+source exactly as described. Three genuine gaps turned up on a line-probe
+pass over the higher-risk text-position modules (`lists/transform.lua`,
+`lists/marker.lua`, `cycle/date.lua`) and were closed with real assertions
+rather than left as gaps or padded with trivial ones:
+
+- `marker.advance` on a checkbox item resets the checkbox to the first
+  configured state instead of carrying the source item's own state forward
+  — asserted directly (`units_spec.lua`) and end to end through `continue.o`
+  on a checked item (`lists_spec.lua`).
+- `transform.block_range`'s internal `nearest_marker_row` scans up first,
+  then down; only the up direction had a test. The down direction (cursor on
+  a leading blank line with the list starting immediately below) is now
+  covered (`lists_spec.lua`).
+- `cycle.date.span`'s early-return for a cursor sitting *before* the only
+  date on the line (distinct from "no date on the line at all") is now
+  covered (`cycle_spec.lua`).
+
+Closing those also surfaced bug 7 above (`renumber.tree` over an unsplit
+multi-block range), pinned rather than fixed for the same reason as 3–6: the
+fix is a real behaviour decision (restart each block at 1? preserve its own
+start?), not a one-line correction.
+
+Assertion count: 982 → 995 call sites (`eq`/`ok`/`eq_lines`), still 17 spec
+files — the count moved by closing the three gaps above and pinning bug 7,
+not by adding new spec files or padding existing ones.
+
 ## Bugs found during the coverage round
 
-Six defects were found while writing this suite. The first two are **fixed**;
-their assertions stayed on as regression guards. The other four are still
-pinned at their **current** behaviour with a `BUG:`-prefixed message, since
-each fix would be its own visible behaviour change.
+Seven defects have been found across this suite's original round and the
+re-audits since. The first two are **fixed**; their assertions stayed on as
+regression guards. The other five are still pinned at their **current**
+behaviour with a `BUG:`-prefixed message, since each fix would be its own
+visible behaviour change.
 
 1. **`lists/move.lua` used to inflate an ordered block's start number —
    fixed.** `dispatch_move_spec.lua`. `renumber.tree` deliberately anchors the
@@ -209,6 +243,20 @@ each fix would be its own visible behaviour change.
    this reason. `remove` reads only `ctx.args.value`, so a group added as
    `TODO,IN PROGRESS,DONE` cannot be removed by the member that made the tail
    necessary. Workaround: remove by a single-word member.
+7. **`renumber.tree`, called directly over a range spanning more than one
+   list block, reseeds the second block from the first block's start.**
+   `lists_spec.lua`. `base_w`/`base_start` are computed once, up front, from
+   the *whole* `[srow, erow]` range's first item; a real break (more than
+   `blank_break`'s tolerance) partway through the range resets the running
+   counters but reseeds them from that same `base_start` instead of from the
+   block that follows the break. `M.all` (the on-save sweep) never hits this
+   — it pre-splits the buffer into single blocks and calls `tree` once per
+   block, each with its own `base_start` — but a direct `tree` call over an
+   unsplit multi-block range does, and `:Cascade renumber`/`run_command`
+   hand `tree` an explicit `:command` range or visual selection exactly that
+   way, unsplit. A list authored `5. 6.` / (blank) / `9. 10.` and renumbered
+   as one range becomes `5. 6.` / (blank) / `5. 6.` — the second block's own
+   start (9) is discarded in favor of the first block's (5).
 
 ### Pinned as behaviour, not defects
 
