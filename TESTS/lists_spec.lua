@@ -190,35 +190,61 @@ return function(H)
   )
   eq(multi[5], "6. y", "BUG: multi-block tree range: block B counts on from the wrong reseed, not from 9")
 
-  -- BUG: `marker.parse` decides a line's kind alone, with no memory of what
-  -- kind the SAME list already established a line or two above -- and
-  -- `roman` is deliberately tried before `ascii` in the shipped default
-  -- `lists.types` (config/DEFAULTS.lua), so the cycle ring built from those
-  -- same markers can close ("I." -> "-", see shape_cycle_type_spec.lua).
-  -- The cost of that ordering: SEVEN single letters -- c/d/i/l/m/v/x (and
-  -- their uppercase forms) -- are also valid Roman numerals, so any ordinary
-  -- lettered list that reaches one of them gets that ONE line silently
-  -- reinterpreted as Roman and renumbered with Roman digits, corrupting an
-  -- otherwise perfectly ordinary ascii list on every renumber -- on save
+  -- FIXED (was pinned as a BUG here): `marker.parse` used to decide a line's
+  -- kind alone, with no memory of what kind the SAME list already
+  -- established a line or two above -- and `roman` is deliberately tried
+  -- before `ascii` in the shipped default `lists.types` (config/DEFAULTS.lua),
+  -- so the cycle ring built from those same markers can close ("I." -> "-",
+  -- see shape_cycle_type_spec.lua). The cost of that ordering alone: seven
+  -- single letters -- c/d/i/l/m/v/x (and their uppercase forms) -- are also
+  -- valid Roman numerals, so an ordinary lettered list reaching one of them
+  -- had that ONE line silently reinterpreted as Roman and renumbered with
+  -- Roman digits ("c) three" -> "iii) three") on every renumber -- on save
   -- (`M.all`), on `:Cascade renumber`, and via `move.lua` (all three funnel
-  -- through this same `tree()`). This is not a rare shape: "c" is the third
-  -- letter of the alphabet, so a *four-item* lettered list already trips it.
+  -- through this same `tree()`).
   --
-  -- No fix applied here: doing this correctly needs `tree()` to track an
-  -- established kind per indent width (already has `counters` keyed by width
-  -- for the numeric value; would need a sibling kind-memory table) and feed
-  -- that back into `marker.parse` as a same-kind-wins-ties preference --
-  -- structural, not mechanical, and risks its own regressions either
-  -- direction (reverting the ordering instead would silently break the
-  -- ring-closure case pinned in shape_cycle_type_spec.lua). Pinned so a
-  -- maintainer decides the real fix, not so this audit guesses one.
+  -- Fixed by having `tree()` track which kind each indent width's list has
+  -- actually been using so far (`kind_by_width`, a sibling of the existing
+  -- `counters` table) and passing it to `marker.parse` as a new optional
+  -- `prefer_kind` argument -- tried before `types`' own order, so an
+  -- ambiguous letter keeps reading the way the rest of ITS OWN list already
+  -- does. `marker.parse`'s default order (and everything that calls it
+  -- without a `prefer_kind`, e.g. `cycle`) is completely unchanged, so the
+  -- ring-closure case stays intact -- see the mixed-list case below.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "a) one", "b) two", "c) three", "d) four" })
   rn.tree(buf, 0, 3, lopts, true)
   local abc = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  eq(abc[1], "a) one", "BUG: ascii/roman collision: first two letters are unambiguous, stay ascii")
-  eq(abc[2], "b) two", "BUG: ascii/roman collision: first two letters are unambiguous, stay ascii")
-  eq(abc[3], "iii) three", "BUG: ascii/roman collision: 'c' is a valid Roman numeral, gets hijacked and renumbered as one")
-  eq(abc[4], "iv) four", "BUG: ascii/roman collision: 'd' is also a valid Roman numeral, same corruption")
+  eq(abc[1], "a) one", "ascii/roman collision: unambiguous letters stay ascii")
+  eq(abc[2], "b) two", "ascii/roman collision: unambiguous letters stay ascii")
+  eq(abc[3], "c) three", "ascii/roman collision: 'c' stays ascii -- the list already established ascii")
+  eq(abc[4], "d) four", "ascii/roman collision: 'd' stays ascii too, same reason")
+
+  -- The same fix must not stop a list that is GENUINELY roman-first (no
+  -- ascii established yet at this width) from resolving "i)" as roman on
+  -- its very first line, matching the ring-closure guarantee.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "i) one", "ii) two", "iii) three" })
+  rn.tree(buf, 0, 2, lopts, true)
+  local rmn = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(rmn[1], "i) one", "a list starting on a roman-shaped letter with no prior context stays roman")
+  eq(rmn[2], "ii) two", "...and continues as roman")
+  eq(rmn[3], "iii) three", "...and continues as roman")
+
+  -- A deeper level closing (shallower line returns) must let a LATER run at
+  -- the same width re-resolve its own kind instead of inheriting the first
+  -- run's -- kind memory is invalidated exactly like the numeric counters
+  -- already were.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+    "1. top",
+    "  a) x", -- first nested run: establishes ascii at width 2
+    "  b) y",
+    "2. mid", -- returns to width 0, closing the nested run (and its kind memory)
+    "  i) z", -- a NEW nested run at width 2: no ascii context left, "i" reads as roman
+  })
+  rn.tree(buf, 0, 4, lopts, true)
+  local reset = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(reset[2], "  a) x", "first nested run at width 2 is ascii")
+  eq(reset[3], "  b) y", "...stays ascii")
+  eq(reset[5], "  i) z", "a later, unrelated run at the same width re-resolves as roman, not inherited ascii")
 
   -- (d) indent.shift_line integration: shift a single list line + renumber.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })

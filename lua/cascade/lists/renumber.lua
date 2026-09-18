@@ -206,6 +206,18 @@ function M.tree(bufnr, srow, erow, opts, preserve_start, forced_base_start)
   local counters = {} ---@type table<integer, integer>
   counters[base_w] = base_start - 1
 
+  -- Which kind each indent width's running list has actually been using so
+  -- far, THIS pass. `ascii`/`roman` overlap on seven letters (see
+  -- `marker.parse`'s own doc), so without this a perfectly ordinary
+  -- "a) b) c) d)" list would have "c)" silently reinterpreted as roman and
+  -- renumbered "iii)" the moment it's reached, purely because `types` tries
+  -- roman first (needed elsewhere so a cycled "I." reads back as roman, not
+  -- the 9th letter). Once a width's first item resolves a kind, every later
+  -- item at that same width is parsed with that kind preferred, so an
+  -- ambiguous letter keeps reading the way the rest of ITS OWN list already
+  -- does instead of whatever `types`' fixed order would pick in isolation.
+  local kind_by_width = {} ---@type table<integer, CascadeMarkerKind>
+
   -- Build the whole block in memory and commit it with a single set_lines. One
   -- contiguous edit gives the markdown treesitter highlighter a clean range to
   -- re-parse; rewriting line-by-line instead scatters many small structural
@@ -217,26 +229,34 @@ function M.tree(bufnr, srow, erow, opts, preserve_start, forced_base_start)
   for i = 1, #lines do
     local line = lines[i]
     out[i] = line
-    local m = marker.parse(line, opts)
+    local peek_indent = line:match("^(%s*)") or ""
+    local m = marker.parse(line, opts, kind_by_width[#peek_indent])
     if not m then
       local continues
       continues, blanks = marker.is_continuation(line, blanks, max_blank)
       if not continues then
         -- A real break (too many consecutive blank lines) ends every running
-        -- sequence. Non-blank continuation content is left untouched instead.
+        -- sequence, kind memory included. Non-blank continuation content is
+        -- left untouched instead.
         counters = {}
         counters[base_w] = base_start - 1
+        kind_by_width = {}
       end
     else
       blanks = 0
       local w = #m.indent
-      -- Returning to a shallower level invalidates all deeper counters.
+      -- Returning to a shallower level invalidates all deeper counters --
+      -- and the kind memory that went with them, so a deeper run started
+      -- fresh later at the same width gets to re-resolve its own kind rather
+      -- than inheriting a now-unrelated list's.
       for cw in pairs(counters) do
         if cw > w then
           counters[cw] = nil
+          kind_by_width[cw] = nil
         end
       end
       if m.kind ~= "unordered" then
+        kind_by_width[w] = m.kind
         -- First time this width is seen (or seen again after a shallower
         -- return invalidated it): reset to 1, unless preserve_start asks to
         -- seed from this item's own marker value instead.

@@ -77,13 +77,64 @@ local function parse_custom(rest, indent, opts)
   return nil
 end
 
+--- Try a single marker kind against `rest` (the line with its indent already
+--- stripped). Pure and independent of position in `opts.types` -- `M.parse`
+--- calls this once out of order when it has a `prefer_kind` to try first,
+--- then falls through to the configured order for everything else.
+---@param kind CascadeMarkerKind
+---@param rest string
+---@param opts CascadeListOpts
+---@return CascadeMarker|nil # `indent` is not set; `M.parse` fills it in.
+local function try_kind(kind, rest, opts)
+  if kind == "unordered" then
+    local cls = patterns.unordered_class(opts.unordered_markers)
+    local mk, after = rest:match("^(" .. cls .. ")%s(.*)$")
+    if mk then
+      local cb, text = split_checkbox(after, opts)
+      return { kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
+    end
+  elseif kind == "digit" then
+    local num, d, after = rest:match("^(%d+)([%.%)])%s(.*)$")
+    if num then
+      local cb, text = split_checkbox(after, opts)
+      return { kind = "digit", marker = num, delim = d, checkbox = cb, text = text }
+    end
+  elseif kind == "ascii" then
+    local ch, d, after = rest:match("^(%a)([%.%)])%s(.*)$")
+    if ch and alpha.to_int(ch) then
+      local cb, text = split_checkbox(after, opts)
+      return { kind = "ascii", marker = ch, delim = d, checkbox = cb, text = text }
+    end
+  elseif kind == "roman" then
+    local rm, d, after = rest:match("^(%a+)([%.%)])%s(.*)$")
+    if rm and roman.to_int(rm) then
+      local cb, text = split_checkbox(after, opts)
+      return { kind = "roman", marker = rm, delim = d, checkbox = cb, text = text }
+    end
+  end
+  return nil
+end
+
 --- Parse a line into a marker description, or nil if it is not a list item.
 --- Filetype-specific custom patterns (`opts.per_filetype_patterns`) are tried
 --- first, then the built-in kinds in `opts.types`.
+---
+--- `ascii` and `roman` overlap on seven letters (c/d/i/l/m/v/x, either case:
+--- also valid Roman numerals), and `types`' order decides which wins a bare
+--- overlap -- `roman` is deliberately tried first so a `cycle`d "I." reads
+--- back as roman instead of the 9th letter (see config/DEFAULTS.lua). Left
+--- to that order alone, a plain ascii-lettered list ("a) b) c) d) ...")
+--- would have its own 3rd item silently reinterpreted as roman the moment
+--- it reaches "c". `prefer_kind` lets a caller that already knows which
+--- kind THIS list established (`renumber.tree` tracks it per indent width)
+--- break the tie the other way for one call, without changing the global
+--- default order for anything else that parses a single line in isolation
+--- (cycling, the facade commands, ...).
 ---@param line string
 ---@param opts CascadeListOpts
+---@param prefer_kind CascadeMarkerKind|nil
 ---@return CascadeMarker|nil
-function M.parse(line, opts)
+function M.parse(line, opts, prefer_kind)
   local indent = line:match("^(%s*)") or ""
   local rest = line:sub(#indent + 1)
   if rest == "" then
@@ -95,33 +146,22 @@ function M.parse(line, opts)
     return custom
   end
 
+  if prefer_kind then
+    local m = try_kind(prefer_kind, rest, opts)
+    if m then
+      m.indent = indent
+      return m
+    end
+  end
+
   local types = opts.types
   for i = 1, #types do
     local t = types[i]
-    if t == "unordered" then
-      local cls = patterns.unordered_class(opts.unordered_markers)
-      local mk, after = rest:match("^(" .. cls .. ")%s(.*)$")
-      if mk then
-        local cb, text = split_checkbox(after, opts)
-        return { indent = indent, kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
-      end
-    elseif t == "digit" then
-      local num, d, after = rest:match("^(%d+)([%.%)])%s(.*)$")
-      if num then
-        local cb, text = split_checkbox(after, opts)
-        return { indent = indent, kind = "digit", marker = num, delim = d, checkbox = cb, text = text }
-      end
-    elseif t == "ascii" then
-      local ch, d, after = rest:match("^(%a)([%.%)])%s(.*)$")
-      if ch and alpha.to_int(ch) then
-        local cb, text = split_checkbox(after, opts)
-        return { indent = indent, kind = "ascii", marker = ch, delim = d, checkbox = cb, text = text }
-      end
-    elseif t == "roman" then
-      local rm, d, after = rest:match("^(%a+)([%.%)])%s(.*)$")
-      if rm and roman.to_int(rm) then
-        local cb, text = split_checkbox(after, opts)
-        return { indent = indent, kind = "roman", marker = rm, delim = d, checkbox = cb, text = text }
+    if t ~= prefer_kind then
+      local m = try_kind(t, rest, opts)
+      if m then
+        m.indent = indent
+        return m
       end
     end
   end
