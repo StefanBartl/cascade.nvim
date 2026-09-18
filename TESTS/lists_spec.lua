@@ -190,6 +190,36 @@ return function(H)
   )
   eq(multi[5], "6. y", "BUG: multi-block tree range: block B counts on from the wrong reseed, not from 9")
 
+  -- BUG: `marker.parse` decides a line's kind alone, with no memory of what
+  -- kind the SAME list already established a line or two above -- and
+  -- `roman` is deliberately tried before `ascii` in the shipped default
+  -- `lists.types` (config/DEFAULTS.lua), so the cycle ring built from those
+  -- same markers can close ("I." -> "-", see shape_cycle_type_spec.lua).
+  -- The cost of that ordering: SEVEN single letters -- c/d/i/l/m/v/x (and
+  -- their uppercase forms) -- are also valid Roman numerals, so any ordinary
+  -- lettered list that reaches one of them gets that ONE line silently
+  -- reinterpreted as Roman and renumbered with Roman digits, corrupting an
+  -- otherwise perfectly ordinary ascii list on every renumber -- on save
+  -- (`M.all`), on `:Cascade renumber`, and via `move.lua` (all three funnel
+  -- through this same `tree()`). This is not a rare shape: "c" is the third
+  -- letter of the alphabet, so a *four-item* lettered list already trips it.
+  --
+  -- No fix applied here: doing this correctly needs `tree()` to track an
+  -- established kind per indent width (already has `counters` keyed by width
+  -- for the numeric value; would need a sibling kind-memory table) and feed
+  -- that back into `marker.parse` as a same-kind-wins-ties preference --
+  -- structural, not mechanical, and risks its own regressions either
+  -- direction (reverting the ordering instead would silently break the
+  -- ring-closure case pinned in shape_cycle_type_spec.lua). Pinned so a
+  -- maintainer decides the real fix, not so this audit guesses one.
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "a) one", "b) two", "c) three", "d) four" })
+  rn.tree(buf, 0, 3, lopts, true)
+  local abc = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  eq(abc[1], "a) one", "BUG: ascii/roman collision: first two letters are unambiguous, stay ascii")
+  eq(abc[2], "b) two", "BUG: ascii/roman collision: first two letters are unambiguous, stay ascii")
+  eq(abc[3], "iii) three", "BUG: ascii/roman collision: 'c' is a valid Roman numeral, gets hijacked and renumbered as one")
+  eq(abc[4], "iv) four", "BUG: ascii/roman collision: 'd' is also a valid Roman numeral, same corruption")
+
   -- (d) indent.shift_line integration: shift a single list line + renumber.
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "2. b", "3. c" })
   vim.bo[buf].expandtab = true
