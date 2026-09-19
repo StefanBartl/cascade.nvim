@@ -110,6 +110,39 @@ return function(H)
     eq(#seen, 2, "resolve: exactly one warning per pass, not one per lookup")
   end
 
+  -- ---------- a known pack whose module fails to load ----------
+
+  do
+    packs.invalidate() -- also clears the warn-once memo
+    package.loaded["cascade.cycle.packs.es"] = nil
+    -- Test double over a typed surface: simulate a corrupt/broken pack file
+    -- for a KNOWN name, distinct from the "unknown name" case above -- this
+    -- must not degrade to the same silent "contributed nothing" shape.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    package.preload["cascade.cycle.packs.es"] = function()
+      error("simulated syntax error in a shipped pack file")
+    end
+
+    local seen = {}
+    local orig = vim.notify
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg)
+      seen[#seen + 1] = tostring(msg)
+    end
+
+    local out = packs.resolve({ "en", "es" })
+    vim.notify = orig
+    package.preload["cascade.cycle.packs.es"] = nil
+    package.loaded["cascade.cycle.packs.es"] = nil -- let the real module reload cleanly afterwards
+
+    eq(#out, #packs.resolve({ "en" }), "resolve: a known pack that fails to load contributes no groups")
+    ok(#seen >= 1, "resolve: a known pack that fails to load still warns (not silent like an empty pack)")
+    ok(seen[1]:find("es", 1, true) ~= nil, "resolve: the warning names the failing pack")
+
+    packs.invalidate()
+  end
+
   -- ---------- the default pack set stays conflict-free ----------
 
   do
