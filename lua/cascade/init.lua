@@ -268,7 +268,10 @@ function M.renumber()
   end
   local s, e = transform.block_range(ctx.bufnr, ctx.row0, opts)
   if s and e then
-    pcall(renumber.tree, ctx.bufnr, s, e, opts, true)
+    local ok, err = pcall(renumber.tree, ctx.bufnr, s, e, opts, true)
+    if not ok then
+      notify.warn("renumber failed: " .. tostring(err))
+    end
   end
 end
 
@@ -898,7 +901,10 @@ function M.run_renumber_command(cmd, scope)
     return
   end
   if scope == "all" then
-    pcall(renumber.all, bufnr, opts)
+    local ok_all, err_all = pcall(renumber.all, bufnr, opts)
+    if not ok_all then
+      notify.warn("renumber failed: " .. tostring(err_all))
+    end
     return
   end
   local s, e
@@ -908,7 +914,10 @@ function M.run_renumber_command(cmd, scope)
     s, e = transform.block_range(bufnr, vim.api.nvim_win_get_cursor(0)[1] - 1, opts)
   end
   if s and e then
-    pcall(renumber.tree, bufnr, s, e, opts, true)
+    local ok, err = pcall(renumber.tree, bufnr, s, e, opts, true)
+    if not ok then
+      notify.warn("renumber failed: " .. tostring(err))
+    end
   end
 end
 

@@ -8,6 +8,7 @@
 --- still shifted; renumbering only runs on list blocks.
 
 local marker = require("cascade.lists.marker")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 
@@ -123,7 +124,10 @@ local function renumber_block(bufnr, srow, erow, opts)
     if l and marker.parse(l, opts) then
       local s, e = transform.block_range(bufnr, r, opts)
       if s and e then
-        pcall(renumber.tree, bufnr, s, e, opts)
+        local ok, err = pcall(renumber.tree, bufnr, s, e, opts)
+        if not ok then
+          notify.warn("renumber failed: " .. tostring(err))
+        end
       end
       return
     end
