@@ -21,10 +21,11 @@ Nothing else is needed. Treesitter is optional and off by default — see
 `lists.precision` in [`configuration.md`](configuration.md#lists).
 
 [ui.nvim](https://github.com/StefanBartl/ui.nvim) is optional too: it backs
-`cycle.pick`'s themed chooser (`ui.kit.select`, falling back to any
+`cycle.pick`'s themed chooser (`ui.kit.select`, itself falling back to any
 `vim.ui.select` override) and `cascade.integrations.menu`'s right-click
 entries (`ui.contextmenu`, an opt-in module a host requires explicitly).
-Neither is loaded by `setup()` itself.
+Neither is loaded by `setup()` itself. Without ui.nvim installed at all,
+`cycle.pick` falls back to plain `vim.ui.select` directly.
 
 ## Which loading strategy
 
