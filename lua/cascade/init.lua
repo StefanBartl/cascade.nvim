@@ -599,8 +599,15 @@ function M.cycle_group_add(raw)
     return false
   end
 
-  opts.groups = opts.groups or {}
-  opts.groups[#opts.groups + 1] = values
+  -- `opts` may still be the literal `config.DEFAULTS.cycle` table --
+  -- `lib.lua.config.deep_merge` only copies the merge's top level, so an
+  -- unrelated `cycle.*` key the user never overrode keeps the shipped
+  -- reference. Mutate a private copy and swap it into `config.options`
+  -- rather than appending in place, which would corrupt DEFAULTS.lua for
+  -- the rest of the session (ERR-51).
+  local groups = vim.deepcopy(opts.groups or {})
+  groups[#groups + 1] = values
+  config.options.cycle = vim.tbl_extend("force", opts, { groups = groups })
   notify.info("cycle group added: " .. table.concat(values, " -> "))
   return true
 end
@@ -617,7 +624,11 @@ function M.cycle_group_remove(value)
 
   for i = #opts.groups, 1, -1 do
     if vim.tbl_contains(opts.groups[i], value) then
-      local removed = table.remove(opts.groups, i)
+      -- Same aliasing hazard as `cycle_group_add`: mutate a private copy,
+      -- never `opts.groups` in place (ERR-51).
+      local groups = vim.deepcopy(opts.groups)
+      local removed = table.remove(groups, i)
+      config.options.cycle = vim.tbl_extend("force", opts, { groups = groups })
       notify.info("cycle group removed: " .. table.concat(removed, " -> "))
       return true
     end

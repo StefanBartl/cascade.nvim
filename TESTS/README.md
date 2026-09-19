@@ -172,8 +172,8 @@ not by adding new spec files or padding existing ones.
 ## Bugs found during the coverage round
 
 Seven defects have been found across this suite's original round and the
-re-audits since. Three are **fixed**; their assertions stayed on as
-regression guards. The other four are still pinned at their **current**
+re-audits since. Four are **fixed**; their assertions stayed on as
+regression guards. The other three are still pinned at their **current**
 behaviour with a `BUG:`-prefixed message, since each fix would be its own
 visible behaviour change.
 
@@ -222,16 +222,22 @@ visible behaviour change.
    domain off does not take effect until Neovim restarts. Same family as
    pdfport.nvim's finding, opposite symptom: there a second `setup()` *added* a
    duplicate, here it fails to *remove* one.
-4. **The runtime cycle-group commands mutate `config.DEFAULTS`.** `facade_spec.lua`.
-   `lib.lua.config.deep_merge` copies only the top level of `base`, so any key
-   the user did not override *is* the table inside
-   `cascade.config.DEFAULTS` — `cycle.groups` included. `cycle_group_add`
-   appends to the shipped defaults in place, so a group documented as
-   "deliberately not persisted" survives a fresh `setup()`; `cycle_group_remove`
-   deletes a shipped group for the rest of the session, and no re-`setup()`
-   brings it back. DEFAULTS' own header says "Never mutate it at runtime". A
-   user who supplies their own `cycle.groups` gets their own array mutated
-   instead — the milder half of the same defect.
+4. **The runtime cycle-group commands mutated `config.DEFAULTS` — fixed.**
+   `facade_spec.lua`. `lib.lua.config.deep_merge` copies only the top level of
+   `base`, so any key the user did not override *is* the table inside
+   `cascade.config.DEFAULTS` — `cycle.groups` included (that aliasing itself
+   is inherent to the merge and stays; its root cause is `lib.lua.config`,
+   out of scope for a cascade-only fix, LUA-02). `cycle_group_add` appended to
+   the shipped defaults in place, so a group documented as "deliberately not
+   persisted" survived a fresh `setup()`; `cycle_group_remove` deleted a
+   shipped group for the rest of the session, and no re-`setup()` brought it
+   back. DEFAULTS' own header says "Never mutate it at runtime". A user who
+   supplies their own `cycle.groups` got their own array mutated instead — the
+   milder half of the same defect. Fixed by never mutating `opts.groups` (or
+   `opts` itself) in place: both functions now build a private copy and swap
+   it into `config.options.cycle`, so config.DEFAULTS (and a user's own
+   `groups` table) is never touched regardless of which one `opts` happens to
+   alias.
 5. **`:Cascade indent N` / `:Cascade dedent N` ignored N — fixed.**
    `usrcmds_spec.lua`. The route declares `{ name = "levels", type = "INT" }`
    and its own desc says "arg = levels", but it handed `ctx.raw` to
