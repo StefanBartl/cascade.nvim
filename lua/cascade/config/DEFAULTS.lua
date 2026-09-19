@@ -187,6 +187,42 @@ local DEFAULTS = {
     },
   },
 
+  -- Advance a string literal's *kind* when its contents ask for it: `${` in
+  -- a JS/TS "string" makes it a `template string`, `{name}` in a Python
+  -- "string" makes it an f"string", and back again when the last
+  -- placeholder goes. Runs after InsertLeave/TextChanged (see `on`),
+  -- Tree-sitter based and silently inactive without a parser. See
+  -- cascade.strings and docs/FEATURES/STRINGS.md.
+  strings = {
+    enable = true,
+    features = {
+      template = true, -- JS/TS: "…${x}…" <-> `…${x}…`
+      fstring = true, -- Python: "…{x}…" <-> f"…{x}…"
+      -- Lua: "%s" -> ("%s"):format(). Off by default: a `%s` is a pattern
+      -- class as often as a placeholder, and the converter can only guess.
+      lua_format = false,
+    },
+    template_filetypes = {
+      "javascript",
+      "typescript",
+      "javascriptreact",
+      "typescriptreact",
+      "vue",
+      "astro",
+      "svelte",
+    },
+    fstring_filetypes = { "python" },
+    lua_format_filetypes = { "lua" },
+    -- A literal longer than this is never rewritten: a half-typed line can
+    -- parse as one enormous string.
+    max_characters = 200,
+    -- The quote a template string turns back into: '"' or "'".
+    quote = '"',
+    -- Events that trigger a conversion at the cursor. {} = manual only
+    -- (`:Cascade strings now`).
+    on = { "InsertLeave", "TextChanged" },
+  },
+
   -- `preset = false` binds nothing. Beyond that, each key is an individually
   -- overridable named action, split by where it applies: `globals` for the
   -- keys that work everywhere, `list` for the ones bound inside a buffer whose

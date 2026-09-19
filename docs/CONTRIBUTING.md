@@ -46,7 +46,7 @@ require("cascade").setup({ keymaps = { preset = true } })
 
 ## Adding a domain or a feature
 
-1. Decide which of the four domains it belongs to. If it needs to know it is in
+1. Decide which of the five domains it belongs to. If it needs to know it is in
    a list before it can act, it is a lists feature and is gated by
    `lists.filetypes`; if it only needs the token under the cursor, it is global.
 2. Implement it as a function that takes a line (or a range) and returns the

@@ -25,6 +25,7 @@ local specs = {
   "cycle_spec.lua",
   "transpose_spec.lua",
   "sequence_spec.lua",
+  "strings_spec.lua",
   "multibyte_spec.lua",
   "facade_spec.lua",
   "commands_spec.lua",

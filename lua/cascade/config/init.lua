@@ -45,12 +45,42 @@ local function normalize_sequence(o)
 end
 
 ---@internal
+--- Normalize `strings`: the autocmd layer iterates `on` and the converters
+--- read `max_characters`/`quote` without re-checking, so a wrong type
+--- degrades to the shipped default instead of erroring on every keystroke.
+---@param o CascadeConfig
+---@return nil
+local function normalize_strings(o)
+  local s = o.strings
+  if type(s) ~= "table" then
+    o.strings = lib_config.deep_merge(DEFAULTS.strings, {})
+    return
+  end
+  if s.enable == nil then
+    s.enable = true
+  end
+  if type(s.features) ~= "table" then
+    s.features = lib_config.deep_merge(DEFAULTS.strings.features, {})
+  end
+  if type(s.on) ~= "table" then
+    s.on = { "InsertLeave", "TextChanged" }
+  end
+  if type(s.max_characters) ~= "number" or s.max_characters < 1 then
+    s.max_characters = 200
+  end
+  if s.quote ~= "'" then
+    s.quote = '"'
+  end
+end
+
+---@internal
 --- Normalize `lists.renumber`: accept a boolean (back-compat) or a partial table
 --- and always end up with `{ enable = boolean, on = string[], blank_break = int }`.
 ---@param o CascadeConfig
 ---@return nil
 local function normalize(o)
   normalize_sequence(o)
+  normalize_strings(o)
   local lists = o.lists
   if type(lists) ~= "table" then
     return

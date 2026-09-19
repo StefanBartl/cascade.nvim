@@ -2,14 +2,17 @@
 --- Autocommands: per-filetype list keymaps, hanging-indent options, and
 --- the save-time renumber.
 ---
---- Three autocmds, all idempotent (their augroups are cleared on every setup):
+--- Four autocmds, all idempotent (their augroups are cleared on every setup):
 ---   - a FileType autocmd that binds the buffer-local list keys on the
 ---     configured `lists.filetypes` (only when the preset is enabled);
 ---   - a FileType autocmd that applies the hanging-indent `formatlistpat`/
 ---     `formatoptions` on the same filetypes (independent of the keymap
 ---     preset — it's a `lists` behavior, not a keymap one);
 ---   - a BufWritePre autocmd that renumbers ordered lists on save (only when
----     "save" is a configured `lists.renumber.on` trigger).
+---     "save" is a configured `lists.renumber.on` trigger);
+---   - a FileType autocmd on the strings domain's filetypes that binds the
+---     buffer-local `strings.on` triggers (InsertLeave/TextChanged by
+---     default) running `cascade.strings.convert` one tick deferred.
 
 local config = require("cascade.config")
 local Context = require("cascade.core.context")
@@ -116,6 +119,63 @@ local function setup_save_renumber()
   })
 end
 
+---@internal
+--- Bind the strings domain's buffer-local triggers on `bufnr`. Deferred one
+--- tick, like the idea's origin, so other autocmds on the same event finish
+--- before the buffer is rewritten under them.
+---@param bufnr integer
+---@return nil
+local function bind_strings_buffer(bufnr)
+  local strings = require("cascade.strings")
+  local on = config.get("strings.on")
+  if type(on) ~= "table" or #on == 0 then
+    return
+  end
+  local group = vim.api.nvim_create_augroup(("cascade_strings_%d"):format(bufnr), { clear = true })
+  vim.api.nvim_create_autocmd(on, {
+    group = group,
+    buffer = bufnr,
+    desc = "cascade: convert the string literal at the cursor",
+    callback = function(args)
+      if not vim.api.nvim_buf_is_valid(args.buf) then
+        return true
+      end
+      -- The buffer changed filetype away from the domain: drop the trigger.
+      if not strings.converter_for(vim.bo[args.buf].filetype) then
+        return true
+      end
+      vim.defer_fn(function()
+        if vim.api.nvim_buf_is_valid(args.buf) then
+          strings.convert(args.buf)
+        end
+      end, 1)
+    end,
+  })
+end
+
+---@internal
+--- Register the strings domain's FileType trigger on its filetypes.
+---@return nil
+local function setup_strings()
+  local group = lib.augroup("cascade_strings")
+  local strings = require("cascade.strings")
+  local fts = strings.filetypes()
+  if #fts == 0 then
+    return
+  end
+  autocmd.create("FileType", function(args)
+    bind_strings_buffer(args.buf)
+  end, {
+    group = group,
+    pattern = fts,
+    desc = "cascade: bind the strings domain's triggers",
+  })
+  -- Cover the buffer already open at setup time.
+  if ft_in(fts, vim.bo.filetype) then
+    bind_strings_buffer(vim.api.nvim_get_current_buf())
+  end
+end
+
 --- Register cascade's autocmds.
 ---@param cfg CascadeConfig
 ---@return nil
@@ -125,6 +185,7 @@ function M.setup(cfg)
   end
   setup_hanging_indent(cfg)
   setup_save_renumber()
+  setup_strings()
 end
 
 return M

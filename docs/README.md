@@ -27,7 +27,7 @@ What is here, and which question each page answers.
 | Page | Answers |
 | --- | --- |
 | [FEATURES/](FEATURES/README.md) | One page per area — cycling, lists, sequence renumbering, transposing — and what separates them: how much the plugin has to recognise before it can act, which is also why some are global and some are filetype-scoped |
-| [architecture.md](architecture.md) | The detect → advance → fall back chain all four domains share, where each module sits, and exactly how much of `lib.nvim` is required versus merely used |
+| [architecture.md](architecture.md) | The detect → advance → fall back chain all five domains share, where each module sits, and exactly how much of `lib.nvim` is required versus merely used |
 
 ## Working on it
 

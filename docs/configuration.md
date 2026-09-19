@@ -11,6 +11,7 @@ reference in Vim help form.
 - [cycle](#cycle)
 - [sequence](#sequence)
 - [transpose](#transpose)
+- [strings](#strings)
 - [keymaps](#keymaps)
 - [debug](#debug)
 - [Cycle packs](#cycle-packs)
@@ -75,6 +76,16 @@ require("cascade").setup({
     enable = true,
     features = { char = true, word = true },
   },
+  strings = {                                -- advance a string literal's KIND (Tree-sitter, from an autocmd)
+    enable = true,
+    features = { template = true, fstring = true, lua_format = false },
+    template_filetypes = { "javascript", "typescript", "javascriptreact", "typescriptreact", "vue", "astro", "svelte" },
+    fstring_filetypes = { "python" },
+    lua_format_filetypes = { "lua" },
+    max_characters = 200,                    -- longer literals are never rewritten
+    quote = '"',                             -- what a template string turns back into
+    on = { "InsertLeave", "TextChanged" },   -- {} = manual only (:Cascade strings now)
+  },
   keymaps = {
     preset = false,                          -- true binds the opinionated default keys
     globals = {},                            -- per-action key overrides, everywhere
@@ -134,6 +145,25 @@ Groups can also be added and dropped for the running session with
 | `transpose.enable` | boolean | Master switch for the transpose domain. |
 | `transpose.features.char` | boolean | Char swap, and the char variant of the selection swap. |
 | `transpose.features.word` | boolean | Word swap, and the word variant of the selection swap. |
+
+## strings
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `strings.enable` | boolean | Master switch for the strings domain. |
+| `strings.features.template` | boolean | JS/TS: `"…${x}…"` ↔ `` `…${x}…` `` (also a quoted string that gained a newline). |
+| `strings.features.fstring` | boolean | Python: `"…{name}…"` ↔ `f"…{name}…"`. `{}`, `{0}`, `{, }` never count. |
+| `strings.features.lua_format` | boolean | Lua: `"%s"` ↔ `("%s"):format()`. **Off by default** — a `%s` is a pattern class as often as a placeholder. Never touches pattern-looking literals or arguments of `match`/`find`/`gsub`/`gmatch`/`format`. |
+| `strings.template_filetypes` | string[] | Filetypes the JS/TS converter attaches to. |
+| `strings.fstring_filetypes` | string[] | Filetypes the Python converter attaches to. |
+| `strings.lua_format_filetypes` | string[] | Filetypes the Lua converter attaches to. |
+| `strings.max_characters` | integer | A literal longer than this is never rewritten (a half-typed line can parse as one enormous string). |
+| `strings.quote` | `'"'` \| `"'"` | The quote a template string turns back into. |
+| `strings.on` | string[] | Events that trigger a conversion at the cursor, bound buffer-locally on the domain's filetypes. `{}` = manual only, via `:Cascade strings now`. |
+
+The domain needs a Tree-sitter parser for the buffer's language and is
+silently inactive without one; `:checkhealth cascade` names the missing
+parsers. `:Cascade strings off` switches it off for one buffer.
 
 ## keymaps
 

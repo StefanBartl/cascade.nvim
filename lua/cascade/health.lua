@@ -151,6 +151,38 @@ function M.check()
   else
     info("transpose: disabled")
   end
+
+  -- Strings domain: Tree-sitter based, so report which of its parsers exist.
+  local strings_ok, strings = pcall(require, "cascade.strings")
+  local scfg = config.get("strings")
+  if strings_ok and type(scfg) == "table" and scfg.enable then
+    local fts = strings.filetypes()
+    if #fts == 0 then
+      info("strings: enabled, but every converter is off")
+    else
+      ok(("strings: enabled for { %s }"):format(table.concat(fts, ", ")))
+      local missing = {}
+      for _, lang in ipairs({ "javascript", "typescript", "python", "lua" }) do
+        if vim.tbl_contains(fts, lang) and #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0 then
+          missing[#missing + 1] = lang
+        end
+      end
+      if #missing > 0 then
+        info(
+          ("strings: no Tree-sitter parser for { %s } -- inactive there"):format(table.concat(missing, ", ")),
+          { "Install the parser (:TSInstall <lang>) to enable the conversion" }
+        )
+      end
+      local on = scfg.on
+      if type(on) == "table" and #on > 0 then
+        info("strings: converts on " .. table.concat(on, ", "))
+      else
+        info("strings: manual only (`:Cascade strings now`)")
+      end
+    end
+  else
+    info("strings: disabled")
+  end
 end
 
 return M
