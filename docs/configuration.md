@@ -7,6 +7,7 @@ reference in Vim help form.
 ## Table of contents
 
 - [Defaults](#defaults)
+- [Validation](#validation)
 - [lists](#lists)
 - [cycle](#cycle)
 - [sequence](#sequence)
@@ -94,6 +95,21 @@ require("cascade").setup({
   debug = false,                             -- log detect/advance/fallback decisions
 })
 ```
+
+## Validation
+
+Options are checked before they are merged. An unknown key — at the top
+level, or one level into `lists`/`cycle`/`sequence`/`transpose`/`strings` — is
+ignored with a warning that names the nearest known key
+(`lists = { chekbox = {...} }` → "did you mean 'lists.checkbox'?"); `keymaps`
+is exempt, since its own keys are action names, not a fixed schema. An option
+table given as something other than a table (`lists = false`) falls back to
+that table's default instead of replacing it wholesale and throwing on the
+first nested read. `lists.filetypes`, `lists.checkbox`, `lists.continue` and
+`cycle.filetypes` get the same fallback for a wrong-typed *value*, since
+several call sites (`:checkhealth`'s own report among them) index them
+unconditionally. Everything ignored or degraded is listed again under
+`:checkhealth cascade`.
 
 ## lists
 

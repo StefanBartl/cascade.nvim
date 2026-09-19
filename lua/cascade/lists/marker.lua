@@ -49,6 +49,13 @@ local function split_checkbox(body, opts)
 end
 
 ---@internal
+--- Warn-once memo (`"filetype:index"`) for a `per_filetype_patterns` entry
+--- that turned out invalid, so a buffer re-parsed on every keypress does not
+--- renotify every time.
+---@type table<string, boolean>
+local warned_custom_pattern = {}
+
+---@internal
 --- Try the current buffer's filetype-specific custom patterns (see
 --- `opts.per_filetype_patterns`) before the built-in kinds. Reads the
 --- *current* buffer's filetype directly rather than taking one as a
@@ -57,6 +64,13 @@ end
 --- at that moment — there's no cross-buffer ambiguity to guard against, and
 --- threading a filetype through every one of `parse`'s many call sites would
 --- buy nothing.
+---
+--- Each entry must be a syntactically valid Lua pattern with exactly two
+--- captures (marker, rest); neither is checked at config time (a pattern's
+--- capture count can only be proven against a real match), so both are
+--- guarded here instead -- an entry that fails either degrades to "did not
+--- match" (falling through to the built-in kinds) rather than throwing on
+--- every keypress in this filetype, with a one-time warning naming it.
 ---@param rest string # Line content with the indent already stripped.
 ---@param indent string
 ---@param opts CascadeListOpts
@@ -68,10 +82,20 @@ local function parse_custom(rest, indent, opts)
     return nil
   end
   for i = 1, #extra do
-    local mk, after = rest:match(extra[i])
-    if mk then
+    local ok, mk, after = pcall(string.match, rest, extra[i])
+    if ok and mk and after then
       local cb, text = split_checkbox(after, opts)
       return { indent = indent, kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
+    elseif not ok or (mk and not after) then
+      local memo_key = vim.bo.filetype .. ":" .. i
+      if not warned_custom_pattern[memo_key] then
+        warned_custom_pattern[memo_key] = true
+        local reason = ok and "must have exactly two captures (marker, rest)" or tostring(mk)
+        require("cascade.util.lib").notify(
+          ("lists.per_filetype_patterns[%q][%d] is invalid (%s) — skipped"):format(vim.bo.filetype, i, reason),
+          vim.log.levels.WARN
+        )
+      end
     end
   end
   return nil
