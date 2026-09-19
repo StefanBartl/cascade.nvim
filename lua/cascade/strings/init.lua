@@ -40,23 +40,55 @@ end
 ---@param text string
 local function replace_node(bufnr, node, text)
   local srow, scol, erow, ecol = node:range()
-  pcall(vim.cmd.undojoin)
-  vim.api.nvim_buf_set_text(bufnr, srow, scol, erow, ecol, vim.split(text, "\n", { plain = true }))
+  local lines = vim.split(text, "\n", { plain = true })
+  -- Both `:undojoin` and the edit itself run inside `bufnr`'s own window
+  -- context: `:undojoin` joins the NEXT change of whatever buffer is
+  -- CURRENT when it runs, and by the time this fires (from a 1ms-deferred
+  -- callback) that may no longer be `bufnr` -- an unrelated edit to a
+  -- different buffer in between would otherwise splice this conversion
+  -- into THAT buffer's undo history instead of the edit that triggered it.
+  vim.api.nvim_buf_call(bufnr, function()
+    pcall(vim.cmd.undojoin)
+    vim.api.nvim_buf_set_text(bufnr, srow, scol, erow, ecol, lines)
+  end)
 end
 
 ---@internal
----The innermost node at the cursor of `bufnr`'s window, after a parse.
+---The window to read/write the cursor in for `bufnr`: `winid` when it is
+---still valid and still shows `bufnr` (the caller's own record of which
+---window was actually being edited, captured synchronously at trigger
+---time -- see bindings/autocmds.lua); the current window when THAT shows
+---`bufnr`; `vim.fn.bufwinid(bufnr)` -- the first window showing it, not
+---necessarily the right one -- only as a last resort.
 ---@param bufnr integer
+---@param winid integer|nil
+---@return integer|nil
+local function resolve_win(bufnr, winid)
+  if winid and vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == bufnr then
+    return winid
+  end
+  local cur = vim.api.nvim_get_current_win()
+  if vim.api.nvim_win_get_buf(cur) == bufnr then
+    return cur
+  end
+  local w = vim.fn.bufwinid(bufnr)
+  return w ~= -1 and w or nil
+end
+
+---@internal
+---The innermost node at the cursor of `bufnr`, after a parse.
+---@param bufnr integer
+---@param winid integer|nil  see `resolve_win`
 ---@return TSNode|nil
-local function node_at_cursor(bufnr)
+local function node_at_cursor(bufnr, winid)
   local ok, node = pcall(function()
     local parser = vim.treesitter.get_parser(bufnr)
     if not parser then
       return nil
     end
     parser:parse()
-    local win = vim.fn.bufwinid(bufnr)
-    if win == -1 then
+    local win = resolve_win(bufnr, winid)
+    if not win then
       return nil
     end
     local cur = vim.api.nvim_win_get_cursor(win)
@@ -91,10 +123,11 @@ end
 ---and a template string with no `${}` and no newline back to a plain quoted
 ---string (tagged templates are left alone).
 ---@param bufnr integer|nil
+---@param winid integer|nil
 ---@return boolean changed
-function M.template_string(bufnr)
+function M.template_string(bufnr, winid)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  local node = node_at_cursor(bufnr)
+  local node = node_at_cursor(bufnr, winid)
   if not node then
     return false
   end
@@ -140,10 +173,11 @@ end
 ---f-string with no braces back. `{}`, `{0}`, `{, }` do not count as a
 ---placeholder (they are set/dict/format-index syntax too often).
 ---@param bufnr integer|nil
+---@param winid integer|nil
 ---@return boolean changed
-function M.python_fstring(bufnr)
+function M.python_fstring(bufnr, winid)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  local node = node_at_cursor(bufnr)
+  local node = node_at_cursor(bufnr, winid)
   if not node then
     return false
   end
@@ -191,21 +225,132 @@ local PATTERN_METHODS = { match = true, gmatch = true, find = true, gsub = true,
 ---@param bufnr integer
 ---@param str TSNode
 ---@return boolean
-local function lua_pattern_context(bufnr, str)
-  local args = str:parent()
-  if not args or args:type() ~= "arguments" then
-    return false
+---@internal
+---Walk up from `node` to the nearest enclosing `chunk`/`block` -- the
+---function body or file `node` sits in, regardless of how many
+---`variable_declaration`/`if_statement`/... wrappers are in between.
+---@param node TSNode
+---@return TSNode|nil
+local function enclosing_block(node)
+  local n = node:parent()
+  while n do
+    local t = n:type()
+    if t == "chunk" or t == "block" then
+      return n
+    end
+    n = n:parent()
   end
-  local call = args:parent()
-  if not call or call:type() ~= "function_call" then
-    return false
-  end
+  return nil
+end
+
+---@internal
+---The callee's trailing method/function name for `call` (a `function_call`
+---node) -- covers `x:METHOD(...)`, `mod.METHOD(...)` and a bare
+---`METHOD(...)` alike via a plain text-suffix match, the same way the
+---direct-argument check above resolves it, rather than branching on the
+---callee's exact node shape.
+---@param bufnr integer
+---@param call TSNode
+---@return string|nil
+local function call_method_name(bufnr, call)
   local callee = call:child(0)
   if not callee then
-    return false
+    return nil
   end
-  local name = node_text(bufnr, callee):match("[%w_]+$")
-  return name ~= nil and PATTERN_METHODS[name] == true
+  return node_text(bufnr, callee):match("[%w_]+$")
+end
+
+---@internal
+---Whether `name` is used, anywhere inside `scope`, either as the RECEIVER
+---of a pattern method (`name:match(...)`) or as a direct ARGUMENT to one
+---(`s:find(name)`, `string.gsub(s, name, r)`) -- the two shapes a Lua
+---pattern kept in a named local actually gets used in. A plain tree walk,
+---not real dataflow: a pattern reached through a second alias, or built up
+---across more than one assignment, is still invisible to it -- narrower
+---than the case this exists to catch, on purpose (a false negative here
+---just means a pattern-looking literal converts when it should not have; a
+---false positive would leave a real format string unconverted, which is
+---the safer failure).
+---@param bufnr integer
+---@param scope TSNode
+---@param name string
+---@return boolean
+local function used_as_pattern_method(bufnr, scope, name)
+  for node in scope:iter_children() do
+    if node:type() == "function_call" then
+      local mname = call_method_name(bufnr, node)
+      if mname and PATTERN_METHODS[mname] == true then
+        local callee = node:child(0)
+        -- Receiver: `name:METHOD(...)`.
+        if callee and callee:type() == "method_index_expression" then
+          local obj = callee:child(0)
+          if obj and obj:type() == "identifier" and node_text(bufnr, obj) == name then
+            return true
+          end
+        end
+        -- Argument: `METHOD(..., name, ...)`.
+        for arg_list in node:iter_children() do
+          if arg_list:type() == "arguments" then
+            for a in arg_list:iter_children() do
+              if a:type() == "identifier" and node_text(bufnr, a) == name then
+                return true
+              end
+            end
+          end
+        end
+      end
+    end
+    if used_as_pattern_method(bufnr, node, name) then
+      return true
+    end
+  end
+  return false
+end
+
+---@internal
+---Whether `str` is an argument of a `:match`/`.find`/`string.format`-style
+---call, where `%s` means a pattern class or is already being formatted --
+---either directly (`s:match("...")`), or one hop removed, through a local
+---variable the literal was just assigned to (`local pat = "..."` later
+---used as `s:match(pat)` anywhere in the same function/file).
+---@param bufnr integer
+---@param str TSNode
+---@return boolean
+local function lua_pattern_context(bufnr, str)
+  local args = str:parent()
+  if args and args:type() == "arguments" then
+    local call = args:parent()
+    if call and call:type() == "function_call" then
+      local callee = call:child(0)
+      if callee then
+        local name = node_text(bufnr, callee):match("[%w_]+$")
+        if name ~= nil and PATTERN_METHODS[name] == true then
+          return true
+        end
+      end
+    end
+  end
+
+  -- Not a direct call argument: if this literal is the sole initializer of
+  -- a plain or `local` variable, check whether that name is later used as
+  -- a pattern-method argument anywhere in the enclosing function/file.
+  local list = str:parent()
+  if list and list:type() == "expression_list" then
+    local stmt = list:parent()
+    if stmt and stmt:type() == "assignment_statement" then
+      local names = stmt:child(0)
+      local scope = enclosing_block(stmt)
+      if names and names:type() == "variable_list" and scope then
+        for i = 0, names:named_child_count() - 1 do
+          local nm = names:named_child(i)
+          if nm and nm:type() == "identifier" and used_as_pattern_method(bufnr, scope, node_text(bufnr, nm)) then
+            return true
+          end
+        end
+      end
+    end
+  end
+  return false
 end
 
 ---Convert the Lua string at the cursor: a literal with `%s`/`%d`/`%q`/…
@@ -214,10 +359,11 @@ end
 ---collapses back to the literal. Pattern-looking literals and arguments of
 ---`match`/`find`/`gsub`/`gmatch`/`format` are left alone.
 ---@param bufnr integer|nil
+---@param winid integer|nil
 ---@return boolean changed
-function M.lua_format(bufnr)
+function M.lua_format(bufnr, winid)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  local node = node_at_cursor(bufnr)
+  local node = node_at_cursor(bufnr, winid)
   if not node then
     return false
   end
@@ -250,13 +396,24 @@ function M.lua_format(bufnr)
   local is_format = parent ~= nil and parent:type() == "parenthesized_expression"
 
   if has_placeholder and not is_format then
-    replace_node(bufnr, str, "(" .. text .. "):format()")
-    local win = vim.fn.bufwinid(bufnr)
-    if win ~= -1 then
-      local erow, ecol = str:end_()
-      -- `str` still describes the old range; the new text is that plus
-      -- `(`…`):format()` -- the closing paren sits 1 + 9 columns further.
-      pcall(vim.api.nvim_win_set_cursor, win, { erow + 1, ecol + 1 + 9 })
+    local prefix, suffix = "(", "):format()"
+    local srow = str:start()
+    local erow, ecol = str:end_()
+    replace_node(bufnr, str, prefix .. text .. suffix)
+    local win = resolve_win(bufnr, winid)
+    if win then
+      -- `str` still describes the OLD (pre-edit) range. The suffix always
+      -- lands right after the old end column; the prefix shifts that SAME
+      -- column too only when the literal is single-line (srow == erow) --
+      -- for a multi-line long-bracket string the `(` was inserted on an
+      -- EARLIER row and does not affect the closing row's columns at all.
+      -- Either way the target is one column back from the final `)`, i.e.
+      -- inside the still-empty format() parens.
+      local col = ecol + #suffix - 1
+      if erow == srow then
+        col = col + #prefix
+      end
+      pcall(vim.api.nvim_win_set_cursor, win, { erow + 1, col })
     end
     return true
   end

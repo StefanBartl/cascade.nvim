@@ -176,10 +176,19 @@ function M.check()
       info("strings: enabled, but every converter is off")
     else
       ok(("strings: enabled for { %s }"):format(table.concat(fts, ", ")))
-      local missing = {}
-      for _, lang in ipairs({ "javascript", "typescript", "python", "lua" }) do
-        if vim.tbl_contains(fts, lang) and #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0 then
-          missing[#missing + 1] = lang
+      -- Every configured filetype, not a hardcoded four -- javascriptreact,
+      -- vue, astro, svelte and friends each need their OWN Tree-sitter
+      -- parser too (resolved via the same filetype -> language mapping
+      -- nvim-treesitter itself registers), and a fixed short list silently
+      -- reported them as fine regardless of whether that parser exists.
+      local missing, checked_langs = {}, {}
+      for _, ft in ipairs(fts) do
+        local lang = vim.treesitter.language.get_lang(ft) or ft
+        if not checked_langs[lang] then
+          checked_langs[lang] = true
+          if #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0 then
+            missing[#missing + 1] = (lang == ft) and lang or (ft .. " (" .. lang .. ")")
+          end
         end
       end
       if #missing > 0 then

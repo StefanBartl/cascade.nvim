@@ -131,36 +131,95 @@ local function setup_save_renumber()
 end
 
 ---@internal
---- Bind the strings domain's buffer-local triggers on `bufnr`. Deferred one
---- tick, like the idea's origin, so other autocmds on the same event finish
---- before the buffer is rewritten under them.
+--- Buffers already given the strings domain's per-buffer triggers this
+--- setup() cycle, and their debounce handle. Reset at the top of
+--- setup_strings(), in the same place the shared `triggers` augroup below
+--- is cleared, so the two never go out of sync -- a stale `true` left over
+--- after a re-setup() would silently skip re-registering a buffer whose
+--- actual autocmd that group-level clear just wiped out.
+---@type table<integer, true>
+local strings_attached = {}
+---@type table<integer, Lib.Debounce.Handle>
+local strings_debounced = {}
+
+---@internal
+--- Bind the strings domain's buffer-local triggers on `bufnr`, into the
+--- shared `group` (created ONCE per setup() cycle by setup_strings() and
+--- passed in here, rather than looked up per buffer -- `lib.augroup()`
+--- clears its group on every call, so calling it once per buffer would
+--- wipe every OTHER already-attached buffer's registration each time a new
+--- one is attached; a single, shared, buffer-scoped group is what keeps
+--- this bounded instead of minting one augroup per buffer forever).
+---
+--- The actual conversion runs through a per-buffer debounce (`ms = 1`,
+--- matching the idea's origin's "deferred one tick, so other autocmds on
+--- the same event finish first") rather than a bare `vim.defer_fn`: a
+--- burst of qualifying events (a macro, several edits in quick
+--- succession) used to schedule one independent timer each, all of them
+--- firing and each redoing a full Tree-sitter parse -- the debounce
+--- collapses a burst into a single attempt, using the most recent
+--- trigger's window.
 ---@param bufnr integer
+---@param group integer
 ---@return nil
-local function bind_strings_buffer(bufnr)
+local function bind_strings_buffer(bufnr, group)
+  if strings_attached[bufnr] then
+    return
+  end
   local strings = require("cascade.strings")
   local on = config.get("strings.on")
   if type(on) ~= "table" or #on == 0 then
     return
   end
-  local group = vim.api.nvim_create_augroup(("cascade_strings_%d"):format(bufnr), { clear = true })
+  strings_attached[bufnr] = true
+
+  local function forget()
+    strings_attached[bufnr] = nil
+    local handle = strings_debounced[bufnr]
+    if handle then
+      pcall(handle.cancel)
+      strings_debounced[bufnr] = nil
+    end
+  end
+
   vim.api.nvim_create_autocmd(on, {
     group = group,
     buffer = bufnr,
     desc = "cascade: convert the string literal at the cursor",
     callback = function(args)
       if not vim.api.nvim_buf_is_valid(args.buf) then
+        forget()
         return true
       end
       -- The buffer changed filetype away from the domain: drop the trigger.
       if not strings.converter_for(vim.bo[args.buf].filetype) then
+        forget()
         return true
       end
-      vim.defer_fn(function()
-        if vim.api.nvim_buf_is_valid(args.buf) then
-          strings.convert(args.buf)
-        end
-      end, 1)
+      -- Captured synchronously, at the moment the triggering event fires --
+      -- NOT rediscovered when the debounce eventually runs, by which point
+      -- the current window may have changed, and `vim.fn.bufwinid` would
+      -- only ever return the FIRST window showing this buffer, not
+      -- necessarily the one that was just edited.
+      local trigger_win = vim.api.nvim_get_current_win()
+      local handle = strings_debounced[args.buf]
+      if not handle then
+        handle = require("lib.nvim.debounce").new(function(win)
+          if vim.api.nvim_buf_is_valid(args.buf) then
+            strings.convert(args.buf, win)
+          end
+        end, 1)
+        strings_debounced[args.buf] = handle
+      end
+      handle.call(trigger_win)
     end,
+  })
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
+    buffer = bufnr,
+    once = true,
+    desc = "cascade: forget the strings domain's per-buffer state",
+    callback = forget,
   })
 end
 
@@ -169,13 +228,22 @@ end
 ---@return nil
 local function setup_strings()
   local group = lib.augroup("cascade_strings")
+  local triggers_group = lib.augroup("cascade_strings_triggers")
+  for bufnr in pairs(strings_attached) do
+    local handle = strings_debounced[bufnr]
+    if handle then
+      pcall(handle.cancel)
+    end
+  end
+  strings_attached = {}
+  strings_debounced = {}
   local strings = require("cascade.strings")
   local fts = strings.filetypes()
   if #fts == 0 then
     return
   end
   autocmd.create("FileType", function(args)
-    bind_strings_buffer(args.buf)
+    bind_strings_buffer(args.buf, triggers_group)
   end, {
     group = group,
     pattern = fts,
@@ -183,7 +251,7 @@ local function setup_strings()
   })
   -- Cover the buffer already open at setup time.
   if ft_in(fts, vim.bo.filetype) then
-    bind_strings_buffer(vim.api.nvim_get_current_buf())
+    bind_strings_buffer(vim.api.nvim_get_current_buf(), triggers_group)
   end
 end
 
