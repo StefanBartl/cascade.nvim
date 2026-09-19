@@ -125,6 +125,33 @@ return function(H)
   eq(strings.convert(buf), true, "convert: routes to lua_format")
   eq(line1(buf), 'x = ("%s"):format()', "convert: converted")
 
+  -- convert()'s pcall around the converter is broader than the Tree-sitter
+  -- "no parser" guard the converters carry internally (see the module
+  -- comment): a converter that throws for any other reason must not look
+  -- identical to "nothing to convert here" (ERR-11) -- it is warned
+  -- distinctly instead of silently returning `false` like a legitimate
+  -- no-op.
+  do
+    buf = buffer_with("lua", 'x = "%s"', 5)
+    local orig_fn = strings.lua_format
+    strings.lua_format = function()
+      error("simulated converter failure")
+    end
+    local warnings = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
+    local changed = strings.convert(buf)
+    vim.notify = orig_notify
+    strings.lua_format = orig_fn
+    eq(changed, false, "convert: a throwing converter still reports false, not an error")
+    eq(#warnings, 1, "convert: a throwing converter warns exactly once")
+    eq(warnings[1].level, vim.log.levels.WARN, "convert: the crash warning is WARN")
+    ok(warnings[1].msg:find("simulated converter failure", 1, true) ~= nil, "convert: the warning names the underlying error")
+  end
+
   -- A scratch buffer never converts.
   local scratch = H.scratch("lua")
   eq(strings.active(scratch), false, "active: nofile buffer is inactive")

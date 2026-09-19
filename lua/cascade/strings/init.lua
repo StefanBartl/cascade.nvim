@@ -23,6 +23,7 @@
 --- `gmatch`/`string.format` is never touched.
 
 local config = require("cascade.config")
+local lib = require("cascade.util.lib")
 
 local M = {}
 
@@ -529,7 +530,18 @@ function M.convert(bufnr)
     return false
   end
   local ok, changed = pcall(fn, bufnr)
-  return ok and changed == true
+  if not ok then
+    -- This pcall is broader than the "no Tree-sitter parser" guard the
+    -- converters carry internally (see the module comment): it also covers
+    -- a real bug in the conversion itself, e.g. a stale node range after the
+    -- deferred InsertLeave/TextChanged tick. Collapsing that into the same
+    -- `false` as "nothing here to convert" (ERR-11) would make every future
+    -- edit in this filetype silently stop converting, with no way to tell
+    -- why. Warn distinctly so the failure stays diagnosable.
+    lib.notify(("string converter for %q failed: %s"):format(vim.bo[bufnr].filetype, tostring(changed)), vim.log.levels.WARN)
+    return false
+  end
+  return changed == true
 end
 
 ---Per-buffer switch. `nil` toggles.
