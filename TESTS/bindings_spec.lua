@@ -96,68 +96,60 @@ return function(H)
   end
 
   do
-    -- From a clean slate, the preset switch decides whether the FileType
-    -- keymap handler is registered at all, while the format handler is a
-    -- `lists` behaviour and is registered either way.
-    eq(
-      autocmds("cascade_list_keymaps", "FileType") > 0,
-      true,
-      "fixture: the keymap handler exists from the previous setup (see the BUG pin below)"
-    )
+    -- The preset switch decides whether the FileType keymap handler is
+    -- registered at all, while the format handler is a `lists` behaviour
+    -- and is registered either way.
+    cascade.setup({ keymaps = { preset = true } })
+    eq(autocmds("cascade_list_keymaps", "FileType") > 0, true, "fixture: the keymap handler is registered with the preset on")
+
     cascade.setup({ keymaps = { preset = false } })
+    eq(autocmds("cascade_list_keymaps", "FileType"), 0, "autocmds: preset = false removes the keymap handler")
     ok(autocmds("cascade_list_format", "FileType") > 0, "autocmds: preset = false keeps the hanging-indent handler")
     eq(autocmds("cascade_renumber_save", "BufWritePre"), 1, "autocmds: ... and the save renumber")
   end
 
-  -- ---------- BUG: two of the three augroups are only cleared when their
-  -- ---------- gate passes, so switching a domain off does not take effect
-  -- ---------- until Neovim restarts
+  -- ---------- all three augroups are cleared unconditionally, not just
+  -- ---------- when their gate passes, so switching a domain off takes
+  -- ---------- effect immediately ----------
 
   do
-    -- `bindings/autocmds.lua`'s module doc says: "Three autocmds, all
-    -- idempotent (their augroups are cleared on every setup)". Only one of
-    -- the three actually is.
+    -- `bindings/autocmds.lua`'s module doc says: "Four autocmds, all
+    -- idempotent (their augroups are cleared on every setup)".
     --
     -- `setup_save_renumber` calls `lib.augroup(name)` FIRST and checks its
     -- gate afterwards, so the group is emptied on every setup() whether or
-    -- not a handler goes back in -- correct. `setup_list_keymaps` and
-    -- `setup_hanging_indent` do it the other way round: they `return` on the
-    -- gate BEFORE reaching `lib.augroup`, so a setup() that gates them off
-    -- never clears the group and the previous setup()'s handlers stay live.
-    --
-    -- Same family as pdfport.nvim's round-14 finding, but the opposite
-    -- symptom: there a second setup() *added* a duplicate handler; here a
-    -- second setup() fails to *remove* one. Not a lib.nvim bug either way.
-    --
-    -- Pinned rather than fixed: the repair is to hoist the two `lib.augroup`
-    -- calls above their gates (mirroring `setup_save_renumber`), which is a
-    -- two-line reorder but a real behaviour change -- keys and buffer options
-    -- that currently survive a switch-off would stop surviving it.
+    -- not a handler goes back in. `setup_list_keymaps` and
+    -- `setup_hanging_indent` now do the same (fixed: they used to `return`
+    -- on the gate BEFORE reaching `lib.augroup`, so a setup() that gated
+    -- them off never cleared the group and the previous setup()'s handlers
+    -- stayed live -- same family as pdfport.nvim's round-14 finding, but the
+    -- opposite symptom: there a second setup() *added* a duplicate handler;
+    -- here a second setup() failed to *remove* one).
     cascade.setup({ keymaps = { preset = true } })
     local keys = autocmds("cascade_list_keymaps", "FileType")
     local fmt = autocmds("cascade_list_format", "FileType")
     ok(keys > 0 and fmt > 0, "fixture: both FileType handlers are registered")
 
-    -- BUG: the preset is switched off, the handlers stay.
+    -- The preset is switched off: the keymap handler is gone, right away.
     cascade.setup({ keymaps = { preset = false } })
-    eq(autocmds("cascade_list_keymaps", "FileType"), keys, "BUG: preset = false leaves the previous keymap handlers registered")
+    eq(autocmds("cascade_list_keymaps", "FileType"), 0, "autocmds: preset = false removes the keymap handlers")
 
-    -- BUG: the whole list domain is switched off, both handlers stay. Only
-    -- the save renumber -- the one that clears first -- is actually removed.
+    -- The whole list domain is switched off: every handler is gone, the
+    -- save renumber included.
     cascade.setup({ keymaps = { preset = true } })
     cascade.setup({ keymaps = { preset = true }, lists = { enable = false } })
-    eq(autocmds("cascade_list_keymaps", "FileType"), keys, "BUG: lists.enable = false leaves the keymap handlers registered")
-    eq(autocmds("cascade_list_format", "FileType"), fmt, "BUG: lists.enable = false leaves the format handlers registered")
-    eq(autocmds("cascade_renumber_save", "BufWritePre"), 0, "autocmds: the save handler, which clears first, IS removed")
+    eq(autocmds("cascade_list_keymaps", "FileType"), 0, "autocmds: lists.enable = false removes the keymap handlers")
+    eq(autocmds("cascade_list_format", "FileType"), 0, "autocmds: lists.enable = false removes the format handlers")
+    eq(autocmds("cascade_renumber_save", "BufWritePre"), 0, "autocmds: ... and the save handler")
 
-    -- BUG: same for an emptied filetype list.
+    -- Same for an emptied filetype list.
     cascade.setup({ keymaps = { preset = true } })
     cascade.setup({ keymaps = { preset = true }, lists = { filetypes = {} } })
-    eq(autocmds("cascade_list_keymaps", "FileType"), keys, "BUG: lists.filetypes = {} leaves the keymap handlers registered")
-    eq(autocmds("cascade_list_format", "FileType"), fmt, "BUG: lists.filetypes = {} leaves the format handlers registered")
+    eq(autocmds("cascade_list_keymaps", "FileType"), 0, "autocmds: lists.filetypes = {} removes the keymap handlers")
+    eq(autocmds("cascade_list_format", "FileType"), 0, "autocmds: lists.filetypes = {} removes the format handlers")
 
     -- The consequence, end to end: with the preset switched off, a matching
-    -- FileType event still binds cascade's buffer-local keys.
+    -- FileType event no longer binds any of cascade's buffer-local keys.
     cascade.setup({ keymaps = { preset = true } })
     cascade.setup({ keymaps = { preset = false } })
     local b = H.editable("markdown")
@@ -169,7 +161,14 @@ return function(H)
         bound = bound + 1
       end
     end
-    ok(bound > 0, "BUG: the stale handler still binds buffer-local keys after preset = false")
+    eq(bound, 0, "autocmds: no stale handler binds buffer-local keys after preset = false")
+
+    -- A subsequent setup() that turns the domain back on re-establishes it
+    -- from scratch -- this is not merely "stopped clearing", the augroup is
+    -- genuinely rebuilt on every call.
+    cascade.setup({ keymaps = { preset = true } })
+    ok(autocmds("cascade_list_keymaps", "FileType") > 0, "autocmds: a later setup() re-registers the keymap handler")
+    ok(autocmds("cascade_list_format", "FileType") > 0, "autocmds: ... and the format handler")
 
     cascade.setup({})
   end

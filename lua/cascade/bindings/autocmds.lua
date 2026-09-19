@@ -41,15 +41,24 @@ local function ft_in(fts, ft)
 end
 
 ---@internal
---- Bind the buffer-local list keys per filetype (preset only).
+--- Bind the buffer-local list keys per filetype (preset only). The augroup
+--- is cleared unconditionally, before either gate: a re-`setup()` that turns
+--- the preset (or `lists.enable`/`lists.filetypes`) off must still drop the
+--- previous run's autocmd, not just skip creating a new one (LUA-87). Called
+--- unconditionally from `M.setup` for exactly this reason -- the preset
+--- check used to live at that call site instead, which bypassed this
+--- function (and its `lib.augroup` clear) entirely when the preset was off.
 ---@param cfg CascadeConfig
 ---@return nil
 local function setup_list_keymaps(cfg)
+  local group = lib.augroup("cascade_list_keymaps")
+  if not (cfg.keymaps and cfg.keymaps.preset) then
+    return
+  end
   if not (cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0) then
     return
   end
   local keymaps = require("cascade.bindings.keymaps")
-  local group = lib.augroup("cascade_list_keymaps")
   autocmd.create("FileType", keymaps.bind_list_buffer, {
     group = group,
     pattern = cfg.lists.filetypes,
@@ -67,15 +76,17 @@ end
 
 --- Apply the hanging-indent `formatlistpat`/`formatoptions` per filetype.
 --- Independent of the keymap preset: it's a `lists` behavior (gated by
---- `lists.continue.hanging_indent`), not a keymap one.
+--- `lists.continue.hanging_indent`), not a keymap one. The augroup is
+--- cleared unconditionally, before the gate -- see `setup_list_keymaps`
+--- (LUA-87).
 ---@internal
 ---@param cfg CascadeConfig
 ---@return nil
 local function setup_hanging_indent(cfg)
+  local group = lib.augroup("cascade_list_format")
   if not (cfg.lists.enable and type(cfg.lists.filetypes) == "table" and #cfg.lists.filetypes > 0) then
     return
   end
-  local group = lib.augroup("cascade_list_format")
   autocmd.create("FileType", function(args)
     format.apply(args.buf, config.get("lists"))
   end, {
@@ -180,9 +191,10 @@ end
 ---@param cfg CascadeConfig
 ---@return nil
 function M.setup(cfg)
-  if cfg.keymaps and cfg.keymaps.preset then
-    setup_list_keymaps(cfg)
-  end
+  -- Unconditional: setup_list_keymaps clears its own augroup before checking
+  -- the preset gate itself (LUA-87) -- gating the call here instead would
+  -- bypass that clear entirely whenever the preset is off.
+  setup_list_keymaps(cfg)
   setup_hanging_indent(cfg)
   setup_save_renumber()
   setup_strings()
