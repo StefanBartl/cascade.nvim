@@ -262,6 +262,43 @@ return function(H)
     ok(#r.error == 0, "health: no error report after degrading a bad lists/cycle shape")
   end
 
+  do
+    -- lists.types / lists.unordered_markers / cycle.groups: none of these
+    -- are guarded at their own call sites (marker.parse's `#opts.types`,
+    -- patterns.unordered_class's `table.concat(opts.unordered_markers, ...)`,
+    -- word_cycle's `#opts.groups`), so a wrong-typed value used to throw
+    -- "attempt to get length of a <type> value" / "bad argument #1 to
+    -- 'concat'" on the very next list action or word cycle, not just degrade
+    -- silently -- worse than ERR-22's usual failure mode, and not something
+    -- `:checkhealth` alone could catch after the fact.
+    cfg.setup({
+      lists = { types = false, unordered_markers = false },
+      cycle = { groups = false },
+    })
+    local issues = cfg.issues()
+    ok(has(issues, "lists.types"), "config.issues: bad lists.types reported")
+    ok(has(issues, "lists.unordered_markers"), "config.issues: bad lists.unordered_markers reported")
+    ok(has(issues, "cycle.groups"), "config.issues: bad cycle.groups reported")
+
+    eq(type(cfg.get("lists").types), "table", "config: lists.types degrades to a table")
+    eq(type(cfg.get("lists").unordered_markers), "table", "config: lists.unordered_markers degrades to a table")
+    eq(type(cfg.get("cycle").groups), "table", "config: cycle.groups degrades to a table")
+
+    -- The degrade must make the exact call sites the crash was found in
+    -- survive for real, not just leave a table-typed value behind.
+    local marker = require("cascade.lists.marker")
+    local ok1, m1 = pcall(marker.parse, "1. hello", cfg.get("lists"))
+    ok(ok1 and m1 ~= nil, "lists.types degrade: marker.parse('1. hello') no longer throws")
+    local ok2, m2 = pcall(marker.parse, "- hello", cfg.get("lists"))
+    ok(ok2 and m2 ~= nil, "lists.unordered_markers degrade: marker.parse('- hello') no longer throws")
+
+    local buf = H.scratch("lua")
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "local x = true" })
+    vim.api.nvim_win_set_cursor(0, { 1, 11 })
+    local ok3 = pcall(require("cascade.cycle.word_cycle").cycle, require("cascade.core.context").new(), cfg.get("cycle"), 1)
+    ok(ok3, "cycle.groups degrade: word_cycle.cycle no longer throws")
+  end
+
   -- ---------- sequence start mode ----------
 
   do

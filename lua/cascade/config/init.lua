@@ -232,14 +232,20 @@ local function normalize_strings(o)
 end
 
 ---@internal
---- Normalize `lists.filetypes`, `lists.checkbox` and `lists.continue`: several
---- call sites (health.lua's `table.concat`, format.lua/marker.lua/continue.lua's
---- `opts.continue.*`/`opts.checkbox.*`) index these unconditionally, assuming
---- the shape `deep_merge` does not actually guarantee -- a wrong type here
---- degrades to the default instead of throwing the first time one of those
---- runs (or, for `:checkhealth` itself, on the very check meant to explain it).
---- `cycle.filetypes` gets the same treatment for `lists.filetypes`, except its
---- default is legitimately `nil` ("every filetype"), not a table.
+--- Normalize `lists.filetypes`, `lists.checkbox`, `lists.continue`,
+--- `lists.types`, `lists.unordered_markers` and `cycle.groups`: several call
+--- sites index these unconditionally with no type guard of their own --
+--- `table.concat`/`#`/`ipairs` on `unordered_markers`/`types`/`groups` alone
+--- (patterns.unordered_class, marker.parse, word_cycle's groups_for), plus
+--- health.lua's `table.concat` and format.lua/marker.lua/continue.lua's
+--- `opts.continue.*`/`opts.checkbox.*` -- assuming the shape `deep_merge`
+--- does not actually guarantee (ERR-22): a wrong type here degrades to the
+--- default instead of throwing "attempt to get length of a boolean value"
+--- the first time one of those runs, whether that's on the very next
+--- keystroke (`types`/`unordered_markers`/`groups`) or on `:checkhealth`
+--- itself (the check meant to explain it). `cycle.filetypes` gets the same
+--- treatment for `lists.filetypes`, except its default is legitimately
+--- `nil` ("every filetype"), not a table.
 ---@param o CascadeConfig
 ---@param issues string[]
 ---@return nil
@@ -260,14 +266,30 @@ local function normalize_lists_shape(o, issues)
       issues[#issues + 1] = ("lists.continue must be a table, got %s -- using the default"):format(type(lists.continue))
       lists.continue = vim.deepcopy(DEFAULTS.lists.continue)
     end
+    if type(lists.types) ~= "table" then
+      issues[#issues + 1] = ("lists.types must be a table of marker kinds, got %s -- using the default"):format(type(lists.types))
+      lists.types = vim.deepcopy(DEFAULTS.lists.types)
+    end
+    if type(lists.unordered_markers) ~= "table" then
+      issues[#issues + 1] = ("lists.unordered_markers must be a table of markers, got %s -- using the default"):format(
+        type(lists.unordered_markers)
+      )
+      lists.unordered_markers = vim.deepcopy(DEFAULTS.lists.unordered_markers)
+    end
   end
 
   local cyc = o.cycle
-  if type(cyc) == "table" and cyc.filetypes ~= nil and type(cyc.filetypes) ~= "table" then
-    issues[#issues + 1] = ("cycle.filetypes must be nil or a table of filetypes, got %s -- using nil (every filetype)"):format(
-      type(cyc.filetypes)
-    )
-    cyc.filetypes = nil
+  if type(cyc) == "table" then
+    if cyc.filetypes ~= nil and type(cyc.filetypes) ~= "table" then
+      issues[#issues + 1] = ("cycle.filetypes must be nil or a table of filetypes, got %s -- using nil (every filetype)"):format(
+        type(cyc.filetypes)
+      )
+      cyc.filetypes = nil
+    end
+    if type(cyc.groups) ~= "table" then
+      issues[#issues + 1] = ("cycle.groups must be a table of word groups, got %s -- using the default"):format(type(cyc.groups))
+      cyc.groups = vim.deepcopy(DEFAULTS.cycle.groups)
+    end
   end
 end
 
