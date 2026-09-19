@@ -11,6 +11,7 @@
 --- `cascade.lists.checkbox`.
 
 local marker = require("cascade.lists.marker")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 
@@ -109,7 +110,10 @@ function M.number(ctx, opts)
   local new_m = { indent = indent, kind = "digit", marker = "1", delim = ".", checkbox = m and m.checkbox or nil, text = text }
   local handled = apply(ctx, marker.render(new_m) .. text)
   if handled and renumber.at(opts, "edit") then
-    pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
+    local ok, err = pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
+    if not ok then
+      notify.warn("renumber failed: " .. tostring(err))
+    end
   end
   return handled
 end
@@ -229,7 +233,10 @@ local function renumber_touched(bufnr, srow, erow, opts)
       if m and m.kind == "digit" then
         local s, e = transform.block_range(bufnr, r, opts)
         if s and e then
-          pcall(renumber.tree, bufnr, s, e, opts)
+          local ok, err = pcall(renumber.tree, bufnr, s, e, opts)
+          if not ok then
+            notify.warn("renumber failed: " .. tostring(err))
+          end
           done_until = e
         end
       end

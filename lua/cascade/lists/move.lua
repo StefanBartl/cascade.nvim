@@ -7,6 +7,7 @@
 --- `=` is a no-op in plain-text/markdown buffers and proper reindent in code.
 
 local marker = require("cascade.lists.marker")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local renumber = require("cascade.lists.renumber")
 local transform = require("cascade.lists.transform")
 
@@ -27,7 +28,10 @@ local function renumber_block(bufnr, row0, opts, forced_base_start)
   if l and marker.parse(l, opts) then
     local s, e = transform.block_range(bufnr, row0, opts)
     if s and e then
-      pcall(renumber.tree, bufnr, s, e, opts, nil, forced_base_start)
+      local ok, err = pcall(renumber.tree, bufnr, s, e, opts, nil, forced_base_start)
+      if not ok then
+        notify.warn("renumber failed: " .. tostring(err))
+      end
     end
   end
 end
