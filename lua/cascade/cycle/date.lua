@@ -73,7 +73,14 @@ function M.step(line, col0, dir)
   local t = { year = tonumber(y), month = tonumber(mo), day = tonumber(d), hour = 12 }
   local seg = segment_at(col0, s0)
   t[seg] = t[seg] + dir
-  local norm = os.date("*t", os.time(t))
+  -- os.time returns nil for a date it cannot represent (e.g. pre-1970 on
+  -- some platforms); os.date("*t", nil) defaults to "now", which would
+  -- silently replace the date instead of leaving it untouched.
+  local epoch = os.time(t)
+  if not epoch then
+    return nil, nil, nil
+  end
+  local norm = os.date("*t", epoch)
   ---@cast norm osdate
   local repl = ("%04d-%02d-%02d"):format(norm.year, norm.month, norm.day)
   return s0, e0, repl
