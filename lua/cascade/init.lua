@@ -57,7 +57,7 @@ end
 ---@param lhs string
 ---@return nil
 local function feed(lhs)
-  vim.api.nvim_feedkeys(vim.keycode(lhs), "n", false)
+  vim.api.nvim_feedkeys(lib.keycode(lhs), "n", false)
 end
 
 ---@internal

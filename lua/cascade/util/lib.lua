@@ -90,6 +90,18 @@ function M.debug_log(enabled, msg, ctx)
   vim.notify(("[cascade] %s"):format(text), vim.log.levels.DEBUG)
 end
 
+--- Translate key notation for `nvim_feedkeys`. `vim.keycode` is Neovim 0.10+
+--- only; on the 0.9 floor this plugin still advertises, fall back to the
+--- equivalent `nvim_replace_termcodes` call it wraps.
+---@param keys string
+---@return string
+function M.keycode(keys)
+  if vim.keycode then
+    return vim.keycode(keys)
+  end
+  return vim.api.nvim_replace_termcodes(keys, true, true, true)
+end
+
 --- Set a keymap. Uses `lib.nvim.bindings.keymap` if available, else `vim.keymap.set`.
 ---@param mode string|string[]
 ---@param lhs string
@@ -129,7 +141,7 @@ end
 ---@param keys string
 ---@return nil
 local function feed(keys)
-  vim.api.nvim_feedkeys(vim.keycode(keys), "n", false)
+  vim.api.nvim_feedkeys(M.keycode(keys), "n", false)
 end
 
 ---@internal

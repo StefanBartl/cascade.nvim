@@ -22,7 +22,7 @@ local M = {}
 ---@param lhs string
 ---@return nil
 local function feed_native(lhs)
-  vim.api.nvim_feedkeys(vim.keycode(lhs), "n", false)
+  vim.api.nvim_feedkeys(lib.keycode(lhs), "n", false)
 end
 
 --- Run handlers in order against a fresh context.
