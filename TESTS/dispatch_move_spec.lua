@@ -63,8 +63,17 @@ return function(H)
 
   do
     -- A throwing handler is caught and treated as "did not handle", so one bad
-    -- handler cannot break the chain or escape into a keymap callback.
+    -- handler cannot break the chain or escape into a keymap callback -- but
+    -- (ERR-11) it must NOT look identical to a handler that legitimately
+    -- declined: that crash is warned distinctly, on vim.notify's WARN level,
+    -- independent of `cascade.debug`.
     local reached_next = false
+    local warnings = {}
+    local orig = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
     local handled = dispatch.try({
       function()
         error("simulated handler failure")
@@ -74,8 +83,12 @@ return function(H)
         return true
       end,
     })
+    vim.notify = orig
     ok(handled, "dispatch.try: a throwing handler does not abort the chain")
     ok(reached_next, "dispatch.try: the next handler still runs")
+    eq(#warnings, 1, "dispatch.try: a throwing handler warns exactly once")
+    eq(warnings[1].level, vim.log.levels.WARN, "dispatch.try: the crash warning is WARN, not DEBUG")
+    ok(warnings[1].msg:find("simulated handler failure", 1, true) ~= nil, "dispatch.try: the warning names the underlying error")
   end
 
   do
