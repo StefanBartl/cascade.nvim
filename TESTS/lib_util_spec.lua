@@ -60,6 +60,37 @@ return function(H)
     ok(id > 0, "fallback augroup id is a real (positive) augroup id")
   end
 
+  -- M.keycode: with vim.keycode present (the normal 0.10+ case), delegates
+  -- to it directly.
+  do
+    local seen
+    local orig = vim.keycode
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.keycode = function(s)
+      seen = s
+      return "STUBBED"
+    end
+    local out = lib.keycode("<CR>")
+    vim.keycode = orig
+    eq(seen, "<CR>", "keycode: passes keys through to vim.keycode when present")
+    eq(out, "STUBBED", "keycode: returns vim.keycode's result when present")
+  end
+
+  -- M.keycode: on the advertised 0.9 floor, vim.keycode does not exist yet;
+  -- falls back to the nvim_replace_termcodes call it wraps.
+  do
+    local orig = vim.keycode
+    ---@diagnostic disable-next-line: cast-local-type
+    vim.keycode = nil
+    local out = lib.keycode("<CR>")
+    vim.keycode = orig
+    eq(
+      out,
+      vim.api.nvim_replace_termcodes("<CR>", true, true, true),
+      "keycode: falls back to nvim_replace_termcodes when vim.keycode is absent"
+    )
+  end
+
   -- lib.nvim present (stubbed): M.notify calls through to lib.nvim.notify's
   -- create(prefix)/.notify(msg, level) shape, not vim.notify.
   do
