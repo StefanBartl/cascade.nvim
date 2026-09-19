@@ -93,12 +93,13 @@ return function(H)
   -- normalize" rather than let os.date("*t", nil) silently substitute "now".
   do
     local real_os_time = os.time
-    ---@diagnostic disable-next-line: cast-local-type
-    os.time = function()
+    -- rawset, not `os.time = ...`: luacheck's stdlib model treats `os`'s own
+    -- fields as read-only (same reason `vim` needed a `globals` exception).
+    rawset(os, "time", function()
       return nil
-    end
+    end)
     local nil_repl = select(1, date.step("2024-01-31", 0, -1))
-    os.time = real_os_time
+    rawset(os, "time", real_os_time)
     eq(nil_repl, nil, "date.step: nil (not today's date) when os.time cannot represent the result")
   end
 
