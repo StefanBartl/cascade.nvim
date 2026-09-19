@@ -8,7 +8,9 @@
 -- `ui.nvim` is a real CI sibling checkout here (cycle_spec already drives
 -- `ui.kit.select` for real), so `ui.contextmenu`'s `entry`/`group`/`submenu`
 -- are the genuine ones -- no stub. Only `open()` is never called: that is the
--- renderer, which needs a live window.
+-- renderer, which needs a live window. The one exception is the dedicated
+-- "ui.nvim absent" case near the end (LUA-01), which does stub `ui.contextmenu`
+-- to prove the module's own local fallback builders behave identically.
 
 return function(H)
   local eq = H.eq
@@ -222,6 +224,72 @@ return function(H)
       { "- [ ] one" },
       "menu.items: invoking the entry toggles the checkbox"
     )
+  end
+
+  -- ---------- LUA-01: ui.nvim absent ----------
+
+  do
+    -- Mirrors cycle_spec's "ui.kit absent" case (LUA-01): cascade.integrations.menu
+    -- is documented as optional/opt-in (installation.md, BINDINGS.md's "Context
+    -- Menu (optional)"), so a host requiring it without ui.nvim installed must
+    -- get working entries, not a traceback at require() time. Unlike cycle.pick
+    -- (which pcall(require)s "ui.kit" fresh on every call), menu.lua resolves
+    -- ui.contextmenu once at module load -- so simulating absence means
+    -- clearing and re-requiring the module itself, not just stubbing a
+    -- call-site pcall.
+    local saved_menu = package.loaded["cascade.integrations.menu"]
+    local saved_cm = package.loaded["ui.contextmenu"]
+    package.loaded["cascade.integrations.menu"] = nil
+    package.loaded["ui.contextmenu"] = nil
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    package.preload["ui.contextmenu"] = function()
+      error("simulated: ui.nvim not installed")
+    end
+
+    local ok_req, menu_fallback = pcall(require, "cascade.integrations.menu")
+
+    package.preload["ui.contextmenu"] = nil
+    package.loaded["cascade.integrations.menu"] = saved_menu
+    package.loaded["ui.contextmenu"] = saved_cm
+
+    ok(ok_req, "menu: require() succeeds even when ui.contextmenu fails to load")
+
+    cfg.setup({})
+    local b = H.editable("markdown")
+    vim.api.nvim_set_current_buf(b)
+    vim.api.nvim_buf_set_lines(b, 0, -1, false, { "- one" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+    local items = menu_fallback.items(b)
+    ok(#items > 0, "menu (fallback): still builds entries without ui.nvim")
+    ok(offers(items, "Toggle checkbox"), "menu (fallback): entries carry the expected labels")
+
+    local separators = 0
+    for i = 1, #items do
+      if items[i].name == "separator" then
+        separators = separators + 1
+      end
+    end
+    eq(separators, 2, "menu (fallback): grouping/separator logic matches the real ui.contextmenu")
+
+    local toggle
+    for i = 1, #items do
+      if items[i].name and items[i].name:find("Toggle checkbox", 1, true) then
+        toggle = items[i].cmd
+      end
+    end
+    ok(toggle ~= nil, "menu (fallback): the checkbox entry was found")
+    toggle()
+    H.eq_lines(
+      vim.api.nvim_buf_get_lines(b, 0, -1, false),
+      { "- [ ] one" },
+      "menu (fallback): invoking the entry still toggles the checkbox"
+    )
+
+    local sub = menu_fallback.submenu(nil, b)
+    ok(sub ~= nil, "menu (fallback): submenu still builds")
+    eq(sub.name, "  Cascade", "menu (fallback): submenu default label matches the real one")
   end
 
   cascade.setup({})

@@ -18,8 +18,88 @@
 --- being in `lists.filetypes`, and each `lists.features.*` flag — exactly
 --- the same gates `bind_list_buffer` applies, so the menu never offers
 --- anything the keyboard wouldn't.
+---
+--- `ui.nvim` is optional (docs/installation.md): "Without ui.nvim installed
+--- at all, cycle.pick falls back to plain vim.ui.select directly" is the
+--- promise for the *other* ui.nvim integration, and this one holds it too
+--- (LUA-01) — `entry`/`group`/`submenu` are pure item-table builders with no
+--- renderer/nvzone dependency of their own (see ui.nvim's own doc comment:
+--- "the item builders ... are unconditional and always available"), so the
+--- fallback below reproduces them verbatim instead of erroring. Only these
+--- three are used here; `contextmenu.open`/`bind_buffer` (which do need a
+--- renderer) are the host's problem, not this module's.
+local ok_cm, contextmenu = pcall(require, "ui.contextmenu")
+if not ok_cm then
+  contextmenu = {
+    ---@param available any
+    ---@param label string
+    ---@param fn function
+    ---@param rtxt? string
+    ---@param opts? { icon?: string, icon_hl?: string, hl?: string }
+    entry = function(available, label, fn, rtxt, opts)
+      if not available then
+        return nil
+      end
+      opts = opts or {}
+      return {
+        name = label,
+        rtxt = rtxt,
+        cmd = fn,
+        icon = opts.icon,
+        icon_hl = opts.icon_hl,
+        hl = opts.hl,
+      }
+    end,
+    ---@param out table[]
+    ---@param ... table|nil
+    ---@return boolean added
+    group = function(out, ...)
+      local n = select("#", ...)
+      local compact = {}
+      for i = 1, n do
+        local item = select(i, ...)
+        if item ~= nil then
+          compact[#compact + 1] = item
+        end
+      end
 
-local contextmenu = require("ui.contextmenu")
+      local heading = nil
+      if compact[1] and compact[1].__heading then
+        heading = table.remove(compact, 1)
+      end
+
+      if #compact == 0 then
+        return false
+      end
+      if #out > 0 and not heading then
+        out[#out + 1] = { name = "separator" }
+      end
+      if heading then
+        out[#out + 1] = heading
+      end
+      for _, item in ipairs(compact) do
+        out[#out + 1] = item
+      end
+      return true
+    end,
+    ---@param label string
+    ---@param items table[]
+    ---@param opts? { icon?: string, icon_hl?: string, hl?: string }
+    submenu = function(label, items, opts)
+      if type(items) ~= "table" or #items == 0 then
+        return nil
+      end
+      opts = opts or {}
+      return {
+        name = label,
+        items = items,
+        icon = opts.icon,
+        icon_hl = opts.icon_hl,
+        hl = opts.hl,
+      }
+    end,
+  }
+end
 
 local M = {}
 
