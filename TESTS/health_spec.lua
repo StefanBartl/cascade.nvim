@@ -369,6 +369,25 @@ return function(H)
     package.loaded["cascade.config"] = saved
   end
 
+  -- ---------- strings domain: every configured filetype, not four hardcoded ----------
+
+  do
+    -- "vue" is not part of the four the check used to hardcode
+    -- (javascript/typescript/python/lua), and has no parser installed in
+    -- this test environment -- regression for the health check reporting
+    -- a clean bill of health for a filetype it never actually looked at.
+    cfg.setup({
+      strings = { features = { template = true, fstring = false, lua_format = false }, template_filetypes = { "vue" } },
+    })
+    local r = capture()
+    ok(has(r.info, "vue"), "health: reports a missing parser for a non-hardcoded filetype")
+    cfg.setup({
+      strings = { features = { template = true, fstring = false, lua_format = false }, template_filetypes = { "lua" } },
+    })
+    local r2 = capture()
+    ok(not has(r2.info, "no Tree-sitter parser"), "health: no false positive when the parser is present")
+  end
+
   -- Leave the shared config in its default state for the specs that follow.
   cfg.setup({})
 end
