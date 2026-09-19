@@ -173,6 +173,61 @@ return function(H)
   end
 
   do
+    -- The recursion does not stop at one level in: a typo inside a
+    -- fixed-schema table nested two levels down (lists.checkbox.states,
+    -- lists.continue.hanging_indent, and the four domains' own
+    -- `features.*` maps) is caught too, by its full dotted path, instead of
+    -- silently riding along into the merge as a dead field next to the
+    -- untouched default.
+    cfg.setup({
+      lists = {
+        checkbox = { staets = { "y", "n" } },
+        continue = { delete_empy = true },
+        features = { continuee = false },
+      },
+      cycle = { features = { wrod = false } },
+      strings = { features = { tempate = false } },
+      transpose = { features = { wrod = false } },
+    })
+    local issues = cfg.issues()
+    ok(
+      has(issues, "lists.checkbox.staets") and has(issues, "lists.checkbox.states"),
+      "config.issues: nested-2 did-you-mean (checkbox)"
+    )
+    ok(
+      has(issues, "lists.continue.delete_empy") and has(issues, "lists.continue.delete_empty"),
+      "config.issues: nested-2 did-you-mean (continue)"
+    )
+    ok(
+      has(issues, "lists.features.continuee") and has(issues, "lists.features.continue"),
+      "config.issues: nested-2 did-you-mean (lists.features)"
+    )
+    ok(
+      has(issues, "cycle.features.wrod") and has(issues, "cycle.features.word"),
+      "config.issues: nested-2 did-you-mean (cycle.features)"
+    )
+    ok(
+      has(issues, "strings.features.tempate") and has(issues, "strings.features.template"),
+      "config.issues: nested-2 did-you-mean (strings.features)"
+    )
+    ok(
+      has(issues, "transpose.features.wrod") and has(issues, "transpose.features.word"),
+      "config.issues: nested-2 did-you-mean (transpose.features)"
+    )
+
+    eq(#cfg.get("lists").checkbox.states, 3, "config: the typo'd checkbox.states override never reached the config")
+    eq(cfg.get("lists").continue.delete_empty, true, "config: the typo'd continue.delete_empty override never reached the config")
+    eq(cfg.get("lists").features.continue, true, "config: the typo'd lists.features.continue override never reached the config")
+    eq(cfg.get("cycle").features.word, true, "config: the typo'd cycle.features.word override never reached the config")
+    eq(
+      cfg.get("strings").features.template,
+      true,
+      "config: the typo'd strings.features.template override never reached the config"
+    )
+    eq(cfg.get("transpose").features.word, true, "config: the typo'd transpose.features.word override never reached the config")
+  end
+
+  do
     -- An option table given as a non-table degrades to the default instead
     -- of replacing the whole table and blowing up the first nested read.
     cfg.setup({ lists = false })
