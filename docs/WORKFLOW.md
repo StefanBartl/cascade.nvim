@@ -23,7 +23,7 @@ in [`installation.md`](installation.md#which-loading-strategy).
 
 `lib.nvim` is a **required** dependency, not a soft one: without it,
 `:Cascade` fails to load outright (`lib.nvim.bindings.usercmd.composer` builds the
-command). `lib.map`/`lib.notify` stay soft — used when present, native
+command). `lib.notify`/`lib.augroup` stay soft — used when present, native
 fallback otherwise. `:checkhealth cascade` is the fast way to confirm
 which of the two situations you're in before assuming a missing command is
 a cascade bug.

@@ -292,6 +292,42 @@ return function(H)
     package.loaded[name] = saved
   end
 
+  -- ---------- lib.nvim fully absent (not just one submodule) ----------
+
+  do
+    -- installation.md promises ":checkhealth cascade tells you which of the
+    -- two situations you are in" (required lib.nvim present vs. absent). A
+    -- fully absent lib.nvim also makes cascade.config itself fail to load
+    -- (config/init.lua hard-requires lib.lua.config), which used to reach
+    -- the generic "config module failed to load" warning FIRST and mask the
+    -- more useful lib.nvim diagnostic entirely -- the promise was false in
+    -- exactly this, the realistic, case (LUA-01). The lib.nvim check now
+    -- runs before cascade.config is even required, so it fires regardless.
+    local composer = "lib.nvim.bindings.usercmd.composer"
+    local saved_composer = package.loaded[composer]
+    local saved_config = package.loaded["cascade.config"]
+    package.loaded[composer] = nil
+    package.loaded["cascade.config"] = nil
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    package.preload[composer] = function()
+      error("simulated: lib.nvim not installed")
+    end
+    ---@diagnostic disable-next-line: duplicate-set-field
+    package.preload["cascade.config"] = function()
+      error("simulated: lib.lua.config not found (lib.nvim absent)")
+    end
+
+    local r = capture()
+    ok(has(r.error, "lib.nvim not found"), "health: a fully absent lib.nvim is still named specifically")
+    ok(has(r.warn, "config module failed to load"), "health: config's own load failure is still reported too")
+
+    package.preload[composer] = nil
+    package.preload["cascade.config"] = nil
+    package.loaded[composer] = saved_composer
+    package.loaded["cascade.config"] = saved_config
+  end
+
   -- ---------- which-key ----------
 
   do
@@ -322,7 +358,12 @@ return function(H)
 
     local r = capture()
     ok(has(r.warn, "config module failed to load"), "health: config load failure warns")
-    eq(#r.ok, 1, "health: stops after the version line when config is broken")
+    -- lib.nvim itself is checked BEFORE cascade.config is even required (see
+    -- health.lua): a fully absent lib.nvim would otherwise be masked by this
+    -- more generic warning instead of being named. Version + lib.nvim are
+    -- the only two lines that can run before this failure.
+    eq(#r.ok, 2, "health: stops after the lib.nvim line when config is broken")
+    ok(has(r.ok, "lib.nvim detected"), "health: the lib.nvim check still ran before the config failure")
 
     package.preload["cascade.config"] = nil
     package.loaded["cascade.config"] = saved

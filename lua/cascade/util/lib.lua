@@ -3,9 +3,13 @@
 ---
 --- `lib.nvim` itself is now a required dependency (the :Cascade command is
 --- built on lib.nvim.bindings.usercmd.composer, see bindings/usrcmds.lua) — but these
---- specific accessors (`lib.map`, `lib.notify`, ...) stay soft-guarded for
---- callers that want a native-API fallback instead of a hard call, and each
---- probes its module with `pcall` accordingly.
+--- specific accessors (`lib.notify`, `lib.augroup`, ...) stay soft-guarded
+--- for callers that want a native-API fallback instead of a hard call, and
+--- each probes its module with `pcall` accordingly. This is LUA-05, not
+--- LUA-01: the guard is against an individual submodule missing or renamed
+--- in an older/drifted `lib.nvim` checkout, not against `lib.nvim` itself
+--- being absent (`config/init.lua`'s own hard `require("lib.lua.config")`
+--- already makes cascade fail to load before any of these run in that case).
 ---@see lib-nvim-dependency
 
 local M = {}
@@ -100,25 +104,6 @@ function M.keycode(keys)
     return vim.keycode(keys)
   end
   return vim.api.nvim_replace_termcodes(keys, true, true, true)
-end
-
---- Set a keymap. Uses `lib.nvim.bindings.keymap` if available, else `vim.keymap.set`.
----@param mode string|string[]
----@param lhs string
----@param rhs string|function
----@param opts table|nil
----@return nil
-function M.map(mode, lhs, rhs, opts)
-  opts = opts or {}
-  local lib = try_require("lib.nvim.bindings.keymap")
-  if vim.is_callable(lib) then
-    ---@cast lib fun(mode: any, lhs: any, rhs: any, opts: any)
-    local ok = pcall(lib, mode, lhs, rhs, opts)
-    if ok then
-      return
-    end
-  end
-  vim.keymap.set(mode, lhs, rhs, opts)
 end
 
 --- Create an autocommand group. Returns the group id.

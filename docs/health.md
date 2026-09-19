@@ -19,7 +19,7 @@ above it.
 
 | Line | Meaning |
 | --- | --- |
-| `OK  lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)` | Everything works. |
+| `OK  lib.nvim detected (:Cascade command layer + lib.notify/lib.augroup available)` | Everything works. |
 | `ERROR  lib.nvim not found — :Cascade will fail to load` | The **hard** half of the dependency is missing. `setup()` itself aborts — both `:Cascade` and the preset keymaps are built through `lib.nvim`. Install `StefanBartl/lib.nvim` — see [`installation.md`](installation.md#requirements). |
 
 ### which-key

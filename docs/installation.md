@@ -11,7 +11,7 @@ manager. The README carries the lazy.nvim spec only — everything else is here.
 
 `lib.nvim` is required because the `:Cascade` command layer is built on
 `lib.nvim.bindings.usercmd.composer`: without it, the command fails to load
-outright. The rest of the bridge is soft — `lib.map`/`lib.notify` are used
+outright. The rest of the bridge is soft — `lib.notify`/`lib.augroup` are used
 when present and fall back to the native APIs otherwise (see
 [`architecture.md`](architecture.md#the-libnvim-boundary)). `:checkhealth
 cascade` tells you which of the two situations you are in before you go
