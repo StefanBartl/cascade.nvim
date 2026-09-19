@@ -172,8 +172,8 @@ not by adding new spec files or padding existing ones.
 ## Bugs found during the coverage round
 
 Seven defects have been found across this suite's original round and the
-re-audits since. The first two are **fixed**; their assertions stayed on as
-regression guards. The other five are still pinned at their **current**
+re-audits since. Three are **fixed**; their assertions stayed on as
+regression guards. The other four are still pinned at their **current**
 behaviour with a `BUG:`-prefixed message, since each fix would be its own
 visible behaviour change.
 
@@ -232,13 +232,16 @@ visible behaviour change.
    brings it back. DEFAULTS' own header says "Never mutate it at runtime". A
    user who supplies their own `cycle.groups` gets their own array mutated
    instead — the milder half of the same defect.
-5. **`:Cascade indent N` / `:Cascade dedent N` ignore N.** `usrcmds_spec.lua`.
-   The route declares `{ name = "levels", type = "INT" }` and its own desc says
-   "arg = levels", but it hands `ctx.raw` to `run_indent_command`, which reads
-   `tonumber(cmd.args)`. Under the composer `cmd.args` is the whole tail
-   (`"indent 3"`), so `tonumber` is nil and the count degrades to 1. The
-   correctly typed `ctx.args.levels` is parsed and thrown away. The keymap path
-   (`<leader><A-Right>` with a count) works, because it reads `vim.v.count1`.
+5. **`:Cascade indent N` / `:Cascade dedent N` ignored N — fixed.**
+   `usrcmds_spec.lua`. The route declares `{ name = "levels", type = "INT" }`
+   and its own desc says "arg = levels", but it handed `ctx.raw` to
+   `run_indent_command`, which read `tonumber(cmd.args)`. Under the composer
+   `cmd.args` is the whole tail (`"indent 3"`), so `tonumber` was nil and the
+   count degraded to 1; the correctly typed `ctx.args.levels` was parsed and
+   thrown away. The keymap path (`<leader><A-Right>` with a count) was
+   unaffected, because it reads `vim.v.count1` directly. Fixed by threading
+   `ctx.args.levels` through as `run_indent_command`'s new third parameter
+   instead of having it re-derive a count from the raw tail.
 6. **`:Cascade cycle remove` truncates a value at the first space.** `usrcmds_spec.lua`.
    The mirror of `cycle add`, which explicitly appends `ctx.rest` for exactly
    this reason. `remove` reads only `ctx.args.value`, so a group added as

@@ -509,30 +509,30 @@ return function(H)
     vim.bo[b].shiftwidth = 2
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
 
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "" }, 1)
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, 1)
     eq_lines(lines_of(b), { "  - one", "  - two" }, "run_indent_command: indents the whole range")
 
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "" }, -1)
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, -1)
     eq_lines(lines_of(b), { "- one", "- two" }, "run_indent_command: and dedents it again")
 
-    -- The argument is a LEVEL count.
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "3" }, 1)
-    eq_lines(lines_of(b), { "      - one", "      - two" }, "run_indent_command: the arg is a level count")
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "3" }, -1)
+    -- `levels` (the composer-parsed arg, not raw `cmd.args`) is a LEVEL count.
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, 1, 3)
+    eq_lines(lines_of(b), { "      - one", "      - two" }, "run_indent_command: levels is a level count")
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, -1, 3)
     eq_lines(lines_of(b), { "- one", "- two" }, "run_indent_command: symmetric")
 
-    -- A junk or non-positive argument degrades to one level rather than
+    -- A junk or non-positive levels value degrades to one level rather than
     -- erroring or shifting by zero.
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "not-a-number" }, 1)
-    eq_lines(lines_of(b), { "  - one", "  - two" }, "run_indent_command: a junk arg means one level")
-    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2, args = "0" }, -1)
-    eq_lines(lines_of(b), { "- one", "- two" }, "run_indent_command: a zero arg means one level")
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, 1, "not-a-number")
+    eq_lines(lines_of(b), { "  - one", "  - two" }, "run_indent_command: a junk levels value means one level")
+    cascade.run_indent_command({ range = 2, line1 = 1, line2 = 2 }, -1, 0)
+    eq_lines(lines_of(b), { "- one", "- two" }, "run_indent_command: a zero levels value means one level")
 
     -- Without a range it addresses the cursor line only.
     vim.api.nvim_win_set_cursor(0, { 2, 0 })
-    cascade.run_indent_command({ range = 0, args = "" }, 1)
+    cascade.run_indent_command({ range = 0 }, 1)
     eq_lines(lines_of(b), { "- one", "  - two" }, "run_indent_command: no range means the cursor line")
-    cascade.run_indent_command({ range = 0, args = "" }, -1)
+    cascade.run_indent_command({ range = 0 }, -1)
     eq_lines(lines_of(b), { "- one", "- two" }, "run_indent_command: ... symmetrically")
   end
 
@@ -545,7 +545,7 @@ return function(H)
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     cascade.run_command(cascade._transform.sort, { range = 2, line1 = 1, line2 = 2 }, 1)
     cascade.run_renumber_command({ range = 0 }, "all")
-    cascade.run_indent_command({ range = 0, args = "" }, 1)
+    cascade.run_indent_command({ range = 0 }, 1)
     eq_lines(lines_of(b), { "1. one", "1. two" }, "commands: a non-writable buffer is refused by all three")
   end
 

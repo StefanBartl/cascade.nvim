@@ -7,9 +7,9 @@
 --- range-aware: without a range it acts on the list block at the cursor, with a
 --- range on the selected lines. `run_command`/`run_indent_command` only read
 --- `.range`/`.line1`/`.line2` off their `cmd` argument, so `ctx.raw` (the
---- untouched nvim callback args) is passed through unchanged — direction is
---- computed from the composer-typed `ctx.bang`/`ctx.args` instead of raw
---- string comparison.
+--- untouched nvim callback args) is passed through unchanged — direction and
+--- any typed argument (e.g. `run_indent_command`'s `levels`) come from the
+--- composer-typed `ctx.bang`/`ctx.args` instead of raw string parsing.
 
 local composer = require("lib.nvim.bindings.usercmd.composer")
 
@@ -121,7 +121,7 @@ function M.setup()
         args = { { name = "levels", type = "INT", optional = true } },
         desc = "Indent line/range (+renumber; arg = levels)",
         run = function(ctx)
-          api.run_indent_command(ctx.raw, 1)
+          api.run_indent_command(ctx.raw, 1, ctx.args.levels)
         end,
       },
 
@@ -131,7 +131,7 @@ function M.setup()
         args = { { name = "levels", type = "INT", optional = true } },
         desc = "Dedent line/range (+renumber; arg = levels)",
         run = function(ctx)
-          api.run_indent_command(ctx.raw, -1)
+          api.run_indent_command(ctx.raw, -1, ctx.args.levels)
         end,
       },
 
