@@ -172,8 +172,8 @@ not by adding new spec files or padding existing ones.
 ## Bugs found during the coverage round
 
 Seven defects have been found across this suite's original round and the
-re-audits since. Four are **fixed**; their assertions stayed on as
-regression guards. The other three are still pinned at their **current**
+re-audits since. Five are **fixed**; their assertions stayed on as
+regression guards. The other two are still pinned at their **current**
 behaviour with a `BUG:`-prefixed message, since each fix would be its own
 visible behaviour change.
 
@@ -211,17 +211,18 @@ visible behaviour change.
    ring to an unrelated slot instead of closing it. Roman-first costs nothing
    for the ordinary case, since "a", "b", "c-as-ascii", etc. are simply not
    valid roman numerals and fall through to ascii exactly as before.
-3. **Two of the three augroups are only cleared when their gate passes.** `bindings_spec.lua`.
-   `bindings/autocmds.lua` promises "three autocmds, all idempotent (their
-   augroups are cleared on every setup)". `setup_save_renumber` calls
-   `lib.augroup(name)` first and gates afterwards — correct.
-   `setup_list_keymaps` and `setup_hanging_indent` `return` on their gate
+3. **Two of the four augroups were only cleared when their gate passed — fixed.**
+   `bindings_spec.lua`. `bindings/autocmds.lua` promises "four autocmds, all
+   idempotent (their augroups are cleared on every setup)". `setup_save_renumber`
+   calls `lib.augroup(name)` first and gates afterwards — correct.
+   `setup_list_keymaps` and `setup_hanging_indent` `return`ed on their gate
    *before* reaching `lib.augroup`, so a `setup()` with `keymaps.preset = false`,
-   `lists.enable = false` or `lists.filetypes = {}` never empties the group and
-   the previous setup's handlers stay live. Switching the preset or the list
-   domain off does not take effect until Neovim restarts. Same family as
+   `lists.enable = false` or `lists.filetypes = {}` never emptied the group and
+   the previous setup's handlers stayed live. Switching the preset or the list
+   domain off did not take effect until Neovim restarts. Same family as
    pdfport.nvim's finding, opposite symptom: there a second `setup()` *added* a
-   duplicate, here it fails to *remove* one.
+   duplicate, here it failed to *remove* one. Fixed by hoisting both
+   `lib.augroup` calls above their gate, mirroring `setup_save_renumber`.
 4. **The runtime cycle-group commands mutated `config.DEFAULTS` — fixed.**
    `facade_spec.lua`. `lib.lua.config.deep_merge` copies only the top level of
    `base`, so any key the user did not override *is* the table inside
