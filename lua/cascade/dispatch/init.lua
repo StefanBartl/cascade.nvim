@@ -34,6 +34,17 @@ function M.try(handlers, ctx)
   local debug = config.get("debug") == true
   for i = 1, #handlers do
     local ok, handled = pcall(handlers[i], ctx)
+    if not ok then
+      -- A handler that throws is a bug, not "this handler doesn't apply
+      -- here" -- collapsing the two into the same `false` would make a
+      -- crash look exactly like a legitimate decline (ERR-11). `debug_log`
+      -- below is a no-op unless `cascade.debug` is on, so without this the
+      -- user would see nothing at all: the key just does nothing, same as
+      -- when every handler correctly declines. Warn distinctly so the
+      -- failure stays diagnosable, then keep falling through like any
+      -- declined handler (a crashing handler must not wedge the fallback).
+      lib.notify(("dispatch handler #%d failed: %s"):format(i, tostring(handled)), vim.log.levels.WARN)
+    end
     lib.debug_log(debug, "dispatch.try: handler tried", { index = i, ok = ok, handled = handled == true })
     if ok and handled then
       return true
