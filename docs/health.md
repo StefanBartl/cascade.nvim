@@ -28,6 +28,17 @@ Informational either way. cascade's mappings carry their own `desc`, so
 which-key needs no registration for the individual keys; when it is installed,
 `<leader>c` is labelled as a group.
 
+### setup() options
+
+| Line | Meaning |
+| --- | --- |
+| `OK  setup() options: all recognised and correctly typed` | Nothing was rejected or degraded. |
+| `WARNING  unknown option 'lits' (did you mean 'lists'?)` | An unknown key (top-level, or one level into a fixed-schema sub-table) was dropped before the merge; the real option stays at its default. |
+| `WARNING  option 'lists' must be a table, got boolean -- using the default` | An option table given as a non-table value fell back to that table's default instead of replacing it wholesale. |
+| `WARNING  lists.filetypes must be a table of filetypes, got string -- using the default` | Same fallback for a handful of specific values (`lists.filetypes`, `lists.checkbox`, `lists.continue`, `cycle.filetypes`) several call sites index unconditionally. |
+
+See [`configuration.md`](configuration.md#validation) for the full rule.
+
 ### debug
 
 Reports whether `cascade.debug` is on, and whether `lib.nvim.logger` was found

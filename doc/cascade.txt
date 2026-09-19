@@ -567,6 +567,18 @@ debug                 (boolean)   Debug logging at cascade's central
                                   check is a single cheap boolean read when
                                   off.
 
+Validation ~
+
+Options are checked before they are merged. An unknown key -- top-level, or
+one level into `lists`/`cycle`/`sequence`/`transpose`/`strings` -- is ignored
+with a did-you-mean hint (`keymaps` is exempt: its own keys are action names,
+not a fixed schema). A non-table value for an option table (`lists = false`)
+falls back to that table's default instead of replacing it wholesale, and a
+few specific values several call sites index unconditionally
+(`lists.filetypes`, `lists.checkbox`, `lists.continue`, `cycle.filetypes`)
+get the same fallback for a wrong type. Everything ignored or degraded is
+listed again under |:checkhealth| cascade. See |cascade-health|.
+
 ==============================================================================
 5. LISTS DOMAIN                                                 *cascade-lists*
 

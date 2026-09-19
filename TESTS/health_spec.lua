@@ -137,6 +137,76 @@ return function(H)
     ok(has(r.info, "renumber: off"), "health: renumber off reported")
   end
 
+  -- ---------- setup() option validation (ERR-50/ERR-22) ----------
+
+  do
+    cfg.setup({})
+    eq(#cfg.issues(), 0, "config.issues: nothing to report after a clean setup()")
+    local r = capture()
+    ok(has(r.ok, "setup() options: all recognised"), "health: clean setup() reports ok")
+  end
+
+  do
+    -- A typo'd top-level key must not vanish silently into the merge: it is
+    -- dropped (the real "lists" stays at its default) and named with a
+    -- did-you-mean hint, both from config.issues() and via :checkhealth.
+    cfg.setup({ lits = { enable = false } })
+    ok(cfg.issues()[1] and cfg.issues()[1]:find("lits", 1, true) ~= nil, "config.issues: names the unknown top-level key")
+    ok(cfg.issues()[1]:find("lists", 1, true) ~= nil, "config.issues: suggests the nearest known key")
+    eq(cfg.get("lists").enable, true, "config: the typo'd override never reached lists.enable")
+    local r = capture()
+    ok(has(r.warn, "lits"), "health: reports the unknown key")
+  end
+
+  do
+    -- Same for a typo one level into a fixed-schema sub-table. When every
+    -- sub-key under `lists` is rejected, the leftover override is `{}` --
+    -- which must NOT wipe every other `lists` default wholesale (an empty
+    -- table is indistinguishable from an array to the merge below, whose
+    -- array check replaces the whole key instead of merging it).
+    cfg.setup({ lists = { chekbox = { states = { "y", "n" } } } })
+    ok(has(cfg.issues(), "lists.chekbox") and has(cfg.issues(), "lists.checkbox"), "config.issues: nested did-you-mean")
+    eq(#cfg.get("lists").checkbox.states, 3, "config: the typo'd nested override never reached checkbox.states")
+    eq(cfg.get("lists").enable, true, "config: an all-rejected nested table does not wipe sibling lists defaults")
+    ok(#cfg.get("lists").types > 0, "config: lists.types survives an all-rejected nested sub-table typo")
+    ok(#cfg.get("lists").forms > 0, "config: lists.forms survives an all-rejected nested sub-table typo")
+  end
+
+  do
+    -- An option table given as a non-table degrades to the default instead
+    -- of replacing the whole table and blowing up the first nested read.
+    cfg.setup({ lists = false })
+    ok(has(cfg.issues(), "must be a table"), "config.issues: mistyped option table reported")
+    eq(cfg.get("lists").enable, true, "config: lists falls back to the default when given a non-table")
+  end
+
+  do
+    -- lists.filetypes / lists.checkbox / lists.continue / cycle.filetypes:
+    -- a wrong-typed value degrades to the default instead of throwing the
+    -- first time table.concat/opts.checkbox.*/opts.continue.* touches it.
+    cfg.setup({
+      lists = { filetypes = "markdown", checkbox = false, continue = false },
+      cycle = { filetypes = "markdown" },
+    })
+    local issues = cfg.issues()
+    ok(has(issues, "lists.filetypes"), "config.issues: bad lists.filetypes reported")
+    ok(has(issues, "lists.checkbox"), "config.issues: bad lists.checkbox reported")
+    ok(has(issues, "lists.continue"), "config.issues: bad lists.continue reported")
+    ok(has(issues, "cycle.filetypes"), "config.issues: bad cycle.filetypes reported")
+
+    eq(type(cfg.get("lists").filetypes), "table", "config: lists.filetypes degrades to a table")
+    eq(type(cfg.get("lists").checkbox), "table", "config: lists.checkbox degrades to a table")
+    eq(type(cfg.get("lists").continue), "table", "config: lists.continue degrades to a table")
+    eq(cfg.get("cycle").filetypes, nil, "config: cycle.filetypes degrades to nil (every filetype)")
+
+    -- The degraded config must be genuinely usable, not just non-nil: the
+    -- exact call sites the findings named (table.concat here; marker/format/
+    -- continue elsewhere) must not throw.
+    local r = capture()
+    ok(has(r.ok, "lists: enabled for"), "health: table.concat(lists.filetypes) survives the degrade")
+    ok(#r.error == 0, "health: no error report after degrading a bad lists/cycle shape")
+  end
+
   -- ---------- sequence start mode ----------
 
   do

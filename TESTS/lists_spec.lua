@@ -637,6 +637,61 @@ return function(H)
   vim.bo[buf].filetype = "markdown"
   eq(marker.parse("\\item Hello world", pf), nil, "per_filetype_patterns: not recognized on a different filetype")
 
+  -- An invalid entry -- malformed pattern syntax, or matching without the
+  -- required second (marker, rest) capture -- degrades to "no match" instead
+  -- of throwing on every keypress in that filetype, and warns once per entry
+  -- (ERR-22).
+  do
+    local seen = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg)
+      seen[#seen + 1] = tostring(msg)
+    end
+
+    cfg.setup({
+      lists = {
+        per_filetype_patterns = {
+          zzztest_syntax = { "^(\\item%s(.*)$" }, -- unbalanced '(': invalid Lua pattern
+        },
+      },
+    })
+    vim.bo[buf].filetype = "zzztest_syntax"
+    local bad_pf = cfg.get("lists")
+    eq(marker.parse("\\item hello", bad_pf), nil, "per_filetype_patterns: a malformed pattern degrades to no match")
+    eq(marker.parse("\\item hello", bad_pf), nil, "per_filetype_patterns: still degrades on a second parse")
+    vim.notify = orig_notify
+
+    eq(#seen, 1, "per_filetype_patterns: a malformed pattern warns exactly once (memoized)")
+    H.ok(seen[1]:find("zzztest_syntax", 1, true) ~= nil, "per_filetype_patterns: the warning names the filetype")
+  end
+
+  do
+    local seen = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg)
+      seen[#seen + 1] = tostring(msg)
+    end
+
+    cfg.setup({
+      lists = {
+        per_filetype_patterns = {
+          zzztest_captures = { "^(\\item%s.*)$" }, -- one capture, not the required two
+        },
+      },
+    })
+    vim.bo[buf].filetype = "zzztest_captures"
+    local bad_pf = cfg.get("lists")
+    eq(marker.parse("\\item hello", bad_pf), nil, "per_filetype_patterns: a one-capture pattern degrades to no match")
+    vim.notify = orig_notify
+
+    eq(#seen, 1, "per_filetype_patterns: a wrong capture count warns")
+    H.ok(seen[1]:find("two captures", 1, true) ~= nil, "per_filetype_patterns: the warning explains the two-capture contract")
+  end
+
+  vim.bo[buf].filetype = "markdown"
+
   -- continuation keeps repeating the same fixed token (unordered semantics),
   -- and renumber leaves it alone (it's never treated as ordered).
   vim.bo[buf].filetype = "tex"

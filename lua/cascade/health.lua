@@ -47,6 +47,17 @@ function M.check()
     info("which-key not found — mappings still carry their own descriptions")
   end
 
+  -- setup() option validation: unknown keys and mistyped values the last
+  -- setup() had to ignore or degrade (ERR-50/ERR-22).
+  local cfg_issues = type(config.issues) == "function" and config.issues() or {}
+  if #cfg_issues == 0 then
+    ok("setup() options: all recognised and correctly typed")
+  else
+    for i = 1, #cfg_issues do
+      warn(cfg_issues[i], { "Fix the option in require('cascade').setup({ ... })" })
+    end
+  end
+
   -- Debug logging (detect/advance/fallback at dispatch.try + lists_active()).
   if config.get("debug") == true then
     if pcall(require, "lib.nvim.logger") then
