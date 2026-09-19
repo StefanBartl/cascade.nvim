@@ -88,6 +88,20 @@ return function(H)
 
   eq(select(1, date.step("plain text", 0, 1)), nil, "date.step: nil when not on a date")
 
+  -- os.time returns nil for a date it cannot represent (platform-dependent,
+  -- e.g. pre-1970 on some hosts); date.step must treat that as "cannot
+  -- normalize" rather than let os.date("*t", nil) silently substitute "now".
+  do
+    local real_os_time = os.time
+    ---@diagnostic disable-next-line: cast-local-type
+    os.time = function()
+      return nil
+    end
+    local nil_repl = select(1, date.step("2024-01-31", 0, -1))
+    os.time = real_os_time
+    eq(nil_repl, nil, "date.step: nil (not today's date) when os.time cannot represent the result")
+  end
+
   -- Facade-level: +/- steps the date segment under the cursor, with
   -- calendar-aware rollover that native <C-a>/<C-x> can't do (it would
   -- produce the invalid "2024-01-32").
