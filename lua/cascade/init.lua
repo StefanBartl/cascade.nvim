@@ -921,15 +921,16 @@ function M._shift_visual(dir)
 end
 
 --- Run an indent/dedent from a `:command` (range- and count-aware).
----@param cmd table # The nvim user-command argument table.
+---@param cmd table # The nvim user-command argument table (`.range`/`.line1`/`.line2` only).
 ---@param dir integer # 1 indent, -1 dedent.
+---@param levels integer|nil # Composer-parsed `levels` arg; nil/invalid/<1 all mean one level.
 ---@return nil
-function M.run_indent_command(cmd, dir)
+function M.run_indent_command(cmd, dir, levels)
   local bufnr = vim.api.nvim_get_current_buf()
   if not Context.writable(bufnr) then
     return
   end
-  local count = tonumber(cmd.args) or 1
+  local count = tonumber(levels) or 1
   if count < 1 then
     count = 1
   end

@@ -147,41 +147,26 @@ return function(H)
     ex("1,2Cascade dedent")
     eq_lines(lines_of(b), { "- a", "- b" }, ":Cascade dedent with a range")
 
-    -- BUG: the optional INT argument is documented as a level count ("arg =
+    -- The optional INT argument is documented as a level count ("arg =
     -- levels" in the route's own desc, and the route declares
-    -- `{ name = "levels", type = "INT" }`) but it is silently ignored -- every
-    -- `:Cascade indent N` shifts by exactly one level.
-    --
-    -- The route hands `ctx.raw` to `api.run_indent_command`, which reads
-    -- `tonumber(cmd.args)`. Under the composer `cmd.args` is the WHOLE tail,
-    -- subcommand included: for `:Cascade indent 3` it is the string
-    -- "indent 3", so `tonumber` returns nil and the count degrades to 1. The
-    -- correctly typed value is sitting in `ctx.args.levels` (verified: the
-    -- composer does parse it) and is thrown away. The keymap path
-    -- (`<leader><A-Right>` with a count) is unaffected -- it reads
-    -- `vim.v.count1` -- so the defect is specific to the Ex command, which is
-    -- exactly where the argument is advertised.
-    --
-    -- Pinned rather than fixed: the repair is one line in
-    -- `bindings/usrcmds.lua` (pass `ctx.args.levels` through instead of
-    -- letting `run_indent_command` re-parse the raw tail), but it changes what
-    -- an existing `:Cascade indent 3` does.
+    -- `{ name = "levels", type = "INT" }`); the route passes the
+    -- composer-typed `ctx.args.levels` through to `api.run_indent_command`,
+    -- not the raw `cmd.args` tail (which under the composer includes the
+    -- subcommand itself, e.g. "indent 3").
     ex("1,2Cascade indent 3")
-    eq_lines(lines_of(b), { "  - a", "  - b" }, "BUG: :Cascade indent 3 shifts one level, not three")
+    eq_lines(lines_of(b), { "      - a", "      - b" }, ":Cascade indent 3 shifts three levels")
     ex("1,2Cascade dedent 3")
-    eq_lines(lines_of(b), { "- a", "- b" }, "BUG: :Cascade dedent 3 likewise shifts one level")
+    eq_lines(lines_of(b), { "- a", "- b" }, ":Cascade dedent 3 likewise shifts three levels")
 
-    -- The same count *does* work through the keymap surface, which is what
-    -- makes this a command-layer defect rather than an indent one.
+    -- The same count also works through the keymap surface, which reads
+    -- `vim.v.count1` directly rather than going through the Ex command.
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
     vim.keymap.set("n", "<F13>", cascade.indent_levels)
     vim.api.nvim_feedkeys(vim.keycode("3<F13>"), "mtx", false)
     vim.keymap.del("n", "<F13>")
     eq_lines(lines_of(b), { "      - a", "- b" }, "indent_levels: a count on the KEY does shift three levels")
     ex("1Cascade dedent 3")
-    ex("1Cascade dedent 3")
-    ex("1Cascade dedent 3")
-    eq_lines(lines_of(b), { "- a", "- b" }, "fixture: back to one level via three single-level dedents")
+    eq_lines(lines_of(b), { "- a", "- b" }, "fixture: back to one level via a single :Cascade dedent 3")
 
     -- No range: the cursor line only.
     vim.api.nvim_win_set_cursor(0, { 2, 0 })
