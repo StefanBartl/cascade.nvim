@@ -38,13 +38,19 @@ local specs = {
 
 local failed = 0
 for _, name in ipairs(specs) do
-  local run = dofile(dir .. name)
-  local ok, err = pcall(run, H)
+  -- A spec that fails to LOAD (syntax error, a top-level require of a moved
+  -- module) must count as a failure exactly like one that fails to assert --
+  -- dofile() itself needs the same pcall as running it, or the whole loop
+  -- aborts uncaught and `-c "qa!"` still exits 0 with nothing having run.
+  local ok, run_or_err = pcall(dofile, dir .. name)
+  if ok then
+    ok, run_or_err = pcall(run_or_err, H)
+  end
   if ok then
     print(("ok    %s"):format(name))
   else
     failed = failed + 1
-    print(("FAIL  %s\n      %s"):format(name, tostring(err)))
+    print(("FAIL  %s\n      %s"):format(name, tostring(run_or_err)))
   end
 end
 
