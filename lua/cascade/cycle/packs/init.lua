@@ -32,7 +32,9 @@ local warned = {}
 --- order (which is also their precedence -- `word_cycle` takes the first
 --- group a word appears in). Unknown names are skipped with a single warning
 --- each, so a typo degrades to "that pack is missing" rather than an error on
---- every keypress.
+--- every keypress. A *known* name whose module fails to load (or returns
+--- something other than a `string[][]`) also warns once, so that failure
+--- doesn't look identical to "that pack simply contributed nothing".
 ---@param names string[]|nil # `cycle.packs`; nil or empty resolves to `{}`.
 ---@return string[][]
 function M.resolve(names)
@@ -57,6 +59,13 @@ function M.resolve(names)
           n = n + 1
           out[n] = groups[j]
         end
+      elseif not warned[name] then
+        warned[name] = true
+        local reason = ok and ("returned %s, not a table"):format(type(groups)) or tostring(groups)
+        require("cascade.util.lib").notify(
+          ("cycle pack %s failed to load (%s) -- contributing no groups"):format(vim.inspect(name), reason),
+          vim.log.levels.WARN
+        )
       end
     elseif not warned[name] then
       warned[name] = true
