@@ -757,8 +757,8 @@ Reports the Neovim version, per-domain status, lib.nvim availability (required
 10. LIB.NVIM INTEGRATION                                          *cascade-lib*
 
 cascade.nvim REQUIRES `lib.nvim`: the :Cascade command is built on
-lib.nvim.bindings.usercmd.composer and fails to load without it. `lib.map`,
-`lib.notify`, `lib.augroup` remain soft-guarded — used when present, native
-API fallback otherwise (see lua/cascade/util/lib.lua).
+lib.nvim.bindings.usercmd.composer and fails to load without it. `lib.notify`
+and `lib.augroup` remain soft-guarded — used when present, native API
+fallback otherwise (see lua/cascade/util/lib.lua).
 
 vim:tw=78:ts=8:ft=help:norl:

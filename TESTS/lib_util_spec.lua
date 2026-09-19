@@ -5,10 +5,9 @@
 -- that covers the fallback path for free. The "lib.nvim present" path is
 -- covered by stubbing `package.loaded` with fakes that mirror lib.nvim's
 -- real exported shapes (`lib.nvim.notify` -> `.create(prefix)` returning a
--- notifier, `lib.nvim.bindings.keymap` -> a bare function, `lib.nvim.bindings.autocmd.augroup`
--- -> `{ create = { clear = fn } }`), so a portable spec can prove
--- cascade.util.lib actually calls through to lib.nvim rather than only
--- ever exercising the fallback.
+-- notifier, `lib.nvim.bindings.autocmd.augroup` -> `{ create = { clear = fn } }`),
+-- so a portable spec can prove cascade.util.lib actually calls through to
+-- lib.nvim rather than only ever exercising the fallback.
 
 return function(H)
   local eq = H.eq
@@ -33,24 +32,6 @@ return function(H)
     ok(captured, "vim.notify fallback invoked")
     eq(captured.msg, "[cascade] hello", "fallback notify prefixes message")
     eq(captured.level, vim.log.levels.WARN, "fallback notify passes level")
-  end
-
-  -- lib.nvim absent: M.map falls back to vim.keymap.set.
-  do
-    local captured
-    local orig = vim.keymap.set
-    -- Test double over a typed surface; restored right after the case.
-    ---@diagnostic disable-next-line: duplicate-set-field
-    vim.keymap.set = function(mode, lhs, rhs, opts)
-      captured = { mode = mode, lhs = lhs, rhs = rhs, opts = opts }
-    end
-    local rhs = function() end
-    lib.map("n", "<Plug>(cascade-test)", rhs, { desc = "test" })
-    vim.keymap.set = orig
-    ok(captured, "vim.keymap.set fallback invoked")
-    eq(captured.mode, "n", "fallback map passes mode")
-    eq(captured.lhs, "<Plug>(cascade-test)", "fallback map passes lhs")
-    eq(captured.rhs, rhs, "fallback map passes rhs")
   end
 
   -- lib.nvim absent: M.augroup falls back to nvim_create_augroup.
@@ -120,32 +101,6 @@ return function(H)
     eq(captured.prefix, "[cascade]", "lib.nvim.notify.create called with cascade prefix")
     eq(captured.msg, "hi", "lib.nvim.notify path passes message through")
     ok(not vim_notify_called, "vim.notify fallback NOT used when lib.nvim.notify succeeds")
-  end
-
-  -- lib.nvim present (stubbed): M.map calls through to lib.nvim.bindings.keymap's bare
-  -- function shape, not vim.keymap.set.
-  do
-    local captured
-    package.loaded["lib.nvim.bindings.keymap"] = function(modes, lhs, rhs, opts)
-      captured = { modes = modes, lhs = lhs, rhs = rhs, opts = opts }
-    end
-
-    local vim_map_called = false
-    local orig = vim.keymap.set
-    -- Test double over a typed surface; restored right after the case.
-    ---@diagnostic disable-next-line: duplicate-set-field
-    vim.keymap.set = function()
-      vim_map_called = true
-    end
-    local rhs = function() end
-    lib.map("v", "<Plug>(cascade-test-2)", rhs, {})
-    vim.keymap.set = orig
-    package.loaded["lib.nvim.bindings.keymap"] = nil
-
-    ok(captured, "lib.nvim.bindings.keymap path invoked when present")
-    eq(captured.modes, "v", "lib.nvim.bindings.keymap path passes mode through")
-    eq(captured.lhs, "<Plug>(cascade-test-2)", "lib.nvim.bindings.keymap path passes lhs through")
-    ok(not vim_map_called, "vim.keymap.set fallback NOT used when lib.nvim.bindings.keymap succeeds")
   end
 
   -- lib.nvim present (stubbed): M.augroup calls through to

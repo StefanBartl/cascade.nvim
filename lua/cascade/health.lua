@@ -26,18 +26,22 @@ function M.check()
     warn("cascade.nvim targets Neovim 0.9+", { "Upgrade Neovim to 0.9+" })
   end
 
+  -- lib.nvim: required for the :Cascade command layer (lib.nvim.bindings.usercmd.composer)
+  -- AND for cascade.config itself to load (config/init.lua hard-requires
+  -- lib.lua.config) -- checked before attempting to load cascade.config below,
+  -- so a fully absent lib.nvim is reported as itself instead of being masked
+  -- by the more generic "config module failed to load".
+  -- lib.notify/lib.augroup remain soft (util/lib.lua falls back to native APIs).
+  if pcall(require, "lib.nvim.bindings.usercmd.composer") then
+    ok("lib.nvim detected (:Cascade command layer + lib.notify/lib.augroup available)")
+  else
+    err("lib.nvim not found — :Cascade will fail to load", { 'Install "StefanBartl/lib.nvim"' })
+  end
+
   local cfg_ok, config = pcall(require, "cascade.config")
   if not cfg_ok then
     warn("config module failed to load: " .. tostring(config))
     return
-  end
-
-  -- lib.nvim: required for the :Cascade command layer (lib.nvim.bindings.usercmd.composer);
-  -- lib.map/lib.notify remain soft (util/lib.lua falls back to native APIs).
-  if pcall(require, "lib.nvim.bindings.usercmd.composer") then
-    ok("lib.nvim detected (:Cascade command layer + lib.map/lib.notify available)")
-  else
-    err("lib.nvim not found — :Cascade will fail to load", { 'Install "StefanBartl/lib.nvim"' })
   end
 
   -- Optional which-key integration.
