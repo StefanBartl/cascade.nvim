@@ -18,7 +18,12 @@ local lib_config = require("lib.lua.config")
 ---@field options CascadeConfig
 local M = {}
 
-M.options = DEFAULTS
+-- A copy, not the live reference: an unset() `M.options` before the first
+-- `setup()` runs is only reachable by calling into an action directly
+-- without going through `cascade.setup()` first, but DEFAULTS' own header
+-- says "never mutate it at runtime" and nothing here should be able to
+-- violate that even in that edge case (ERR-51).
+M.options = vim.deepcopy(DEFAULTS)
 
 ---@internal
 --- What the last `setup()` had to reject or degrade, one human-readable line

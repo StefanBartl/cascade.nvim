@@ -157,57 +157,47 @@ return function(H)
     ok(said(msgs, "no cycle groups configured"), "cycle_groups_list: says so when there are none")
   end
 
-  -- ---------- BUG: the runtime groups reach into config.DEFAULTS ----------
+  -- ---------- the runtime groups must never reach into config.DEFAULTS ----------
 
   do
     -- `lib.lua.config.deep_merge` copies only the TOP level of `base`, so any
-    -- key the user did not override is the very table that lives in
-    -- `cascade.config.DEFAULTS` -- including `cycle.groups`. The runtime
-    -- group commands then append to (and remove from) the shipped defaults
-    -- in place, which DEFAULTS' own module header forbids ("Never mutate it
+    -- key the user did not override IS the very table that lives in
+    -- `cascade.config.DEFAULTS` -- including `cycle.groups`. That aliasing
+    -- itself is inherent to the merge (its root cause belongs in
+    -- lib.lua.config, LUA-02) and is not what is under test here; what must
+    -- hold is that the runtime group commands never mutate *through* it
+    -- (ERR-51), which DEFAULTS' own module header forbids ("Never mutate it
     -- at runtime").
-    --
-    -- Two user-visible consequences, both asserted below:
-    --   * `:Cascade cycle add` is documented as "deliberately not persisted",
-    --     but it survives a fresh `setup()` -- a config reload no longer
-    --     resets cascade to what the config file says.
-    --   * `:Cascade cycle remove` deletes a SHIPPED group for the rest of the
-    --     session, and no amount of re-`setup()` brings it back. Only
-    --     restarting Neovim does.
-    --
-    -- Pinned rather than fixed: the repair belongs in `config.setup` (deep-
-    -- copying what it hands out) or in these two functions (copying before
-    -- mutating), and either one changes what `config.get()` returns for every
-    -- caller in the plugin -- deliberately a separate change.
     local DEFAULTS = require("cascade.config.DEFAULTS")
     local shipped = #DEFAULTS.cycle.groups
 
     cfg.setup({})
-    ok(cfg.get("cycle").groups == DEFAULTS.cycle.groups, "BUG: config.get() hands out the DEFAULTS table itself")
+    ok(cfg.get("cycle").groups == DEFAULTS.cycle.groups, "an untouched cycle.groups still aliases DEFAULTS (by design)")
 
     notices(function()
       cascade.cycle_group_add("pin-a,pin-b")
     end)
-    eq(#DEFAULTS.cycle.groups, shipped + 1, "BUG: cycle_group_add grew config.DEFAULTS in place")
+    eq(#DEFAULTS.cycle.groups, shipped, "cycle_group_add: config.DEFAULTS is untouched")
+    ok(cfg.get("cycle").groups ~= DEFAULTS.cycle.groups, "cycle_group_add: swapped in a private groups table")
 
-    cfg.setup({}) -- a full re-setup, as a config reload would do
+    -- Documented as "deliberately not persisted": a fresh setup() (as a
+    -- config reload would do) must not see the runtime addition.
+    cfg.setup({})
     local survived = false
     for _, g in ipairs(cfg.get("cycle").groups) do
       if g[1] == "pin-a" then
         survived = true
       end
     end
-    ok(survived, "BUG: the runtime group outlives a fresh setup()")
+    ok(not survived, "cycle_group_add: does not survive a fresh setup()")
 
-    notices(function()
-      cascade.cycle_group_remove("pin-a") -- clean up our own addition
-    end)
-    eq(#DEFAULTS.cycle.groups, shipped, "DEFAULTS is back to its shipped size")
-
-    -- Removing a shipped group is likewise permanent.
+    -- Removing a SHIPPED group must be equally session-scoped: config.DEFAULTS
+    -- keeps it, so a fresh setup() brings it right back.
+    cfg.setup({})
     notices(function()
       cascade.cycle_group_remove("==")
     end)
+    eq(#DEFAULTS.cycle.groups, shipped, "cycle_group_remove: config.DEFAULTS is untouched")
     cfg.setup({})
     local has_operator_group = false
     for _, g in ipairs(cfg.get("cycle").groups) do
@@ -215,25 +205,23 @@ return function(H)
         has_operator_group = true
       end
     end
-    ok(not has_operator_group, "BUG: a removed shipped group does not come back on setup()")
-
-    -- Restore the shipped group so the rest of the suite sees a stock config.
-    table.insert(DEFAULTS.cycle.groups, 2, { "==", "!=" })
-    cfg.setup({})
-    eq_lines(cfg.get("cycle").groups[2], { "==", "!=" }, "fixture: the shipped operator group is restored")
+    ok(has_operator_group, "cycle_group_remove: a removed shipped group comes back on the next setup()")
     eq(#DEFAULTS.cycle.groups, shipped, "fixture: DEFAULTS is whole again")
 
     -- A user who supplies their own `cycle.groups` gets their own array
-    -- (list-like values are replaced wholesale), so DEFAULTS is untouched --
-    -- their table is mutated instead, which is the milder half of the same
-    -- defect.
+    -- handed back by reference too (deep_merge's own by-design wholesale
+    -- replace for list-like values -- not itself the bug). What must hold is
+    -- that `cycle_group_add` never mutates *through* that reference: the
+    -- caller's own table is the "milder half" of the same ERR-51 defect that
+    -- DEFAULTS.cycle.groups is the severe half of.
     local mine = { { "one", "two" } }
     cfg.setup({ cycle = { groups = mine } })
-    ok(cfg.get("cycle").groups == mine, "BUG: a user-supplied groups array is handed back by reference too")
+    ok(cfg.get("cycle").groups == mine, "a user-supplied groups array is handed back by reference (deep_merge, by design)")
     notices(function()
       cascade.cycle_group_add("three,four")
     end)
-    eq(#mine, 2, "BUG: ... and the caller's own table is grown behind their back")
+    eq(#mine, 1, "cycle_group_add: the caller's own groups table is never mutated")
+    eq(#cfg.get("cycle").groups, 2, "cycle_group_add: the live config still grows, via a private copy")
   end
 
   -- ---------- gates: lists ----------
