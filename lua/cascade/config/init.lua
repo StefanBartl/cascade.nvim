@@ -33,31 +33,49 @@ M.options = vim.deepcopy(DEFAULTS)
 local _issues = {}
 
 ---@internal
---- Top-level keys `setup()` accepts and, for the fixed-schema tables among
---- them, their own direct keys (one level, not recursive -- see
---- `sanitize()`). `true` means "any key goes": `keymaps` mixes a fixed
---- `preset` switch with two action-name-keyed maps (`globals`, `list`), so
---- it is not checked at all.
----@type table<string, true|table<string, true>>
+--- Keys `setup()` accepts, walked recursively for every fixed-schema table
+--- (nested `true|table` entries, no depth limit) so a typo anywhere in a
+--- known option tree is caught -- not just at the top level or one level in.
+--- `true` means "any key goes, don't recurse further": either a leaf value
+--- (`enable`, `filetypes`, an array, ...) or a table whose keys are data, not
+--- a fixed schema (`per_filetype_patterns`/`cycle.per_filetype` are keyed by
+--- filetype; `lists.renumber` also accepts a bare boolean, so it is left
+--- unrecursed rather than misreporting that legitimate shape as "must be a
+--- table"). `keymaps` mixes a fixed `preset` switch with two
+--- action-name-keyed maps (`globals`, `list`), so it is not checked at all.
+---@type table<string, true|table<string, any>>
 local KNOWN = {
   lists = {
     enable = true,
-    features = true,
+    features = {
+      continue = true,
+      checkbox = true,
+      cycle_type = true,
+      rotate = true,
+      sort = true,
+      reverse = true,
+      strip = true,
+      indent = true,
+      move = true,
+      bullet_toggle = true,
+      number_toggle = true,
+      checkbox_toggle = true,
+    },
     filetypes = true,
     types = true,
     unordered_markers = true,
     per_filetype_patterns = true,
     cycle = true,
     forms = true,
-    checkbox = true,
-    continue = true,
+    checkbox = { states = true },
+    continue = { delete_empty = true, hanging_indent = true },
     renumber = true,
     precision = true,
     precision_nodes = true,
   },
   cycle = {
     enable = true,
-    features = true,
+    features = { word = true, date = true, letter = true, char = true },
     filetypes = true,
     number_fallback = true,
     packs = true,
@@ -65,10 +83,10 @@ local KNOWN = {
     per_filetype = true,
   },
   sequence = { enable = true, start = true, types = true },
-  transpose = { enable = true, features = true },
+  transpose = { enable = true, features = { char = true, word = true } },
   strings = {
     enable = true,
-    features = true,
+    features = { template = true, fstring = true, lua_format = true },
     template_filetypes = true,
     fstring_filetypes = true,
     lua_format_filetypes = true,
@@ -104,45 +122,58 @@ local function describe_unknown(key, known, prefix)
 end
 
 ---@internal
---- Drop what cannot be merged, and say so, before the merge (ERR-50): a
---- misspelled key would otherwise land in the active config as a dead field
---- with the default still silently in force, and a non-table value for an
---- option table (`lists = false`) would replace the whole table and throw on
---- the first nested read instead of falling back to the default.
----@param user_opts table
+--- `sanitize()`'s recursion step: walk `user_tbl` against `known` (a `KNOWN`
+--- subtree) and append to `issues`, in place, as it goes -- `prefix` is the
+--- dotted path so far (`""` at the root, `"lists."`, `"lists.checkbox."`,
+--- ...), which is what turns a bare sub-key name into a full-path message
+--- (`lists.checkbox.staets`, not just `staets`) once nested a level or more.
+---@param user_tbl table
+---@param known table<string, true|table>
+---@param prefix string
+---@param issues string[]
 ---@return table clean
----@return string[] issues
-local function sanitize(user_opts)
-  local clean, issues = {}, {}
-  for key, value in pairs(user_opts) do
-    local known = KNOWN[key]
-    if known == nil then
-      issues[#issues + 1] = describe_unknown(key, KNOWN, "")
-    elseif type(DEFAULTS[key]) == "table" and type(value) ~= "table" then
-      issues[#issues + 1] = ("option '%s' must be a table, got %s -- using the default"):format(key, type(value))
-    elseif type(known) == "table" then
-      local nested = {}
-      for sub_key, sub_value in pairs(value) do
-        if known[sub_key] then
-          nested[sub_key] = sub_value
-        else
-          issues[#issues + 1] = describe_unknown(sub_key, known, key .. ".")
+local function sanitize_level(user_tbl, known, prefix, issues)
+  local clean = {}
+  for key, value in pairs(user_tbl) do
+    local known_entry = known[key]
+    if known_entry == nil then
+      issues[#issues + 1] = describe_unknown(key, known, prefix)
+    elseif type(known_entry) == "table" then
+      if type(value) ~= "table" then
+        issues[#issues + 1] = ("option '%s%s' must be a table, got %s -- using the default"):format(prefix, key, type(value))
+      else
+        local nested = sanitize_level(value, known_entry, prefix .. key .. ".", issues)
+        -- An empty table is indistinguishable from an array to the merge
+        -- below (`lib.lua.config.deep_merge`'s array check is vacuously true
+        -- on `{}`), which replaces the WHOLE key wholesale instead of
+        -- merging -- if every sub-key the user gave was rejected above (e.g.
+        -- a single typo'd sub-key), that would wipe every *other* default
+        -- under `key` instead of leaving them alone. Only set the key at all
+        -- when there is a real override left to apply.
+        if next(nested) ~= nil then
+          clean[key] = nested
         end
-      end
-      -- An empty table is indistinguishable from an array to the merge
-      -- below (`lib.lua.config.deep_merge`'s array check is vacuously true
-      -- on `{}`), which replaces the WHOLE key wholesale instead of merging
-      -- -- if every sub-key the user gave was rejected above (e.g. a single
-      -- typo'd sub-key), that would wipe every *other* default under `key`
-      -- instead of leaving them alone. Only set the key at all when there is
-      -- a real override left to apply.
-      if next(nested) ~= nil then
-        clean[key] = nested
       end
     else
       clean[key] = value
     end
   end
+  return clean
+end
+
+---@internal
+--- Drop what cannot be merged, and say so, before the merge (ERR-50): a
+--- misspelled key -- at any depth `KNOWN` describes as a fixed schema, not
+--- just the top level -- would otherwise land in the active config as a dead
+--- field with the default still silently in force, and a non-table value for
+--- an option table (`lists = false`) would replace the whole table and throw
+--- on the first nested read instead of falling back to the default.
+---@param user_opts table
+---@return table clean
+---@return string[] issues
+local function sanitize(user_opts)
+  local issues = {}
+  local clean = sanitize_level(user_opts, KNOWN, "", issues)
   table.sort(issues)
   return clean, issues
 end
