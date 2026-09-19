@@ -182,6 +182,7 @@ Full usage and examples: [`commands.md`](commands.md).
 | `:Cascade indent` | `[n]` | no | yes | Indent line/range (+renumber; arg = levels) |
 | `:Cascade dedent` | `[n]` | no | yes | Dedent line/range (+renumber; arg = levels) |
 | `:Cascade renumber` | `[all\|selection]` | no | yes | Renumber list block (range-aware; `all` = every list in the buffer, `selection` = the ordinal tokens inside the lines) |
+| `:Cascade strings` | `[on\|off\|toggle\|now]` | no | no | Strings domain: switch it for this buffer (`toggle` is the default), or `now` = convert the literal at the cursor once |
 
 ## Autocommands
 
@@ -192,6 +193,8 @@ Registered by `setup()`.
 | `FileType` | `cascade_list_keymaps` | `lists.filetypes` | `keymaps.preset = true` | Bind buffer-local list keymaps |
 | `FileType` | `cascade_list_format` | `lists.filetypes` | `lists.continue.hanging_indent` | Set `formatlistpat`/`formatoptions` for `gq` hanging indent |
 | `BufWritePre` | `cascade_renumber_save` | `*` | `"save" in lists.renumber.on` | Renumber ordered lists on save (`pcall`-wrapped, so a renumbering bug can't block the write) |
+| `FileType` | `cascade_strings` | the strings domain's filetypes | `strings.enable` and at least one converter on | Bind the buffer-local strings triggers below |
+| `strings.on` (`InsertLeave`, `TextChanged`) | `cascade_strings_{buf}` | buffer-local | bound by the row above | Convert the string literal at the cursor, one tick deferred (`cascade.strings.convert`) |
 
 Both `FileType` autocmds also apply immediately, once, to whatever buffer is
 already open with a matching filetype at `setup()` time — not just buffers

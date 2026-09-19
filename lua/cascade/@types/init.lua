@@ -94,6 +94,21 @@
 ---@field enable boolean # Master switch for the transpose domain.
 ---@field features CascadeTransposeFeatures # Per-feature on/off switches.
 
+---@class CascadeStringsFeatures
+---@field template boolean # JS/TS: quoted string <-> template string when `${…}` appears/goes.
+---@field fstring boolean # Python: string <-> f-string when `{name}` appears/goes.
+---@field lua_format boolean # Lua: "%s" literal <-> ("%s"):format(). Off by default.
+
+---@class CascadeStringsOpts
+---@field enable boolean # Master switch for the strings domain.
+---@field features CascadeStringsFeatures # Per-converter on/off switches.
+---@field template_filetypes string[] # Filetypes the JS/TS converter attaches to.
+---@field fstring_filetypes string[] # Filetypes the Python converter attaches to.
+---@field lua_format_filetypes string[] # Filetypes the Lua converter attaches to.
+---@field max_characters integer # A literal longer than this is never rewritten.
+---@field quote '"'|"'" # The quote a template string turns back into.
+---@field on string[] # Events that trigger a conversion; {} = manual only.
+
 ---@class CascadeKeymapOpts
 ---@field preset boolean # Bind the opinionated default keymaps on setup.
 --- Per-action overrides for the keys that work everywhere; `false` drops one.
@@ -106,6 +121,7 @@
 ---@field cycle? CascadeCycleOpts
 ---@field sequence? CascadeSequenceOpts
 ---@field transpose? CascadeTransposeOpts
+---@field strings? CascadeStringsOpts
 ---@field keymaps? CascadeKeymapOpts
 ---@field debug? boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).
 

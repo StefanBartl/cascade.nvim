@@ -62,8 +62,8 @@ each page answers.
 
 **The Rest**
 
-- [What it does](docs/FEATURES/README.md) — one page per domain: cycling, lists, sequence renumbering, transposing, and what separates them.
-- [Why it does it that way](docs/architecture.md) — the dispatch pattern, the four domains, and the `lib.nvim` boundary.
+- [What it does](docs/FEATURES/README.md) — one page per domain: cycling, lists, sequence renumbering, transposing, string-literal kinds, and what separates them.
+- [Why it does it that way](docs/architecture.md) — the dispatch pattern, the five domains, and the `lib.nvim` boundary.
 - [Workflow](docs/WORKFLOW.md) — which key to reach for when a line is *almost* the list item you want.
 - [Integrations](docs/integrations.md) — the optional context-menu bridge, and why cycle/sequence/transpose are left out of it.
 - [Health check](docs/health.md) — what `:checkhealth cascade` reports, line by line.

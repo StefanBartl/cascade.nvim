@@ -1,7 +1,7 @@
 # Architecture
 
 How cascade is put together, and the two decisions the layout follows from:
-**one pattern for four domains**, and **one hard dependency, everything else
+**one pattern for five domains**, and **one hard dependency, everything else
 soft**.
 
 ## The pattern
@@ -53,6 +53,8 @@ cascade.nvim/
     cycle/                -- token, word_cycle, date, letter, packs/
     sequence/renumber.lua -- ordinals inside a selection (no marker parsing)
     transpose/            -- char, word
+    strings/init.lua      -- literal kind: template string, f-string, (…):format()
+                             (Tree-sitter, from an autocmd; the one insert-side domain)
     integrations/menu.lua -- nvzone/menu entries, no dependency on it
     bindings/             -- keymaps, usrcmds (:Cascade), autocmds
     util/
@@ -63,9 +65,9 @@ cascade.nvim/
   TESTS/                  -- framework-free specs, run via TESTS/run.lua
 ```
 
-## Why four domains and not one
+## Why five domains and not one
 
-The four domains differ in **what has to be recognised before anything can
+The five domains differ in **what has to be recognised before anything can
 happen**, and that difference is why some are global and some are not:
 
 | Domain | Recognises | Scope |
@@ -74,6 +76,7 @@ happen**, and that difference is why some are global and some are not:
 | `transpose` | one character or word and its neighbour | global |
 | `lists` | a list marker at the start of the line | `lists.filetypes` |
 | `sequence` | ordinal tokens anywhere in a selection | global |
+| `strings` | the string literal around the cursor, via Tree-sitter | `strings.*_filetypes` |
 
 `sequence` is a separate domain rather than a mode of `lists.renumber` for a
 structural reason, not a stylistic one: `lists/marker.lua` requires the number

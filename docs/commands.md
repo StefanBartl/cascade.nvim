@@ -127,8 +127,26 @@ identifies it:
 :Cascade cycle remove beta
 ```
 
+## Strings domain
+
+### `:Cascade strings [on|off|toggle|now]`
+
+The strings domain (JS/TS template strings, Python f-strings, opt-in Lua
+`(…):format()`) converts from an autocmd, so the subcommand is its switch:
+`on`, `off` and `toggle` (the default) set `b:cascade_strings` for the
+current buffer only, and `now` runs the converter once at the cursor —
+which is also how the domain is used with `strings.on = {}`.
+
+```vim
+:Cascade strings off      " stop converting in this buffer
+:Cascade strings now      " convert the literal under the cursor
+```
+
+See [FEATURES/STRINGS.md](FEATURES/STRINGS.md) for what converts and the
+guards.
+
 ## Autocommands
 
-Three, all registered by `setup()` and all idempotent — their augroups are
+Four, all registered by `setup()` and all idempotent — their augroups are
 cleared on every call. They are listed in
 [`BINDINGS.md`](BINDINGS.md#autocommands).

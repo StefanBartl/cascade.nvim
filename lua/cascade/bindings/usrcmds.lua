@@ -54,6 +54,27 @@ function M.setup()
         end,
       },
       {
+        path = { "strings" },
+        args = {
+          { name = "action", type = "STRING", enum = { "on", "off", "toggle", "now" }, optional = true },
+        },
+        desc = "Strings domain: on/off/toggle for this buffer, or `now` to convert the literal at the cursor",
+        run = function(ctx)
+          local strings = require("cascade.strings")
+          local notify = require("lib.nvim.notify").create("[cascade]")
+          local action = ctx.args.action or "toggle"
+          if action == "now" then
+            if not strings.convert() then
+              notify.info("strings: nothing to convert at the cursor")
+            end
+            return
+          end
+          local on = action == "on" and true or (action == "off" and false or nil)
+          local now_on = strings.set_buffer(on)
+          notify.info(("strings: %s for this buffer"):format(now_on and "on" or "off"))
+        end,
+      },
+      {
         path = { "rotate" },
         bang = true,
         range = true,

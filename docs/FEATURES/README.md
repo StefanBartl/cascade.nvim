@@ -1,6 +1,6 @@
 # cascade.nvim features
 
-Four domains under one roof, separated by *what has to be recognised first*:
+Five domains under one roof, separated by *what has to be recognised first*:
 
 | Domain | Scope | Does |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ Four domains under one roof, separated by *what has to be recognised first*:
 | **cycle** | global | Advance the token under the cursor — `true`→`false`, an ISO date, a lone letter, an operator — via `<C-y>`/`<C-x>` or `+`/`-`, with a native fallback for numbers |
 | **sequence** | global | Renumber the ordinals (`1.`, `a)`, `II.`) *inside* a Visual selection, whatever precedes them: numbered headlines, inline numbers in prose |
 | **transpose** | global | Swap a character or a word (or a same-line selection) with its neighbor, UTF-8 safe |
+| **strings** | `strings.*_filetypes` | Advance the *kind* of the string literal at the cursor when its contents ask for it: `"…${x}…"` → `` `…${x}…` `` in JS/TS, `"…{x}…"` → `f"…{x}…"` in Python, and back — from an autocmd, no key |
 
 The separation is not cosmetic. A list operation has to know it is in a list
 before it can do anything; a cycle operation only has to know what is under
@@ -33,6 +34,11 @@ follows from.
   same-line Visual selection with its neighbour. UTF-8 safe, and global with
   no filetype option at all, because swapping two characters does not depend
   on what language they are in.
+- **[STRINGS.md](STRINGS.md)** — converting a string literal to the kind its
+  contents need (template string, f-string, `(…):format()`) after you type,
+  and back when the placeholder goes. The one domain that runs from an
+  autocmd and needs Tree-sitter, because "where does this string start" is
+  not a line-scan question.
 
 Every feature can be switched off on its own: the keys are in
 [BINDINGS.md](../BINDINGS.md), the option that gates each one is in

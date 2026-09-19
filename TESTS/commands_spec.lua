@@ -14,7 +14,7 @@ return function(H)
   eq(vim.fn.exists(":Cascade"), 2, ":Cascade defined")
   local subs = vim.fn.getcompletion("Cascade ", "cmdline")
   table.sort(subs)
-  eq(table.concat(subs, ","), "cycle,dedent,indent,renumber,reverse,rotate,sort,strip", ":Cascade completes every subcommand")
+  eq(table.concat(subs, ","), "cycle,dedent,indent,renumber,reverse,rotate,sort,strings,strip", ":Cascade completes every subcommand")
 
   -- `cycle` is a group, not a leaf: its own subcommands manage the runtime
   -- cycle groups.

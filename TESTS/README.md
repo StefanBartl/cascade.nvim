@@ -45,6 +45,7 @@ skip.
 | `cycle_spec.lua`              | Word / boolean cycle, `+`/`-` increment/decrement, pack resolution.      |
 | `transpose_spec.lua`          | Char/selection swap.                                                     |
 | `sequence_spec.lua`           | Selection renumber: scanner (kind lock, start mode, prose boundaries), `range`/`span`, config + command wiring. |
+| `strings_spec.lua`            | Strings domain: JS/TS template-string and Python f-string round trips (skipped without the parser), Lua `(…):format()` with its pattern guards, the per-buffer switch, the FileType/buffer-local autocmd wiring, and `enable = false`. |
 | `multibyte_spec.lua`          | Byte-vs-character offsets: every write path driven over umlauts, CJK and emoji against hand-counted **byte** offsets. |
 | `facade_spec.lua`             | `cascade/init.lua`: the runtime cycle-group commands, every domain and feature gate as its own decision, the three `:command` entry points, the count semantics. |
 | `commands_spec.lua`           | `:Cascade*` commands exist; feature toggles gate actions; keymap wiring through real keypresses. |
