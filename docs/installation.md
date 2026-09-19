@@ -25,7 +25,10 @@ Nothing else is needed. Treesitter is optional and off by default — see
 `vim.ui.select` override) and `cascade.integrations.menu`'s right-click
 entries (`ui.contextmenu`, an opt-in module a host requires explicitly).
 Neither is loaded by `setup()` itself. Without ui.nvim installed at all,
-`cycle.pick` falls back to plain `vim.ui.select` directly.
+`cycle.pick` falls back to plain `vim.ui.select` directly, and
+`cascade.integrations.menu` builds its entries with a local fallback that
+reproduces `ui.contextmenu`'s `entry`/`group`/`submenu` builders instead of
+erroring — a host can `require("cascade.integrations.menu")` either way.
 
 ## Which loading strategy
 
