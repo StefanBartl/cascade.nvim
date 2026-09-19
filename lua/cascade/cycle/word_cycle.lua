@@ -10,6 +10,7 @@
 --- `token.operator_span` (a literal-position scan) before falling through to
 --- the keyword-based token match.
 
+local Context = require("cascade.core.context")
 local token = require("cascade.cycle.token")
 
 local M = {}
@@ -142,13 +143,14 @@ function M.cycle(ctx, opts, dir)
   return true
 end
 
---- Show an interactive picker (`kit.select` with `respect_override` --
+--- Show an interactive picker (`ui.kit.select` with `respect_override` --
 --- Telescope-backed if the user has `telescope-ui-select.nvim` registered,
---- else kit's own themed chooser) over every entry in the cursor's cycle
---- group, and replace the span with whichever the user picks. Returns
---- `true` once a group was found and the picker was shown (the actual
---- buffer edit happens in the picker's callback, which may be asynchronous
---- depending on the UI backend).
+--- else kit's own themed chooser; plain `vim.ui.select` if ui.nvim is not
+--- installed at all -- see docs/installation.md) over every entry in the
+--- cursor's cycle group, and replace the span with whichever the user
+--- picks. Returns `true` once a group was found and the picker was shown
+--- (the actual buffer edit happens in the picker's callback, which may be
+--- asynchronous depending on the UI backend).
 ---@param ctx CascadeContext
 ---@param opts CascadeCycleOpts
 ---@return boolean handled
@@ -160,18 +162,42 @@ function M.pick(ctx, opts)
   ---@cast s integer
   ---@cast e integer
 
-  require("ui.kit").select({
-    items = found,
-    title = "Cascade: pick a value",
-    respect_override = true,
-    on_select = function(choice)
-      if not choice then
-        return
-      end
-      local repl = shape and token.apply_shape(choice:lower(), shape) or choice
-      vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
-    end,
-  })
+  --- Re-validate the captured buffer/span at execution time (ERR-33): the
+  --- picker may be asynchronous (a third-party `vim.ui.select` backend), so
+  --- the buffer can be closed/wiped, or the line can change under the
+  --- captured span, before the user actually picks something.
+  ---@param choice string|nil
+  local function on_select(choice)
+    if not choice then
+      return
+    end
+    if not Context.writable(ctx.bufnr) then
+      return
+    end
+    if ctx.row0 < 0 or ctx.row0 >= vim.api.nvim_buf_line_count(ctx.bufnr) then
+      return
+    end
+    local cur_line = vim.api.nvim_buf_get_lines(ctx.bufnr, ctx.row0, ctx.row0 + 1, false)[1] or ""
+    if cur_line:sub(s + 1, e) ~= ctx.line:sub(s + 1, e) then
+      -- The span's content no longer matches what `resolve` found: writing
+      -- blind here would silently overwrite whatever now sits there.
+      return
+    end
+    local repl = shape and token.apply_shape(choice:lower(), shape) or choice
+    vim.api.nvim_buf_set_text(ctx.bufnr, ctx.row0, s, ctx.row0, e, { repl })
+  end
+
+  local kit_ok, kit = pcall(require, "ui.kit")
+  if kit_ok then
+    kit.select({
+      items = found,
+      title = "Cascade: pick a value",
+      respect_override = true,
+      on_select = on_select,
+    })
+  else
+    vim.ui.select(found, { prompt = "Cascade: pick a value" }, on_select)
+  end
   return true
 end
 

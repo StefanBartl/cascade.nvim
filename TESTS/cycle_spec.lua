@@ -425,6 +425,80 @@ return function(H)
   eq(not_picked, false, "pick: returns false off a cyclable token")
   eq(select_called, false, "pick: never opens the picker when there's nothing to pick")
 
+  -- LUA-01: ui.nvim is a soft dependency for pick -- when "ui.kit" itself
+  -- fails to load (not merely a vim.ui.select override), pick falls back to
+  -- plain vim.ui.select directly instead of throwing.
+  do
+    local saved = package.loaded["ui.kit"]
+    package.loaded["ui.kit"] = nil
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    package.preload["ui.kit"] = function()
+      error("simulated: ui.nvim not installed")
+    end
+
+    local fallback_items
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.ui.select = function(items, _, on_choice)
+      fallback_items = items
+      on_choice(items[2]) -- "false"
+    end
+
+    vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "flag = true" })
+    vim.api.nvim_win_set_cursor(0, { 1, 7 })
+    local ok_pick = word_cycle.pick(Context.new(), cfg.get("cycle"))
+
+    package.preload["ui.kit"] = nil
+    package.loaded["ui.kit"] = saved
+
+    eq(ok_pick, true, "pick: still handled when ui.kit itself fails to load")
+    eq(table.concat(fallback_items, ","), "true,false", "pick: vim.ui.select fallback gets the same items")
+    eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "flag = false", "pick: vim.ui.select fallback applies the choice")
+  end
+
+  -- ERR-33: the on_select callback re-validates its captured buffer/span at
+  -- execution time rather than trusting what was true when the picker
+  -- opened -- the picker (a third-party vim.ui.select backend) may be
+  -- asynchronous, so time can genuinely pass before the user picks.
+  do
+    -- The buffer is wiped between "opening" the picker and the choice
+    -- callback firing: the edit must be skipped, not throw "Invalid buffer id".
+    local scratch = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(scratch, 0, -1, false, { "flag = true" })
+    vim.api.nvim_set_current_buf(scratch)
+    vim.api.nvim_win_set_cursor(0, { 1, 7 })
+    local ctx_wiped = Context.new()
+
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.ui.select = function(items, _, on_choice)
+      vim.api.nvim_buf_delete(scratch, { force = true })
+      on_choice(items[2])
+    end
+    local ok_call, err_or_handled = pcall(word_cycle.pick, ctx_wiped, cfg.get("cycle"))
+    H.ok(ok_call, "pick: on_select survives a buffer wiped before the choice: " .. tostring(err_or_handled))
+
+    vim.api.nvim_set_current_buf(ebuf)
+
+    -- The captured SPAN's own content changed (same length, so a naive
+    -- validity check alone would miss it) between opening the picker and the
+    -- choice firing: the stale span must not silently overwrite whatever now
+    -- sits there.
+    vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "flag = true" })
+    vim.api.nvim_win_set_cursor(0, { 1, 7 })
+    -- Test double over a typed surface; restored right after the case.
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.ui.select = function(items, _, on_choice)
+      -- Same length as "true", but different content at the very span pick
+      -- resolved -- an LSP/formatter autocmd racing the picker, say.
+      vim.api.nvim_buf_set_lines(ebuf, 0, -1, false, { "flag = fals" })
+      on_choice(items[2])
+    end
+    word_cycle.pick(Context.new(), cfg.get("cycle"))
+    eq(vim.api.nvim_buf_get_lines(ebuf, 0, 1, false)[1], "flag = fals", "pick: a changed span is left alone, not overwritten")
+  end
+
   -- facade-level: cascade.cycle_pick() (bound to <leader>cp in the preset).
   -- Test double over a typed surface; restored right after the case.
   ---@diagnostic disable-next-line: duplicate-set-field
