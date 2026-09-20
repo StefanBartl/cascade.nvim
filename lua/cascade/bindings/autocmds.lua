@@ -122,7 +122,10 @@ local function setup_save_renumber()
     if not Context.writable(args.buf) or not ft_in(opts.filetypes, vim.bo[args.buf].filetype) then
       return
     end
-    pcall(renumber.all, args.buf, opts)
+    local ok, err = pcall(renumber.all, args.buf, opts)
+    if not ok then
+      lib.notify("renumber failed: " .. tostring(err), vim.log.levels.WARN)
+    end
   end, {
     group = group,
     pattern = "*",

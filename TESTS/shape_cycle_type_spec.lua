@@ -293,6 +293,34 @@ return function(H)
       { "1. one", "- two", "- three" },
       "cycle: only the cursor line changes shape; renumber re-sequences what it finds"
     )
+
+    -- cycle_type.cycle's own renumber.run call (LLS-31): a crash there must
+    -- warn distinctly, same as the manual :Cascade renumber / indent / move /
+    -- quick-toggle / continue.cr call sites, not look like a legitimate
+    -- no-op.
+    local buf3 = H.scratch("markdown")
+    vim.api.nvim_buf_set_lines(buf3, 0, -1, false, { "- one", "- two" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    local renumber = require("cascade.lists.renumber")
+    local orig_run = renumber.run
+    renumber.run = function()
+      error("simulated renumber failure")
+    end
+    local warnings = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
+    local handled3 = cycle_type.cycle(require("cascade.core.context").new(buf3), lopts, 1)
+    vim.notify = orig_notify
+    renumber.run = orig_run
+    eq(handled3, true, "cycle_type.cycle: still handled even though the renumber pass crashed")
+    ok(#warnings >= 1, "cycle_type.cycle: a crashing renumber warns instead of failing silently")
+    ok(
+      warnings[#warnings].msg:find("simulated renumber failure", 1, true) ~= nil,
+      "cycle_type.cycle: the warning names the underlying error"
+    )
   end
 
   -- ---------- regression: the shipped defaults now round-trip ----------

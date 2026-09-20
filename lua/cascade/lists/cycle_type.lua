@@ -8,6 +8,7 @@
 --- the central operatorfunc helper.
 
 local marker = require("cascade.lists.marker")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local renumber = require("cascade.lists.renumber")
 local shape = require("cascade.lists.shape")
 
@@ -57,7 +58,10 @@ function M.cycle(ctx, opts, dir)
   end
   vim.api.nvim_buf_set_lines(ctx.bufnr, ctx.row0, ctx.row0 + 1, false, { new })
   if renumber.at(opts, "edit") and spec.kind ~= "unordered" then
-    pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
+    local ok, err = pcall(renumber.run, ctx.bufnr, ctx.row0, opts)
+    if not ok then
+      notify.warn("renumber failed: " .. tostring(err))
+    end
   end
   return true
 end

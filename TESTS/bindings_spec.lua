@@ -207,6 +207,32 @@ return function(H)
       "BufWritePre: a non-writable buffer does not raise out of the handler"
     )
     eq_lines(vim.api.nvim_buf_get_lines(b3, 0, -1, false), { "1. one", "1. two" }, "BufWritePre: ... and is left untouched")
+
+    -- setup_save_renumber's own pcall(renumber.all, ...) (LLS-31): a crash
+    -- there must warn distinctly instead of leaving the buffer silently
+    -- un-renumbered on write, same as the other renumber call sites.
+    local b4 = H.editable("markdown")
+    vim.api.nvim_buf_set_lines(b4, 0, -1, false, { "1. one", "1. two" })
+    local renumber = require("cascade.lists.renumber")
+    local orig_all = renumber.all
+    renumber.all = function()
+      error("simulated renumber failure")
+    end
+    local warnings = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
+    local save_ok = pcall(vim.api.nvim_exec_autocmds, "BufWritePre", { buffer = b4 })
+    vim.notify = orig_notify
+    renumber.all = orig_all
+    ok(save_ok, "BufWritePre: a crashing renumber does not raise out of the write hook")
+    ok(#warnings >= 1, "BufWritePre: a crashing renumber warns instead of failing silently")
+    ok(
+      warnings[#warnings].msg:find("simulated renumber failure", 1, true) ~= nil,
+      "BufWritePre: the warning names the underlying error"
+    )
   end
 
   do

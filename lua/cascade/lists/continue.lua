@@ -7,6 +7,7 @@
 --- removes the bullet to terminate the list (when `continue.delete_empty`).
 
 local marker = require("cascade.lists.marker")
+local notify = require("lib.nvim.notify").create("[cascade]")
 local renumber = require("cascade.lists.renumber")
 
 local M = {}
@@ -19,7 +20,10 @@ local M = {}
 ---@return nil
 local function maybe_renumber(bufnr, row0, opts)
   if renumber.at(opts, "edit") then
-    pcall(renumber.run, bufnr, row0, opts)
+    local ok, err = pcall(renumber.run, bufnr, row0, opts)
+    if not ok then
+      notify.warn("renumber failed: " .. tostring(err))
+    end
   end
 end
 

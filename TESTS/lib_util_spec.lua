@@ -168,6 +168,35 @@ return function(H)
     eq(vim.g.cascade_test_repeat_seq, "g@l", "dotrepeat_run: repeat#set was told to replay g@l")
   end
 
+  -- dotrepeat.repeatable: the wrapped action is what most dot-repeatable
+  -- keymaps actually run through on every press, not just on `.`-repeat --
+  -- a crash inside it used to be swallowed by a bare `pcall(stored)` with no
+  -- signal at all, indistinguishable from the key legitimately doing
+  -- nothing (same ERR-11 shape as dispatch.try/strings.convert/
+  -- packs.resolve elsewhere in this codebase).
+  do
+    local dotrepeat = require("cascade.util.dotrepeat")
+    local run = dotrepeat.repeatable("test_crash", function()
+      error("simulated action failure")
+    end)
+    local warnings = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
+    local call_ok = pcall(run)
+    vim.api.nvim_feedkeys("", "x", false) -- flush the queued g@l
+    vim.notify = orig_notify
+
+    ok(call_ok, "dotrepeat.repeatable: a crashing action does not raise out of the keymap")
+    ok(#warnings >= 1, "dotrepeat.repeatable: a crashing action warns instead of failing silently")
+    ok(
+      warnings[#warnings].msg:find("simulated action failure", 1, true) ~= nil,
+      "dotrepeat.repeatable: the warning names the underlying error"
+    )
+  end
+
   -- debug_log: disabled is a true no-op (no notify, no logger call at all).
   do
     package.loaded["cascade.util.lib"] = nil
