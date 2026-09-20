@@ -27,10 +27,21 @@ function M.repeatable(key, fn)
   store[key] = fn
   return function()
     M._last = key
-    require("cascade.util.lib").dotrepeat_run(function()
+    local lib = require("cascade.util.lib")
+    lib.dotrepeat_run(function()
       local stored = store[key]
       if type(stored) == "function" then
-        pcall(stored)
+        -- This is the actual entry point most dot-repeatable actions run
+        -- through (not just `.`-repeat itself, since `dotrepeat_run` also
+        -- fires synchronously on the very first press) -- collapsing a real
+        -- crash here into total silence would be indistinguishable from the
+        -- key legitimately doing nothing (same ERR-11 shape as
+        -- dispatch.try/strings.convert/packs.resolve elsewhere in this
+        -- codebase).
+        local ok, err = pcall(stored)
+        if not ok then
+          lib.notify("action failed: " .. tostring(err), vim.log.levels.WARN)
+        end
       end
     end)
   end

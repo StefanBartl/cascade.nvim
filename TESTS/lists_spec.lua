@@ -757,6 +757,36 @@ return function(H)
   local o_none = require("cascade.lists.continue").O(require("cascade.core.context").new(), oopts)
   eq(o_none, false, "continue.O: no marker on current or previous line -> unhandled")
 
+  do
+    -- continue.lua's maybe_renumber() (LLS-31): a renumber.run crash on <CR>
+    -- must warn distinctly instead of silently leaving the block
+    -- un-renumbered, exactly like the manual :Cascade renumber / indent /
+    -- move / quick-toggle call sites already do -- this is the highest-
+    -- frequency of all of them (every ordered-list <CR>).
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "1. a", "1. b" })
+    vim.api.nvim_win_set_cursor(0, { 1, 4 })
+    local renumber = require("cascade.lists.renumber")
+    local orig_run = renumber.run
+    renumber.run = function()
+      error("simulated renumber failure")
+    end
+    local warnings = {}
+    local orig_notify = vim.notify
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.notify = function(msg, level)
+      warnings[#warnings + 1] = { msg = tostring(msg), level = level }
+    end
+    local cr_handled = require("cascade.lists.continue").cr(require("cascade.core.context").new(), oopts)
+    vim.notify = orig_notify
+    renumber.run = orig_run
+    eq(cr_handled, true, "continue.cr: still handles <CR> even though the renumber pass crashed")
+    H.ok(#warnings >= 1, "continue.cr: a crashing renumber warns instead of failing silently")
+    H.ok(
+      warnings[#warnings].msg:find("simulated renumber failure", 1, true) ~= nil,
+      "continue.cr: the warning names the underlying error"
+    )
+  end
+
   -- Soft markdown.nvim integration: `o`/`O` fall back to
   -- markdown.core.table_mode.insert_row on a non-list table line, in a
   -- markdown buffer, when that module is on the runtimepath. Stubbed here
