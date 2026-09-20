@@ -47,12 +47,12 @@ looking at" question.
 Start at [docs/README.md](docs/README.md) — what's where, and which question
 each page answers.
 
-**The Basics**
+### The Basics
 
 - [Installation](docs/installation.md) — requirements (Neovim 0.9+, the `lib.nvim` dependency), loading strategies, and every plugin manager.
 - [Quickstart](docs/quickstart.md) — the first thing to run after installing.
 
-**Configuration**
+### Configuration
 
 - [What you get with the preset](docs/what-you-get.md) — the keys worth knowing on day one, if you turn `keymaps.preset` on.
 - [All options](docs/configuration.md) — every `setup()` option and its default, the cycle packs, and the scope rules.
@@ -60,7 +60,7 @@ each page answers.
 - [Bindings cheatsheet](docs/BINDINGS.md) — every keymap, user command and autocommand at a glance.
 - [Keymaps](docs/keymaps.md) — the bindable action surface, for wiring your own keys.
 
-**The Rest**
+### The Rest
 
 - [What it does](docs/FEATURES/README.md) — one page per domain: cycling, lists, sequence renumbering, transposing, string-literal kinds, and what separates them.
 - [Why it does it that way](docs/architecture.md) — the dispatch pattern, the five domains, and the `lib.nvim` boundary.
