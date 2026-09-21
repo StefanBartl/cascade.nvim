@@ -12,6 +12,7 @@ jobs:
   stylua:
     name: stylua (format check)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: JohnnyMorganz/stylua-action@v4
@@ -23,6 +24,7 @@ jobs:
   luacheck:
     name: luacheck (lint)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       # Plain Lua 5.4, not LuaJIT: luacheck only needs *an* interpreter to run
@@ -40,6 +42,7 @@ jobs:
   tests:
     name: tests (headless nvim) (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       # One platform failing must not cancel the others: which of the three
       # broke is the whole information content of this job.
@@ -77,4 +80,12 @@ jobs:
           version: stable
       - name: Run TESTS suite
         working-directory: cascade.nvim
-        run: nvim --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile TESTS/run.lua" -c "qa!"
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/test-output.log") 2>&1
+          nvim -n -i NONE --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile TESTS/run.lua" -c "qa!"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-output-tests-${{ matrix.os }}
+          path: ${{ runner.temp }}/test-output.log
+          if-no-files-found: ignore
