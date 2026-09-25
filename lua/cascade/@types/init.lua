@@ -124,6 +124,10 @@
 ---@field strings? CascadeStringsOpts
 ---@field keymaps? CascadeKeymapOpts
 ---@field debug? boolean # Debug logging at cascade's central decision points (see util/lib.lua's debug_log).
+---@field integrations? CascadeIntegrationsOpts # Which hosts may drive this plugin (`ui_menu`).
+
+---@class CascadeIntegrationsOpts
+---@field ui_menu? boolean # Let ui.nvim's right-click menu (`ui.menu`) compose the Cascade fly-out. Default true.
 
 -- #####################################################################
 -- core/context.lua
