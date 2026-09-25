@@ -121,6 +121,22 @@ local function ft_in(fts, ft)
   return false
 end
 
+--- Whether a host that asks first (ui.nvim's `ui.menu`) may show this
+--- plugin's fly-out: `integrations.ui_menu` is not false and lists are not
+--- switched off (`lists.enable`, which gates every entry here). `items()`/
+--- `submenu()` themselves stay governed by `lists` alone, so other hosts are
+--- unaffected by `ui_menu`.
+---@return boolean
+function M.enabled()
+  local config = require("cascade.config")
+  local integrations = config.get("integrations")
+  if type(integrations) == "table" and integrations.ui_menu == false then
+    return false
+  end
+  local lists = config.get("lists")
+  return not (not lists or lists.enable == false)
+end
+
 --- Build the cascade.nvim (lists) menu entries for `bufnr`.
 --- Returns an empty list when lists are disabled, the buffer's filetype
 --- isn't configured, or every feature is off, so a host can safely

@@ -93,6 +93,9 @@ require("cascade").setup({
     list = {},                               -- per-action key overrides, inside a list buffer
   },
   debug = false,                             -- log detect/advance/fallback decisions
+  integrations = {
+    ui_menu = true,                          -- let ui.nvim's right-click menu (ui.menu) show the fly-out
+  },
 })
 ```
 

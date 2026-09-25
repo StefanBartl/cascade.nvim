@@ -242,6 +242,13 @@ local DEFAULTS = {
   -- else vim.notify at DEBUG level. False by default -- even the check is a
   -- single cheap boolean read when off.
   debug = false,
+
+  -- Which hosts may drive this plugin. `ui_menu = false` keeps ui.nvim's
+  -- right-click menu (ui.menu) from composing the Cascade fly-out; the
+  -- entries stay available to any other host through `items()`.
+  integrations = {
+    ui_menu = true,
+  },
 }
 
 return DEFAULTS

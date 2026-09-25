@@ -96,6 +96,7 @@ local KNOWN = {
   },
   keymaps = true,
   debug = true,
+  integrations = { ui_menu = true },
 }
 
 ---@internal

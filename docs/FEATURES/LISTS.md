@@ -253,5 +253,10 @@ cascade.nvim has no dependency on `menu` and never opens a context menu
 itself — a host (typically your own `<RightMouse>` dispatcher) composes
 the entries into its own menu.
 
-- **Module:** `cascade/integrations/menu.lua` (`M.items`, `M.submenu`)
+`integrations.ui_menu = false` keeps ui.nvim's right-click menu (`ui.menu`) from
+showing the fly-out while `items()`/`submenu()` keep working for any other host.
+The module also answers `enabled()` (`false` when that switch or `lists.enable`
+is off), which is what `ui.menu` asks first.
+
+- **Module:** `cascade/integrations/menu.lua` (`M.items`, `M.submenu`, `M.enabled`)
 - **Docs:** [`../BINDINGS.md#context-menu-optional`](../BINDINGS.md#context-menu-optional)

@@ -49,6 +49,19 @@ return function(H)
 
   cascade.setup({})
 
+  -- ---------- enabled(): what ui.nvim's ui.menu asks first ----------
+
+  do
+    eq(menu.enabled(), true, "menu.enabled: true by default")
+    cfg.setup({ integrations = { ui_menu = false } })
+    eq(menu.enabled(), false, "menu.enabled: integrations.ui_menu = false")
+    local b = H.editable("markdown")
+    ok(#menu.items(b) > 0, "menu.enabled: ui_menu = false leaves items() to other hosts")
+    cfg.setup({ lists = { enable = false } })
+    eq(menu.enabled(), false, "menu.enabled: lists.enable = false")
+    cfg.setup({})
+  end
+
   -- ---------- the full set ----------
 
   do
