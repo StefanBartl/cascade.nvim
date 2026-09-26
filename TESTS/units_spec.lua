@@ -70,9 +70,14 @@ return function(H)
   eq(bare_ascii and bare_ascii.kind, "ascii", "bare ascii kind")
   eq(bare_ascii and bare_ascii.marker, "b", "bare ascii marker")
 
-  local bare_roman = marker.parse("IV.", lopts)
-  eq(bare_roman and bare_roman.kind, "roman", "bare roman kind")
-  eq(bare_roman and bare_roman.marker, "IV", "bare roman marker")
+  -- `roman` deliberately does NOT get the bare-marker fallback: `%a+` is an
+  -- unbounded letter run, and ordinary words built only from I/V/X/L/C/D/M
+  -- are, by coincidence, well-formed Roman numerals ("Mix." = 1009,
+  -- "Civ." = 104) -- a bare match would silently turn real prose into a
+  -- list marker and let renumber.tree lowercase/rewrite it on save.
+  eq(marker.parse("IV.", lopts), nil, "bare roman-shaped token stays unrecognized (no space+text to anchor on)")
+  eq(marker.parse("Mix.", lopts), nil, "regression: a word that is coincidentally valid Roman must not parse")
+  eq(marker.parse("Civ.", lopts), nil, "regression: same for another real-word/Roman-numeral collision")
 
   local bare_bullet = marker.parse("-", lopts)
   eq(bare_bullet and bare_bullet.kind, "unordered", "bare unordered kind")
