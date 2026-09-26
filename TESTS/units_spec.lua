@@ -48,6 +48,37 @@ return function(H)
 
   eq(marker.parse("just text", lopts), nil, "non-list line")
 
+  -- Bare markers: no trailing space at all (see marker.lua's try_kind doc --
+  -- this is what a freshly continued, still-empty item looks like once a
+  -- whitespace-trimming `BufWritePre` autocmd strips the trailing space
+  -- `marker.render` wrote before any text was typed into it). Must still
+  -- parse as an (empty) item, not fall through to "not a list line".
+  local bare_digit = marker.parse("  5.", lopts)
+  eq(bare_digit and bare_digit.kind, "digit", "bare digit kind")
+  eq(bare_digit and bare_digit.marker, "5", "bare digit marker")
+  eq(bare_digit and bare_digit.delim, ".", "bare digit delim")
+  eq(bare_digit and bare_digit.indent, "  ", "bare digit indent")
+  eq(bare_digit and bare_digit.text, "", "bare digit text is empty, not nil")
+  eq(bare_digit and bare_digit.checkbox, nil, "bare digit has no checkbox")
+  eq(marker.render(bare_digit) .. bare_digit.text, "  5. ", "bare digit re-renders with the space back")
+
+  local bare_paren = marker.parse("4)", lopts)
+  eq(bare_paren and bare_paren.marker, "4", "bare digit marker, paren delim")
+  eq(bare_paren and bare_paren.delim, ")", "bare digit paren delim")
+
+  local bare_ascii = marker.parse("b.", lopts)
+  eq(bare_ascii and bare_ascii.kind, "ascii", "bare ascii kind")
+  eq(bare_ascii and bare_ascii.marker, "b", "bare ascii marker")
+
+  local bare_roman = marker.parse("IV.", lopts)
+  eq(bare_roman and bare_roman.kind, "roman", "bare roman kind")
+  eq(bare_roman and bare_roman.marker, "IV", "bare roman marker")
+
+  local bare_bullet = marker.parse("-", lopts)
+  eq(bare_bullet and bare_bullet.kind, "unordered", "bare unordered kind")
+  eq(bare_bullet and bare_bullet.marker, "-", "bare unordered marker")
+  eq(bare_bullet and bare_bullet.text, "", "bare unordered text is empty, not nil")
+
   -- multi-byte checkbox states (emoji), gated behind explicit config
   cfg.setup({ lists = { types = { "unordered", "digit" }, checkbox = { states = { "🔲", "✅", "❌" } } } })
   local eopts = cfg.get("lists")

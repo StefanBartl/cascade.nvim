@@ -105,6 +105,17 @@ end
 --- stripped). Pure and independent of position in `opts.types` -- `M.parse`
 --- calls this once out of order when it has a `prefer_kind` to try first,
 --- then falls through to the configured order for everything else.
+---
+--- Every kind also accepts a *bare* marker: just the marker and delimiter,
+--- nothing after it at all -- not even the trailing space `M.render` always
+--- writes. That trailing space is exactly what a whitespace-trimming save
+--- hook (`:h BufWritePre` running `%s/\s\+$//`, common in editor configs)
+--- strips from a freshly continued, still-empty item (`"5. "` -> `"5."`)
+--- the moment it gets saved before any text is typed into it. Without this,
+--- that single save silently turns the item invisible to `M.parse` --
+--- `transform.block_range`/`renumber.tree` then treat it as continuation
+--- text instead of a list item, and renumbering quietly misfires on the
+--- block from then on with no error anywhere.
 ---@param kind CascadeMarkerKind
 ---@param rest string
 ---@param opts CascadeListOpts
@@ -117,11 +128,19 @@ local function try_kind(kind, rest, opts)
       local cb, text = split_checkbox(after, opts)
       return { kind = "unordered", marker = mk, delim = "", checkbox = cb, text = text }
     end
+    mk = rest:match("^(" .. cls .. ")$")
+    if mk then
+      return { kind = "unordered", marker = mk, delim = "", checkbox = nil, text = "" }
+    end
   elseif kind == "digit" then
     local num, d, after = rest:match("^(%d+)([%.%)])%s(.*)$")
     if num then
       local cb, text = split_checkbox(after, opts)
       return { kind = "digit", marker = num, delim = d, checkbox = cb, text = text }
+    end
+    num, d = rest:match("^(%d+)([%.%)])$")
+    if num then
+      return { kind = "digit", marker = num, delim = d, checkbox = nil, text = "" }
     end
   elseif kind == "ascii" then
     local ch, d, after = rest:match("^(%a)([%.%)])%s(.*)$")
@@ -129,11 +148,19 @@ local function try_kind(kind, rest, opts)
       local cb, text = split_checkbox(after, opts)
       return { kind = "ascii", marker = ch, delim = d, checkbox = cb, text = text }
     end
+    ch, d = rest:match("^(%a)([%.%)])$")
+    if ch and alpha.to_int(ch) then
+      return { kind = "ascii", marker = ch, delim = d, checkbox = nil, text = "" }
+    end
   elseif kind == "roman" then
     local rm, d, after = rest:match("^(%a+)([%.%)])%s(.*)$")
     if rm and roman.to_int(rm) then
       local cb, text = split_checkbox(after, opts)
       return { kind = "roman", marker = rm, delim = d, checkbox = cb, text = text }
+    end
+    rm, d = rest:match("^(%a+)([%.%)])$")
+    if rm and roman.to_int(rm) then
+      return { kind = "roman", marker = rm, delim = d, checkbox = nil, text = "" }
     end
   end
   return nil
