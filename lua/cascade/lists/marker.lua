@@ -106,16 +106,30 @@ end
 --- calls this once out of order when it has a `prefer_kind` to try first,
 --- then falls through to the configured order for everything else.
 ---
---- Every kind also accepts a *bare* marker: just the marker and delimiter,
---- nothing after it at all -- not even the trailing space `M.render` always
---- writes. That trailing space is exactly what a whitespace-trimming save
---- hook (`:h BufWritePre` running `%s/\s\+$//`, common in editor configs)
---- strips from a freshly continued, still-empty item (`"5. "` -> `"5."`)
---- the moment it gets saved before any text is typed into it. Without this,
---- that single save silently turns the item invisible to `M.parse` --
---- `transform.block_range`/`renumber.tree` then treat it as continuation
---- text instead of a list item, and renumbering quietly misfires on the
---- block from then on with no error anywhere.
+--- `unordered`/`digit`/`ascii` also accept a *bare* marker: just the marker
+--- and delimiter, nothing after it at all -- not even the trailing space
+--- `M.render` always writes. That trailing space is exactly what a
+--- whitespace-trimming save hook (`:h BufWritePre` running `%s/\s\+$//`,
+--- common in editor configs) strips from a freshly continued, still-empty
+--- item (`"5. "` -> `"5."`) the moment it gets saved before any text is
+--- typed into it. Without this, that single save silently turns the item
+--- invisible to `M.parse` -- `transform.block_range`/`renumber.tree` then
+--- treat it as continuation text instead of a list item, and renumbering
+--- quietly misfires on the block from then on with no error anywhere.
+---
+--- `roman` deliberately does NOT get the same bare-marker fallback:
+--- `%a+` is an unbounded run of letters, and plenty of ordinary words are,
+--- purely by coincidence, well-formed Roman numerals under strict
+--- validation ("Mix." = 1009, "Civ." = 104, "Liv." = 54 -- `roman.to_int`
+--- is correct, not lax; the collision is inherent to the numeral system).
+--- With no trailing space+text to anchor on, a bare "Mix." would silently
+--- become a list marker and get lowercased/renumbered by `renumber.tree`
+--- on the next save. `digit` (pure `%d+`, can't spell a word), `ascii`
+--- (a single letter, 26 possible bare tokens) and `unordered` (a fixed,
+--- non-alphabetic bullet-symbol set) have no such collision surface, so
+--- they keep the bare fallback; a roman-numbered list item that loses its
+--- trailing space this way falls back to the pre-existing (unrecognized)
+--- behavior instead of risking prose corruption.
 ---@param kind CascadeMarkerKind
 ---@param rest string
 ---@param opts CascadeListOpts
@@ -157,10 +171,6 @@ local function try_kind(kind, rest, opts)
     if rm and roman.to_int(rm) then
       local cb, text = split_checkbox(after, opts)
       return { kind = "roman", marker = rm, delim = d, checkbox = cb, text = text }
-    end
-    rm, d = rest:match("^(%a+)([%.%)])$")
-    if rm and roman.to_int(rm) then
-      return { kind = "roman", marker = rm, delim = d, checkbox = nil, text = "" }
     end
   end
   return nil
