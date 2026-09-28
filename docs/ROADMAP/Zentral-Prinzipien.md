@@ -1,6 +1,6 @@
 # Zentrale Prinzipien — offene Punkte für cascade.nvim
 
-> Auszug aus dem Audit gegen die Checkliste [Zentrale-Prinzipien](file:///E:/repos/Notes/MyNotes/Checklists/Lua/Zentrale-Prinzipien.md).
+> Auszug aus dem Audit gegen die Checkliste [Zentrale-Prinzipien]($REPOS_DIR/WKDBooks/Development/wkdbook-Lua/Checklists/archiv/Zentrale-Prinzipien.md).
 > Alle erfüllten Punkte (Events, Lazy-Loading, Kontext-Bündelung, Autocommand-
 > Gruppen, Event-vs-Command, Treesitter-Entscheidung, Cache, Laufzeit-Fokus,
 > Debugbarkeit) wurden entfernt — Audit dafür abgeschlossen. Verbleibt ein
