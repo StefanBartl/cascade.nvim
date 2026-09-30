@@ -107,7 +107,7 @@ block under the cursor without a manual range.
 
 - **Module:** `lists/transform.lua` (`M.rotate`)
 - **Config:** `lists.features.rotate`, `lists.forms`
-- **Keymaps:** `<leader>cf` / `<leader>cF` (preset, buffer-local, normal + visual)
+- **Keymaps:** `<leader>cl` / `<leader>cL` (preset, buffer-local, normal + visual)
 - **Usercmds:** `:Cascade rotate [next|prev]` (`!` = backward)
 
 ## Sort A-Z

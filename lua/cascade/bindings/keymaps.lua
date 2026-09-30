@@ -155,8 +155,10 @@ function M.bind_list_buffer()
       -- action leans on, so it is always available inside a list buffer.
       renumber = { default = "<leader>cr", rhs = api.renumber, desc = "renumber" },
 
+      -- `<leader>cl` / `<leader>cL` ("list form"), not `cf` / `cF`: those belong to
+      -- casedesk.nvim (files / grep of the current case, `cF` = every case).
       rotate_form_next = {
-        default = "<leader>cf",
+        default = "<leader>cl",
         desc = "rotate list form",
         binds = {
           { mode = "n", rhs = api.rotate_form_next },
@@ -164,7 +166,7 @@ function M.bind_list_buffer()
         },
       },
       rotate_form_prev = {
-        default = "<leader>cF",
+        default = "<leader>cL",
         desc = "rotate list form back",
         binds = {
           { mode = "n", rhs = api.rotate_form_prev },

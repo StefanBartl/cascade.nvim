@@ -206,10 +206,10 @@ With `keymaps.preset = true`:
     n <leader>ct    ->  cycle_type_next
     n <leader>cT    ->  cycle_type_prev
     n <leader>cr    ->  renumber
-    n <leader>cf    ->  rotate_form_next
-    x <leader>cf    ->  rotate_form_next_visual
-    n <leader>cF    ->  rotate_form_prev
-    x <leader>cF    ->  rotate_form_prev_visual
+    n <leader>cl    ->  rotate_form_next
+    x <leader>cl    ->  rotate_form_next_visual
+    n <leader>cL    ->  rotate_form_prev
+    x <leader>cL    ->  rotate_form_prev_visual
     n <leader>cs    ->  sort
     x <leader>cs    ->  sort_visual
     n <leader>cv    ->  reverse
