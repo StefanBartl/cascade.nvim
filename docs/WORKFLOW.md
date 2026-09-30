@@ -59,7 +59,7 @@ lines" instead of "moved too many levels", that's the tell.
 
 ## Form rotation vs. manual find-and-replace
 
-`<leader>cf` (or `:Cascade rotate`) turns a whole numbered checklist into
+`<leader>cl` (or `:Cascade rotate`) turns a whole numbered checklist into
 a plain bullet list — `1.` → `1. [ ]` → `- [ ]` → `-` — in one rotation
 per step, block- or selection-wide, checkbox state (`[x]`) preserved
 across the change. Reach for this instead of a `:s` substitution whenever
@@ -116,7 +116,7 @@ override a single pair without disabling a whole language.
 
 `lists.features.rotate = false` (etc.) is not the same as just not binding
 the key — a disabled feature makes the *action itself* a no-op, so a key
-you bound manually via Variant B (`vim.keymap.set("n", "<leader>cf",
+you bound manually via Variant B (`vim.keymap.set("n", "<leader>cl",
 cascade.rotate_form_next)`) would also silently do nothing. If a mapping
 feels dead, check `lists.features.*`/`cycle.features.*`/
 `transpose.features.*` before assuming the keymap itself is wrong —

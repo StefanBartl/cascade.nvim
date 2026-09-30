@@ -316,7 +316,7 @@ Missing entries count as enabled.
 
 This is not the same as leaving a key unbound: a disabled feature makes the
 *action itself* a no-op, so a key you bound by hand
-(`vim.keymap.set("n", "<leader>cf", cascade.rotate_form_next)`) would also
+(`vim.keymap.set("n", "<leader>cl", cascade.rotate_form_next)`) would also
 silently do nothing. If a mapping feels dead, check the feature switch before
 suspecting the mapping.
 

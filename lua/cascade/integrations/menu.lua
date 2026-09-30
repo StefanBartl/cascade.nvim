@@ -172,7 +172,7 @@ function M.items(bufnr)
   contextmenu.group(
     out,
     contextmenu.entry(true, "  Renumber list", api.renumber, "<leader>cr"),
-    contextmenu.entry(on("rotate"), "  Rotate list form", api.rotate_form_next, "<leader>cf"),
+    contextmenu.entry(on("rotate"), "  Rotate list form", api.rotate_form_next, "<leader>cl"),
     contextmenu.entry(on("sort"), "  Sort list A-Z", api.sort, "<leader>cs"),
     contextmenu.entry(on("reverse"), "  Reverse list order", api.reverse, "<leader>cv")
   )

@@ -130,10 +130,10 @@ Buffer-local, bound per `lists.filetypes`.
 | `<leader>ct` | n | `cycle_type_next` | cycle_type | Cycle list type |
 | `<leader>cT` | n | `cycle_type_prev` | cycle_type | Cycle list type back |
 | `<leader>cr` | n | `renumber` | — | Renumber |
-| `<leader>cf` | n | `rotate_form_next` | rotate | Rotate list form |
-| `<leader>cf` | x | `rotate_form_next_visual` | rotate | Rotate list form |
-| `<leader>cF` | n | `rotate_form_prev` | rotate | Rotate list form back |
-| `<leader>cF` | x | `rotate_form_prev_visual` | rotate | Rotate list form back |
+| `<leader>cl` | n | `rotate_form_next` | rotate | Rotate list form |
+| `<leader>cl` | x | `rotate_form_next_visual` | rotate | Rotate list form |
+| `<leader>cL` | n | `rotate_form_prev` | rotate | Rotate list form back |
+| `<leader>cL` | x | `rotate_form_prev_visual` | rotate | Rotate list form back |
 | `<leader>cs` | n | `sort` | sort | Sort list A-Z |
 | `<leader>cs` | x | `sort_visual` | sort | Sort list A-Z |
 | `<leader>cv` | n | `reverse` | reverse | Reverse list order |
