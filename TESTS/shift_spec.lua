@@ -84,6 +84,15 @@ return function(H)
   shift.shift(buf, 0, -1, "level", lopts)
   eq_lines(get(), { "0. x", "1. y" }, "digits may go down to 0")
 
+  -- Letters end at `z`: `aa)` is not a marker the parser reads, so stepping past `z`
+  -- must be refused instead of silently pushing items out of the list.
+  set({ "y) x", "z) y" }, 1)
+  H.eq((shift.shift(buf, 0, 1, "level", lopts)), false, "z + 1 is refused")
+  eq_lines(get(), { "y) x", "z) y" }, "…and nothing moved")
+  set({ "x) a", "y) b" }, 1)
+  shift.shift(buf, 0, 1, "level", lopts)
+  eq_lines(get(), { "y) a", "z) b" }, "stepping up to z is fine")
+
   -- Not an ordered item.
   set({ "- bullet", "plain" }, 1)
   H.eq(shift.shift(buf, 0, 1, "level", lopts), nil, "a bullet is not an ordered item (nil)")
