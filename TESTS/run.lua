@@ -17,6 +17,7 @@ local H = dofile(dir .. "harness.lua")
 -- and finally health, which reads the config every layer above it wrote.
 local specs = {
   "units_spec.lua",
+  "shift_spec.lua",
   "lib_fallbacks_spec.lua",
   "packs_spec.lua",
   "shape_cycle_type_spec.lua",

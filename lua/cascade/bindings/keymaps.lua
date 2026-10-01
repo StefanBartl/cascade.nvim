@@ -52,6 +52,7 @@ local LIST_FAMILIES = {
   checkbox_toggle = { "checkbox_toggle" },
   cycle_type = { "cycle_type_next", "cycle_type_prev" },
   rotate = { "rotate_form_next", "rotate_form_prev" },
+  shift = { "shift_level_next", "shift_level_prev" },
   sort = { "sort" },
   reverse = { "reverse" },
   strip = { "strip_checkbox" },
@@ -86,6 +87,8 @@ function M.bind_list_buffer()
       "renumber",
       "rotate_form_next",
       "rotate_form_prev",
+      "shift_level_next",
+      "shift_level_prev",
       "sort",
       "reverse",
       "strip_checkbox",
@@ -172,6 +175,22 @@ function M.bind_list_buffer()
           { mode = "n", rhs = api.rotate_form_prev },
           { mode = "x", rhs = api.rotate_form_prev_visual },
         },
+      },
+
+      -- Shift a whole list level: every sibling, before and after the cursor item,
+      -- by the same amount (`<C-y>`/`<C-x>` on a marker moves only the item and the
+      -- ones AFTER it). Two keys each, like cycle_char: `<C-S-y>` only arrives as
+      -- its own key where the terminal speaks the kitty keyboard protocol (or
+      -- modifyOtherKeys); the leader alias works everywhere.
+      shift_level_next = {
+        default = { "<C-S-y>", "<leader>c+" },
+        rhs = api.shift_level_next,
+        desc = "shift the whole list level up",
+      },
+      shift_level_prev = {
+        default = { "<C-S-x>", "<leader>c-" },
+        rhs = api.shift_level_prev,
+        desc = "shift the whole list level down",
       },
 
       sort = {

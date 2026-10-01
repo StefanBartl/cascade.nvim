@@ -260,3 +260,38 @@ is off), which is what `ui.menu` asks first.
 
 - **Module:** `cascade/integrations/menu.lua` (`M.items`, `M.submenu`, `M.enabled`)
 - **Docs:** [`../BINDINGS.md#context-menu-optional`](../BINDINGS.md#context-menu-optional)
+
+## Stepping a numbered list: `<C-y>` / `<C-x>` and the whole level
+
+The stepping keys (`<C-y>`/`<C-x>`, `+`/`-` in the preset) already cycle the
+word or number under the cursor. On an **ordered list marker** (the cursor on
+the number or before it, in a list filetype) they now step the list instead:
+the item **and every later sibling of its level** move by the same amount, so
+the list stays in order without being renumbered.
+
+```markdown
+1. Test             1. Test
+  2. Testing   --x->  1. Testing        (<C-x> on `2.`)
+  3. Testung          2. Testung
+```
+
+Why not a full renumber: that forces every list back to `1, 2, 3, …` from its
+first item. Stepping only moves what you point at — a list that starts at 5, or
+one with deliberate gaps, keeps its shape (`5. 9. 12.` → `x` on `9.` → `5. 8. 11.`).
+Items **before** the cursor item stay; deeper children and continuation lines
+are never touched. A count steps by that much (`3<C-y>`), and `.` repeats.
+Letters and Roman numerals step through their own sequence (`a)` → `b)`,
+`iii.` → `iv.`, case kept). A step that would leave the representable range
+(below `a`/`i`, below `0`, past `z`) changes nothing and says why.
+
+With the cursor in the text of the item (`2. Buy 3 apples`, on the `3`) the keys
+keep their usual word/number meaning.
+
+**The whole level**, before and after the cursor item, with the cursor anywhere on
+the item: `<C-S-y>` / `<C-S-x>` (`shift_level_next` / `shift_level_prev`, also
+`<leader>c+` / `<leader>c-` — a modified Ctrl key only reaches Neovim as its own
+key where the terminal speaks the kitty keyboard protocol or modifyOtherKeys).
+
+- **Module:** `lists/shift.lua`
+- **Config:** `lists.features.shift` (gates both)
+- **Keymaps:** `<C-y>`/`<C-x>` on a marker (existing keys), `<C-S-y>`/`<C-S-x>` · `<leader>c+`/`<leader>c-`

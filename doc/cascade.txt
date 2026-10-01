@@ -96,6 +96,10 @@ keys you like with a normal |vim.keymap.set()|:
                                           selection
     rotate_form_next / _visual   n / x   rotate block/selection forms
     rotate_form_prev / _visual   n / x   rotate forms backward
+    shift_level_next / _prev     n       shift the whole ordered level by 1
+                                          (<C-S-y> / <C-S-x>, <leader>c+ / c-);
+                                          <C-y>/<C-x> ON a marker shift the item
+                                          and the later siblings (no renumber)
     sort / sort_visual           n / x   sort block/selection A-Z
     reverse / reverse_visual     n / x   reverse block/selection order
     strip_checkbox / _visual     n / x   remove checkboxes

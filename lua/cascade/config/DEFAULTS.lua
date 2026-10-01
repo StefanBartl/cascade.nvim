@@ -15,6 +15,7 @@ local DEFAULTS = {
       checkbox = true, -- toggle/cycle checkbox
       cycle_type = true, -- cycle a single item's marker shape
       rotate = true, -- block/visual form rotation
+      shift = true, -- <C-y>/<C-x> on an ordered marker shifts the item + later siblings; <C-S-y>/<C-S-x> the whole level
       sort = true, -- block/visual A-Z sort
       reverse = true, -- block/visual reverse order
       strip = true, -- block/visual remove checkboxes

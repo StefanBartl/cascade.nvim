@@ -29,6 +29,7 @@ require("cascade").setup({
     features = {                             -- toggle each feature individually
       continue = true, checkbox = true, cycle_type = true,
       rotate = true, sort = true, reverse = true, strip = true,
+      shift = true,                          -- <C-y>/<C-x> on a marker shift the item + later siblings; <C-S-y>/<C-S-x> the level
       indent = true, move = true,
       bullet_toggle = true,                  -- also gates <A-*> (star_toggle)
       number_toggle = true, checkbox_toggle = true,
@@ -119,7 +120,7 @@ unconditionally. Everything ignored or degraded is listed again under
 | Key | Type | Meaning |
 | --- | --- | --- |
 | `lists.enable` | boolean | Master switch for the list domain. |
-| `lists.features` | table | Per-feature on/off: `continue`, `checkbox`, `cycle_type`, `rotate`, `sort`, `reverse`, `strip`, `indent`, `move`, `bullet_toggle`, `number_toggle`, `checkbox_toggle`. A missing key counts as enabled. `bullet_toggle` also gates `<A-*>`. |
+| `lists.features` | table | Per-feature on/off: `continue`, `checkbox`, `cycle_type`, `rotate`, `shift`, `sort`, `reverse`, `strip`, `indent`, `move`, `bullet_toggle`, `number_toggle`, `checkbox_toggle`. A missing key counts as enabled. `bullet_toggle` also gates `<A-*>`. |
 | `lists.filetypes` | string[] | Filetypes the list keys attach to. Actions no-op on a line without a marker, so a broad list is harmless. |
 | `lists.types` | string[] | Enabled marker kinds in detection order: `"unordered"`, `"digit"`, `"ascii"`, `"roman"`. `ascii`/`roman` are opt-in because a lone letter is ambiguous; with a mix enabled the order in `types` decides. |
 | `lists.unordered_markers` | string[] | Accepted bullet characters. |

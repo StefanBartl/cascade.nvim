@@ -54,6 +54,10 @@ local function value_of(kind, token)
   end
 end
 
+--- Integer value of an ordered marker token (nil when unreadable); shared with
+--- `cascade.lists.shift`.
+M.value_of = value_of
+
 --- Whether automatic renumbering should run for a given trigger.
 ---@param opts CascadeListOpts
 ---@param trigger CascadeRenumberTrigger

@@ -30,6 +30,7 @@
 ---@field checkbox boolean # Toggle/cycle checkbox action.
 ---@field cycle_type boolean # Cycle a single item's marker shape.
 ---@field rotate boolean # Block/visual form rotation.
+---@field shift boolean # `<C-y>`/`<C-x>` on an ordered marker shift the item + later siblings; `<C-S-y>`/`<C-S-x>` the level.
 ---@field sort boolean # Block/visual A-Z sort.
 ---@field reverse boolean # Block/visual reverse order.
 ---@field strip boolean # Block/visual remove checkboxes.
