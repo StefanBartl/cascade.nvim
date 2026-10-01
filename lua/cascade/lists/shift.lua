@@ -41,6 +41,11 @@ local function render_value(kind, value, ref)
   if value < 1 then
     return nil
   end
+  -- A letter marker is ONE letter: `alpha.to_alpha(27)` is "aa", which the list
+  -- parser no longer reads as a marker, so the item would silently leave the list.
+  if kind == "ascii" and value > 26 then
+    return nil
+  end
   local s
   if kind == "ascii" then
     s = require("cascade.lists.alpha").to_alpha(value)
