@@ -21,6 +21,7 @@ local cycle_type = require("cascade.lists.cycle_type")
 local indent_mod = require("cascade.lists.indent")
 local move_mod = require("cascade.lists.move")
 local renumber = require("cascade.lists.renumber")
+local shift = require("cascade.lists.shift")
 local transform = require("cascade.lists.transform")
 local word_cycle = require("cascade.cycle.word_cycle")
 local token = require("cascade.cycle.token")
@@ -427,6 +428,32 @@ local function cycle_type_work(dir)
 end
 
 ---@internal
+--- Step an ordered list item's number from the stepping keys (`<C-y>`/`<C-x>`,
+--- `+`/`-`): with the cursor on (or before) the marker of an ordered item, the
+--- item AND every later sibling of its level move by `delta`, so a renumber is
+--- never forced -- see `cascade.lists.shift`. Anywhere else this declines and
+--- the word/date/number cycle runs as before.
+---@param delta integer
+---@return boolean handled
+local function try_list_shift(delta)
+  if not lf("shift") then
+    return false
+  end
+  local ctx = Context.new()
+  if not lists_active(ctx) then
+    return false
+  end
+  if not shift.on_marker(ctx.line, ctx.col0, config.get("lists")) then
+    return false
+  end
+  local changed, err = shift.shift(ctx.bufnr, ctx.row0, delta, "following", config.get("lists"))
+  if err then
+    notify.warn(err)
+  end
+  return changed ~= nil
+end
+
+---@internal
 --- Cycle the word under the cursor. On an ISO date (`YYYY-MM-DD`), step the
 --- year/month/day segment under the cursor with calendar-aware rollover. On
 --- a plain numeric token, fall back to the real native increment/decrement
@@ -459,6 +486,9 @@ local pending_cycle_count = 1
 local function cycle_word_work(dir, number_key, own_key)
   return function()
     local count = pending_cycle_count
+    if try_list_shift(dir * count) then
+      return
+    end
     local opts = config.get("cycle")
     if not opts.enable then
       feed(count > 1 and (count .. own_key) or own_key)
@@ -743,6 +773,44 @@ M.increment = counted_cycle(increment_repeatable)
 --- Decrement the token under the cursor. `N` steps N times.
 ---@return nil
 M.decrement = counted_cycle(decrement_repeatable)
+
+---@internal
+--- Shift a whole list level: the ordered item at the cursor and ALL its
+--- siblings, before and after, by `dir * count` (`cascade.lists.shift`).
+---@param dir integer
+---@return fun()
+local function shift_level_work(dir)
+  return function()
+    local ctx = Context.new()
+    if not lf("shift") or not lists_active(ctx) then
+      return
+    end
+    local changed, err = shift.shift(ctx.bufnr, ctx.row0, dir * pending_cycle_count, "level", config.get("lists"))
+    if err then
+      notify.warn(err)
+    end
+    if changed == nil then
+      notify.info("not on an ordered list item")
+    end
+  end
+end
+local shift_level_next_repeatable = dotrepeat.repeatable("shift_level_next", shift_level_work(1))
+local shift_level_prev_repeatable = dotrepeat.repeatable("shift_level_prev", shift_level_work(-1))
+
+--- Shift every item of the cursor item's list level up by one (`N` = by N), the
+--- items before the cursor included. Ordered lists only.
+---@return nil
+function M.shift_level_next()
+  pending_cycle_count = vim.v.count1
+  shift_level_next_repeatable()
+end
+
+--- Shift every item of the cursor item's list level down by one (`N` = by N).
+---@return nil
+function M.shift_level_prev()
+  pending_cycle_count = vim.v.count1
+  shift_level_prev_repeatable()
+end
 
 --- Step the character under the cursor forward through the alphabet, inside a
 --- word as well as on its own. `N` jumps N places. No-op off an a-z/A-Z byte.

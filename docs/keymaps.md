@@ -75,6 +75,7 @@ instead, which keeps the rest of the preset intact. See
 | `renumber_selection` | x | Renumber the ordinals inside the selection (any filetype) |
 | `rotate_form_next` / `_visual` | n / x | Rotate block/selection through forms |
 | `rotate_form_prev` / `_visual` | n / x | … backward |
+| `shift_level_next` / `shift_level_prev` | n | Shift the WHOLE ordered level (all siblings) by 1 (count: by N); `<C-y>`/`<C-x>` on a marker shift the item + later siblings |
 | `sort` / `sort_visual` | n / x | Sort block/selection A–Z |
 | `reverse` / `reverse_visual` | n / x | Reverse block/selection order |
 | `strip_checkbox` / `_visual` | n / x | Strip checkboxes in block/selection |

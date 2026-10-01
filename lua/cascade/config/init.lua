@@ -52,6 +52,7 @@ local KNOWN = {
       checkbox = true,
       cycle_type = true,
       rotate = true,
+      shift = true,
       sort = true,
       reverse = true,
       strip = true,

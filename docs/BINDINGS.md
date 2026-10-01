@@ -134,6 +134,8 @@ Buffer-local, bound per `lists.filetypes`.
 | `<leader>cl` | x | `rotate_form_next_visual` | rotate | Rotate list form |
 | `<leader>cL` | n | `rotate_form_prev` | rotate | Rotate list form back |
 | `<leader>cL` | x | `rotate_form_prev_visual` | rotate | Rotate list form back |
+| `<C-S-y>` · `<leader>c+` | n | `shift_level_next` | shift | Shift the whole list level up |
+| `<C-S-x>` · `<leader>c-` | n | `shift_level_prev` | shift | Shift the whole list level down |
 | `<leader>cs` | n | `sort` | sort | Sort list A-Z |
 | `<leader>cs` | x | `sort_visual` | sort | Sort list A-Z |
 | `<leader>cv` | n | `reverse` | reverse | Reverse list order |
