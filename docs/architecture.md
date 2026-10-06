@@ -62,7 +62,7 @@ cascade.nvim/
       dotrepeat.lua       -- operatorfunc trampoline for `.`
   doc/cascade.txt         -- :h cascade
   docs/                   -- this folder
-  TESTS/                  -- framework-free specs, run via TESTS/run.lua
+  TESTS/                  -- framework-free specs, run via testing.nvim (scripts/test.sh)
 ```
 
 ## Why five domains and not one
