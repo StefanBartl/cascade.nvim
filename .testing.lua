@@ -12,6 +12,20 @@ return {
   -- stdpath('data')/lazy/<name>.
   deps = { "lib.nvim", "ui.nvim" },
   -- "none" = all specs in one nvim, "file" = one nvim per spec file
-  -- (nothing leaks from one file into the next).
-  isolated = "none",
+  -- (nothing leaks from one file into the next). "file" here because setup() leaves plugin-global
+  -- state (autocmd groups, :Cascade, keymaps, 'operatorfunc') and the specs leave scratch buffers
+  -- behind; in a one-case child that dies with the process instead of being a state finding.
+  isolated = "file",
+  -- Guards (safety nets, see testing.nvim docs/GUARDS.md). The suite passes all of them cleanly
+  -- (no file writes outside the temp dir, no processes, no network, no prompts), so all are errors.
+  guards = {
+    fs = "error",
+    state = "error",
+    scheduled_error = "error",
+    prompt = "error",
+    deprecation = "error",
+    process_net = "error",
+  },
+  -- Nothing to allow: cascade.nvim neither writes files, starts processes nor opens connections.
+  guard_allow = { fs = {}, spawn = {}, network = {} },
 }
