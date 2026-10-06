@@ -10,17 +10,32 @@ and real Ex commands.
 From the repo root:
 
 ```sh
+bash scripts/test.sh                  # every spec, run by testing.nvim
+bash scripts/test.sh --file lists     # only spec files whose name contains "lists"
+bash scripts/test.sh --json ir.json   # also write the machine-readable result
+```
+
+`scripts/test.sh` finds testing.nvim, lib.nvim and ui.nvim (`$<NAME>_DIR`,
+`.deps/<name>`, `../<name>`, `stdpath('data')/lazy/<name>`) and exits 1 naming
+all four places when one is missing. The specs are discovered, not listed; the
+configuration is `.testing.lua` (dialect `h`: the specs run on `TESTS/harness.lua`).
+
+The legacy runner still works (it is what `scripts/smoke.lua` wraps):
+
+```sh
 nvim --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile TESTS/run.lua" -c "qa!"
 ```
 
-or via the backwards-compatible entry point:
+and the backwards-compatible entry point:
 
 ```sh
 nvim --headless -u NONE -c "set rtp+=.,../lib.nvim,../ui.nvim" -c "luafile scripts/smoke.lua" -c "qa!"
 ```
 
 The runner prints one line per spec and exits non-zero if any spec failed
-(`CASCADE_TESTS_OK` / `CASCADE_SMOKE_OK` on success).
+(`CASCADE_TESTS_OK` / `CASCADE_SMOKE_OK` on success). `scripts/test.sh` runs with
+its own `NVIM_APPNAME`, so parsers installed in your personal Neovim data
+directory are not visible to the specs.
 
 `lib.nvim` and `ui.nvim` are sibling checkouts on the runtimepath, exactly as
 `.github/workflows/ci.yml` arranges them. Both are real dependencies here, not
@@ -35,7 +50,8 @@ skip.
 | File                          | Covers                                                                    |
 | ----------------------------- | -------------------------------------------------------------------------- |
 | `harness.lua`                 | Shared assertions (`eq`, `eq_lines`, `ok`) and `scratch(ft)`/`editable(ft)` buffer helpers. |
-| `run.lua`                     | Runner: loads every spec in the list, reports results, sets the exit code. |
+| `run.lua`                     | Legacy runner (spec list, exit code); only `scripts/smoke.lua` still uses it. |
+| `minimal_init.lua`            | Runtimepath + dependency lookup for isolated child runs of testing.nvim. |
 | `units_spec.lua`              | Pure functions: roman, alpha, marker parse/advance/render.               |
 | `lib_fallbacks_spec.lua`      | `cascade.util.lib`'s *standalone* fallbacks (case shape/apply, roman, alpha), each asserted both through lib.nvim and with the specific `lib.lua.*` module made absent. |
 | `packs_spec.lua`              | The nine shipped cycle packs as data (group shape, no duplicates), `resolve`'s cache and its warn-once behaviour, `conflicts` over the full set. |
@@ -58,8 +74,9 @@ skip.
 ## Adding a spec
 
 Create `<name>_spec.lua` returning `function(H) … end` (use `H.eq` / `H.eq_lines` /
-`H.ok` / `H.scratch` / `H.editable`) and add its filename to the `specs` list in
-`run.lua`. `H.scratch` buffers are `buftype=nofile` (fine for exercising
+`H.ok` / `H.scratch` / `H.editable`); testing.nvim discovers it by its `_spec.lua`
+suffix (add it to the list in `run.lua` as well only if `scripts/smoke.lua` should
+run it). `H.scratch` buffers are `buftype=nofile` (fine for exercising
 `lists.*`/`cycle.*` modules directly); facade-level tests that go through
 `cascade.*` functions (which gate on `writable()`) need `H.editable` instead.
 
