@@ -152,7 +152,8 @@ return function(H)
     f:write("  let g:cascade_test_repeat_calls = get(g:, 'cascade_test_repeat_calls', 0) + 1\n")
     f:write("endfunction\n")
     f:close()
-    vim.o.runtimepath = vim.o.runtimepath .. "," .. tmp
+    local orig_rtp = vim.o.runtimepath
+    vim.o.runtimepath = orig_rtp .. "," .. tmp
     vim.g.cascade_test_repeat_calls = 0
 
     local dotrepeat = require("cascade.util.dotrepeat")
@@ -166,6 +167,13 @@ return function(H)
     ok(fired, "dotrepeat_run: wrapped fn still runs with vim-repeat installed")
     eq(vim.g.cascade_test_repeat_calls, 1, "dotrepeat_run: repeat#set was called once")
     eq(vim.g.cascade_test_repeat_seq, "g@l", "dotrepeat_run: repeat#set was told to replay g@l")
+
+    -- Leave nothing behind: the fake plugin's rtp entry, its autoloaded function and the probe globals.
+    vim.o.runtimepath = orig_rtp
+    pcall(vim.cmd, "delfunction repeat#set")
+    vim.g.cascade_test_repeat_calls = nil
+    vim.g.cascade_test_repeat_seq = nil
+    vim.fn.delete(tmp, "rf")
   end
 
   -- dotrepeat.repeatable: the wrapped action is what most dot-repeatable
