@@ -66,6 +66,7 @@ return function(H)
   -- visual indent/dedent must keep the selection active so a chained
   -- <A-Right>/<A-Left> works without re-selecting (regression: the previous
   -- reselect used :normal! which silently exits Visual mode).
+  local orig_mapleader = vim.g.mapleader
   vim.g.mapleader = " " -- must be set before setup(): <Leader> in a mapping's lhs resolves at bind time.
   cascade.setup({ keymaps = { preset = true } })
   local ebuf = H.editable("markdown")
@@ -332,4 +333,7 @@ return function(H)
     { "1. a", "2. b", "", "1. x", "2. y" },
     ":Cascade renumber all sweeps every block in the buffer"
   )
+
+  -- Leave no mapleader behind for the specs that follow in the same editor.
+  vim.g.mapleader = orig_mapleader
 end
