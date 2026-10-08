@@ -32,6 +32,7 @@ local specs = {
   "commands_spec.lua",
   "bindings_spec.lua",
   "usrcmds_spec.lua",
+  "usrcmds_help_spec.lua",
   "menu_spec.lua",
   "lib_util_spec.lua",
   "health_spec.lua",
