@@ -67,6 +67,7 @@ skip.
 | `commands_spec.lua`           | `:Cascade*` commands exist; feature toggles gate actions; keymap wiring through real keypresses. |
 | `bindings_spec.lua`           | `bindings/{init,keymaps,autocmds}.lua`: augroup idempotency across repeated `setup()`, the FileType and BufWritePre handlers fired for real, feature-family key suppression on both surfaces. |
 | `usrcmds_spec.lua`            | Every `:Cascade` route run as a real Ex command: ranges, the bang, the enum and INT arguments, completion at each position. |
+| `usrcmds_help_spec.lua`       | Every positional argument of `:Cascade` has a line in lib.nvim's option float: `composer.help.undocumented("Cascade", { args = true })` is empty, the texts stay one line, `enum_desc` keys are real values. |
 | `menu_spec.lua`               | `integrations/menu.lua`: the entry list, every gate, `submenu`, and an entry invoked end to end. |
 | `lib_util_spec.lua`           | `cascade.util.lib`'s soft bridge to `lib.nvim` (notify/map/augroup), fallback and stubbed-present paths. |
 | `health_spec.lua`             | `:checkhealth cascade` against a captured `vim.health`: every domain branch, the config-sanity warnings, the cross-pack clash report, and the dependency-missing branch with lib.nvim made to fail its `require`. |

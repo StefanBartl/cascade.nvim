@@ -32,7 +32,13 @@ function M.setup()
       },
       {
         path = { "cycle", "add" },
-        args = { { name = "values", type = "STRING" } },
+        args = {
+          {
+            name = "values",
+            type = "STRING",
+            desc = "Comma-separated values of the new group, at least two",
+          },
+        },
         desc = "Add a cycle group at runtime: :Cascade cycle add on,off,maybe",
         run = function(ctx)
           -- The whole tail, not just `ctx.args.values`: a group may contain
@@ -47,7 +53,9 @@ function M.setup()
       },
       {
         path = { "cycle", "remove" },
-        args = { { name = "value", type = "STRING" } },
+        args = {
+          { name = "value", type = "STRING", desc = "Any value of the cycle group to remove" },
+        },
         desc = "Remove the runtime cycle group containing a value",
         run = function(ctx)
           api.cycle_group_remove(ctx.args.value)
@@ -56,7 +64,14 @@ function M.setup()
       {
         path = { "strings" },
         args = {
-          { name = "action", type = "STRING", enum = { "on", "off", "toggle", "now" }, optional = true },
+          {
+            name = "action",
+            type = "STRING",
+            enum = { "on", "off", "toggle", "now" },
+            optional = true,
+            desc = "Switch string auto-conversion for this buffer; default: toggle",
+            enum_desc = { now = "Convert the string literal at the cursor right away" },
+          },
         },
         desc = "Strings domain: on/off/toggle for this buffer, or `now` to convert the literal at the cursor",
         run = function(ctx)
@@ -78,7 +93,18 @@ function M.setup()
         path = { "rotate" },
         bang = true,
         range = true,
-        args = { { name = "dir", type = "STRING", enum = { "next", "prev" }, optional = true } },
+        args = {
+          {
+            name = "dir",
+            type = "STRING",
+            enum = { "next", "prev" },
+            optional = true,
+            enum_desc = {
+              next = "Advance every item to its next list form (default)",
+              prev = "Step every item back to its previous list form",
+            },
+          },
+        },
         desc = "Rotate list form (range-aware; ! or 'prev' = backward)",
         run = function(ctx)
           local dir = (ctx.args.dir == "prev" or ctx.bang) and -1 or 1
@@ -138,7 +164,19 @@ function M.setup()
       {
         path = { "renumber" },
         range = true,
-        args = { { name = "scope", type = "STRING", enum = { "all", "selection" }, optional = true } },
+        args = {
+          {
+            name = "scope",
+            type = "STRING",
+            enum = { "all", "selection" },
+            optional = true,
+            desc = "What to renumber; default: the list block at the cursor or range",
+            enum_desc = {
+              all = "Every list in the buffer",
+              selection = "Numbers inside the selected lines, not the list markers",
+            },
+          },
+        },
         desc = "Renumber list block (range-aware; 'all' = every list in the buffer, 'selection' = numbers inside the lines)",
         run = function(ctx)
           api.run_renumber_command(ctx.raw, ctx.args.scope)
