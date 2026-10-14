@@ -28,4 +28,6 @@ return {
   },
   -- Nothing to allow: cascade.nvim neither writes files, starts processes nor opens connections.
   guard_allow = { fs = {}, spawn = {}, network = {} },
+  -- gated: a failed conformance check makes `scripts/test.sh conformance` exit 1 (docs/CONFORMANCE.md of testing.nvim)
+  conformance = { gate = true },
 }
