@@ -28,6 +28,9 @@ return {
   },
   -- Nothing to allow: cascade.nvim neither writes files, starts processes nor opens connections.
   guard_allow = { fs = {}, spawn = {}, network = {} },
+  -- The runner counts which commands, keymaps and autocommands the specs exercise (docs/SURFACE.md of testing.nvim);
+  -- `scripts/test.sh surface` compares that with surface.baseline.json (a regression gate, not a percentage).
+  surface = { track = true },
   -- gated: a failed conformance check makes `scripts/test.sh conformance` exit 1 (docs/CONFORMANCE.md of testing.nvim)
   conformance = { gate = true },
 }
