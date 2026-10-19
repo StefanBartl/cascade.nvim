@@ -160,19 +160,15 @@ return function(H)
   -- ---------- the runtime groups must never reach into config.DEFAULTS ----------
 
   do
-    -- `lib.lua.config.deep_merge` copies only the TOP level of `base`, so any
-    -- key the user did not override IS the very table that lives in
-    -- `cascade.config.DEFAULTS` -- including `cycle.groups`. That aliasing
-    -- itself is inherent to the merge (its root cause belongs in
-    -- lib.lua.config, LUA-02) and is not what is under test here; what must
-    -- hold is that the runtime group commands never mutate *through* it
-    -- (ERR-51), which DEFAULTS' own module header forbids ("Never mutate it
-    -- at runtime").
+    -- `lib.lua.config.deep_merge` used to copy only the TOP level of `base`, so a key the user
+    -- did not override WAS the very table in `cascade.config.DEFAULTS`, `cycle.groups` included.
+    -- It shares nothing now; what must still hold is that the runtime group commands never
+    -- mutate DEFAULTS (ERR-51), which its module header forbids ("Never mutate it at runtime").
     local DEFAULTS = require("cascade.config.DEFAULTS")
     local shipped = #DEFAULTS.cycle.groups
 
     cfg.setup({})
-    ok(cfg.get("cycle").groups == DEFAULTS.cycle.groups, "an untouched cycle.groups still aliases DEFAULTS (by design)")
+    ok(cfg.get("cycle").groups ~= DEFAULTS.cycle.groups, "an untouched cycle.groups is a copy of DEFAULTS")
 
     notices(function()
       cascade.cycle_group_add("pin-a,pin-b")
@@ -208,20 +204,18 @@ return function(H)
     ok(has_operator_group, "cycle_group_remove: a removed shipped group comes back on the next setup()")
     eq(#DEFAULTS.cycle.groups, shipped, "fixture: DEFAULTS is whole again")
 
-    -- A user who supplies their own `cycle.groups` gets their own array
-    -- handed back by reference too (deep_merge's own by-design wholesale
-    -- replace for list-like values -- not itself the bug). What must hold is
-    -- that `cycle_group_add` never mutates *through* that reference: the
-    -- caller's own table is the "milder half" of the same ERR-51 defect that
-    -- DEFAULTS.cycle.groups is the severe half of.
+    -- A user who supplies their own `cycle.groups` gets a copy of it: the merge shares no table
+    -- with the caller's opts. `cycle_group_add` must then never reach the caller's own table
+    -- either, which is the "milder half" of the ERR-51 defect that DEFAULTS.cycle.groups is the
+    -- severe half of.
     local mine = { { "one", "two" } }
     cfg.setup({ cycle = { groups = mine } })
-    ok(cfg.get("cycle").groups == mine, "a user-supplied groups array is handed back by reference (deep_merge, by design)")
+    ok(cfg.get("cycle").groups ~= mine, "a user-supplied groups array is copied, not handed back")
     notices(function()
       cascade.cycle_group_add("three,four")
     end)
     eq(#mine, 1, "cycle_group_add: the caller's own groups table is never mutated")
-    eq(#cfg.get("cycle").groups, 2, "cycle_group_add: the live config still grows, via a private copy")
+    eq(#cfg.get("cycle").groups, 2, "cycle_group_add: the live config still grows")
   end
 
   -- ---------- gates: lists ----------
