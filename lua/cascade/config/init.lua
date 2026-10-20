@@ -26,13 +26,6 @@ local M = {}
 M.options = vim.deepcopy(DEFAULTS)
 
 ---@internal
---- What the last `setup()` had to reject or degrade, one human-readable line
---- each, for `:checkhealth` (ERR-50/ERR-22). Empty when everything was
---- accepted as given.
----@type string[]
-local _issues = {}
-
----@internal
 --- Keys `setup()` accepts, walked recursively for every fixed-schema table
 --- (nested `true|table` entries, no depth limit) so a typo anywhere in a
 --- known option tree is caught -- not just at the top level or one level in.
@@ -327,7 +320,49 @@ local function normalize(o, issues)
   end
 end
 
---- Apply user options. Safe to call once from `setup()`.
+--- To the schema that `lib.lua.config` infers from `DEFAULTS`, the sections `KNOWN` describes are
+--- open (it names their keys at any depth, `sanitize` checks them, `lists.renumber` also takes a
+--- bare boolean); an unknown top-level key is caught there as well.
+local ANY = "boolean|number|string|table|function"
+---@type table<string, string|table>
+local SCHEMA = {}
+for key, known in pairs(KNOWN) do
+  SCHEMA[key] = type(known) == "table" and { "table" } or ANY
+end
+
+local cfg = lib_config.new(DEFAULTS, {
+  name = "cascade",
+  schema = SCHEMA,
+  -- Unknown keys and wrong sections are dropped before the merge so the default underneath
+  -- applies. `opts` is a private copy, so it is rewritten in place.
+  normalize = function(opts, issues)
+    local clean, found = sanitize(opts)
+    for key in pairs(opts) do
+      opts[key] = nil
+    end
+    for key, value in pairs(clean) do
+      opts[key] = value
+    end
+    vim.list_extend(issues, found)
+  end,
+  -- After the merge: the values several call sites index without a guard degrade to the default.
+  resolve = function(current, issues)
+    normalize(current, issues)
+  end,
+  notify = function(message)
+    require("cascade.util.lib").notify(message, vim.log.levels.WARN)
+  end,
+  on_change = function(current)
+    M.options = current
+    -- Pack resolution is cached per pack list (it runs on every keypress); a
+    -- re-setup() with different `cycle.packs` has to invalidate it.
+    pcall(function()
+      require("cascade.cycle.packs").invalidate()
+    end)
+  end,
+})
+
+--- Apply user options. Every call starts from `DEFAULTS`.
 ---
 --- Unknown keys and mistyped option values are rejected/degraded and
 --- reported once here and again by `:checkhealth cascade` (see `M.issues()`);
@@ -335,26 +370,7 @@ end
 ---@param opts CascadeConfig|nil
 ---@return nil
 function M.setup(opts)
-  local clean, sanitize_issues
-  if type(opts) ~= "table" then
-    clean, sanitize_issues = {}, {}
-  else
-    clean, sanitize_issues = sanitize(opts)
-  end
-  M.options = lib_config.deep_merge(DEFAULTS, clean)
-
-  local issues = sanitize_issues
-  normalize(M.options, issues)
-  _issues = issues
-  if #issues > 0 then
-    require("cascade.util.lib").notify("ignored/degraded config: " .. table.concat(issues, "; "), vim.log.levels.WARN)
-  end
-
-  -- Pack resolution is cached per pack list (it runs on every keypress); a
-  -- re-setup() with different `cycle.packs` has to invalidate it.
-  pcall(function()
-    require("cascade.cycle.packs").invalidate()
-  end)
+  cfg.setup(type(opts) == "table" and opts or nil)
 end
 
 --- Read a value by dot-path, e.g. `get("lists.checkbox.states")`.
@@ -369,7 +385,7 @@ end
 --- everything was accepted as given. For `:checkhealth cascade`.
 ---@return string[]
 function M.issues()
-  return vim.list_extend({}, _issues)
+  return cfg.issues()
 end
 
 return M
